@@ -2,74 +2,68 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Belastungskonto 3.7</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Belastungskonto 3.9.1</title>
 <style>
 :root{
 --green:#34c759; --yellow:#ffcc00; --orange:#ff9500; --red:#ff3b30;
 --blue:#007aff; --gray:#8e8e93; --pause:#5856d6;
 }
-body{font-family:-apple-system,system-ui,sans-serif;background:#f2f2f7;margin:0;padding:12px;padding-top:85px}
-.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-button{width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:16px;color:#fff;cursor:pointer; transition: opacity 0.2s;}
-button:active{opacity: 0.7;}
+body{font-family:-apple-system,system-ui,sans-serif; background:#f2f2f7; margin:0; padding:12px; padding-top:85px; -webkit-tap-highlight-color: transparent;}
 
+.card{background: #fff; border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 4px 12px rgba(0,0,0,.15); transition: background-color 0.3s, color 0.3s;}
+
+.mode-green .card { background-color: var(--green); color: #fff; }
+.mode-yellow .card { background-color: var(--yellow); color: #000; }
+.mode-orange .card { background-color: var(--orange); color: #fff; }
+.mode-red .card { background-color: var(--red); color: #fff; }
+
+.card h3, .card strong { color: inherit; }
+
+button{width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:16px;color:#fff;cursor:pointer;transition:opacity 0.2s; touch-action: manipulation;}
+button:active{opacity:0.7;}
 .btn-start{background:var(--blue);margin-top:12px}
-.btn-reset{background:var(--gray);margin-top:8px; font-size: 13px;}
-.btn-add{background:var(--green); width: auto; padding: 10px 14px; margin-top:6px;}
+.btn-reset{background:var(--gray);margin-top:8px;font-size:13px;}
+.btn-add{background:var(--green);width:auto;padding:10px 14px;margin-top:6px;}
 .btn-pause{background:var(--pause);margin-bottom:4px;display:none}
+.pause-hint{display:none;font-size:12px;padding:8px;border-radius:8px;margin-bottom:12px;line-height:1.4;border-left:4px solid var(--pause); background: rgba(255,255,255,0.2); color: inherit;}
 
-.pause-hint { display: none; font-size: 12px; color: #555; background: #e5e5ea; padding: 8px; border-radius: 8px; margin-bottom: 12px; line-height: 1.4; border-left: 4px solid var(--pause); }
-
-#pacingHeader { position:fixed; top:0; left:0; width:100%; padding:10px; text-align:center; font-weight:800; z-index:2000; display:none; box-shadow: 0 2px 10px rgba(0,0,0,0.2); box-sizing: border-box; }
-.warn-rot { background: var(--red); color: #fff; border-bottom: 2px solid rgba(0,0,0,0.2); }
-.warn-pene { background: #000; color: var(--yellow); border-bottom: 3px solid var(--red); }
-.blink { animation: blinker 0.9s linear infinite; }
-@keyframes blinker { 50% { opacity: 0.3; } }
-
-.rolling-warn { background: #ffedea; border: 2px solid var(--red); color: var(--red); padding: 12px; border-radius: 12px; font-weight: bold; margin-bottom: 15px; display: none; text-align: center; }
+#pacingHeader{position:fixed;top:0;left:0;width:100%;padding:10px;text-align:center;font-weight:800;z-index:2000;display:none;box-shadow:0 2px 10px rgba(0,0,0,0.2);box-sizing:border-box;}
+.warn-rot{background:var(--red);color:#fff;}
+.warn-pene{background:#000;color:var(--yellow);border-bottom:3px solid var(--red);}
+.blink{animation:blinker 0.9s linear infinite;}
+@keyframes blinker{50%{opacity:0.3;}}
 
 .status-wrap{display:none;gap:10px;margin-bottom:12px}
-.status{flex:1;border-radius:14px;padding:14px;color:#fff;font-weight:800;text-align:center}
-.big{font-size:2rem; display:block; margin:5px 0}
+.status{flex:1;border-radius:14px;padding:14px;color:#fff;font-weight:800;text-align:center; box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
+.big{font-size:2rem;display:block;margin:5px 0}
+
 .bg-green{background:var(--green)}
 .bg-yellow{background:var(--yellow);color:#000}
 .bg-orange{background:var(--orange)}
 .bg-red{background:var(--red)}
 
-.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee}
-.clickable-name{flex-grow:1;cursor:pointer;padding:8px 0; font-size: 16px;}
-.small-btn{width:38px; height:38px; padding:0; font-size:16px; border-radius:10px; margin-left:6px; display:inline-flex; align-items:center; justify-content:center;}
-.time-label { font-size: 11px; color: var(--gray); margin-right: 8px; font-weight: 400; }
-
-input,select{width:100%;padding:12px;border:1px solid #d1d1d6;border-radius:10px;font-size:16px;margin-top:6px;box-sizing:border-box}
-
-/* Einzeiliges Layout für den Katalog-Input */
-.add-input-row { display: flex; gap: 6px; align-items: flex-end; }
-.flex-name { flex: 2; }
-.flex-pts { flex: 0.8; min-width: 50px; }
-.flex-btn { flex: 0.5; }
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.1)}
+.small-btn{width:34px;height:34px;padding:0;font-size:14px;border-radius:8px;margin-left:4px;display:inline-flex;align-items:center;justify-content:center;}
+.btn-sort{background:rgba(0,0,0,0.1); color:inherit; font-size:16px;}
+input,select{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:16px;margin-top:6px;box-sizing:border-box;background:rgba(255,255,255,0.9); color:#000;}
 </style>
 </head>
-
-<body>
+<body id="mainBody">
 
 <div id="pacingHeader"></div>
 
 <div id="statusWrap" class="status-wrap">
-<div class="status bg-green">Tageslimit<span id="valStart" class="big">0</span></div>
-<div id="boxRest" class="status bg-green">Rest-Energie<span id="valRest" class="big">0</span><span id="statusText"></span></div>
+<div class="status bg-green" id="boxLimit">Limit<span id="valStart" class="big">0</span></div>
+<div id="boxRest" class="status bg-green">Rest<span id="valRest" class="big">0</span></div>
 </div>
 
 <button id="pauseBtn" class="btn-pause" onclick="doPause()">☕ PAUSE (+3 & Block-Reset)</button>
 <div id="pauseHint" class="pause-hint">
-<strong>Hinweis:</strong> Ruhe, um den Puls zu normalisieren ist KEINE Pause! Sondern NOTWENDIG!
+<strong>Hinweis:</strong> Ruhe zur Puls-Normalisierung ist KEINE Pause!
 </div>
 
-<div id="rollingWarnBox" class="rolling-warn">⚠️ Achtung: Mehrere Tage im roten Bereich!<br>Auf Rolling PENE aufpassen!</div>
-
-<div class="card">
+<div class="card" id="cardCheck">
 <h3>Morgen-Check</h3>
 <input id="sleep" type="number" placeholder="Schlafindex (z.B. 65)">
 <select id="feeling">
@@ -80,43 +74,36 @@ input,select{width:100%;padding:12px;border:1px solid #d1d1d6;border-radius:10px
 <option value="-12">Schwerer Druck, Pfeifen, es geht nichts (-12)</option>
 </select>
 <button class="btn-start" onclick="startDay()">Tag starten</button>
-<button class="btn-reset" onclick="resetDay()">Guten Morgen! (Neuer Tag)</button>
+<button class="btn-reset" onclick="resetDay()">Neuer Tag (Reset)</button>
 </div>
 
-<div class="card">
-<h3>Belastungskatalog (Dauerhaft)</h3>
-<div class="add-input-row">
-<input id="loadName" class="flex-name" placeholder="Aktivität">
-<input id="loadVal" class="flex-pts" type="number" placeholder="Pkt.">
-<button class="btn-add flex-btn" onclick="addCatalogEntry()">Neu</button>
+<div class="card" id="cardCatalog">
+<h3>Belastungskatalog</h3>
+<div style="display:flex;gap:6px;align-items:flex-end;">
+<input id="loadName" style="flex:2" placeholder="Aktivität">
+<input id="loadVal" style="flex:0.8" type="number" placeholder="Pkt.">
+<button class="btn-add" style="flex:0.5" onclick="addCatalogEntry()">Neu</button>
 </div>
 <div id="catalog" style="margin-top: 15px;"></div>
 </div>
 
-<div class="card">
+<div class="card" id="cardUsed">
 <h3>Heutige Aktivitäten</h3>
 <div id="dayList"></div>
 <button onclick="undoLast()" style="background:var(--orange); width:100%; padding:14px; border:none; border-radius:12px; font-weight:700; color:#fff; margin-top:15px">Letzten Eintrag rückgängig</button>
 </div>
 
 <script>
-// (Der JavaScript-Teil bleibt identisch zu Version 3.6, um alle Funktionen wie Rolling PENE etc. beizubehalten)
 const STORAGE_LOADS = "pacing_catalog_data"
 const STORAGE_STATE = "pacing_daily_state"
-const STORAGE_HISTORY = "pacing_red_history"
 
 let loads = JSON.parse(localStorage.getItem(STORAGE_LOADS)) || [{n: "Spaziergang", v: 5}, {n: "Einkaufen", v: 12}];
 let state = JSON.parse(localStorage.getItem(STORAGE_STATE)) || { max: 0, cur: 0, block: 0, used: [], date: "", pene: false };
-let history = JSON.parse(localStorage.getItem(STORAGE_HISTORY)) || [];
 
 window.onload = function() {
-checkRollingPene();
 const today = new Date().toDateString();
 if (state.date && state.date !== today && state.max > 0) {
-if(confirm("Guten Morgen! (Neuer Tag)")) {
-archiveDay();
-resetDayInternal();
-}
+if(confirm("Guten Morgen! Neuen Tag beginnen?")) { resetDayInternal(); }
 }
 if (state.max > 0) {
 showMainUI();
@@ -125,38 +112,24 @@ updateDisplay();
 renderCatalog();
 };
 
-function checkRollingPene() {
-const redDays = history.filter(isRed => isRed).length;
-const lastTwoNotRed = history.length >= 2 && !history[history.length-1] && !history[history.length-2];
-if (redDays >= 3 && !lastTwoNotRed) {
-document.getElementById("rollingWarnBox").style.display = "block"
-} else {
-document.getElementById("rollingWarnBox").style.display = "none"
-}
-}
-
-function archiveDay() {
-const percent = (state.cur / state.max) * 100;
-const endedRed = percent <= 25;
-history.push(endedRed);
-if (history.length > 7) history.shift();
-localStorage.setItem(STORAGE_HISTORY, JSON.stringify(history));
-}
-
 function saveAll() {
 localStorage.setItem(STORAGE_LOADS, JSON.stringify(loads));
 localStorage.setItem(STORAGE_STATE, JSON.stringify(state));
 }
 
 function startDay() {
-const s = +document.getElementById("sleep").value;
-const fStr = document.getElementById("feeling").value;
-if(fStr === "" || isNaN(s)) return alert("Bitte Schlafindex und Gefühl eingeben.");
-state.max = Math.max(1, s + (+fStr));
+const s = document.getElementById("sleep").value;
+const f = document.getElementById("feeling").value;
+if(!f || !s || s <= 0) return alert("Bitte Schlafindex und Gefühl eingeben.");
+state.max = parseInt(s) + parseInt(f);
 state.cur = state.max;
-state.used = []; state.block = 0; state.pene = false;
+state.used = [];
+state.block = 0;
+state.pene = false;
 state.date = new Date().toDateString();
-showMainUI(); saveAll(); updateDisplay();
+showMainUI();
+saveAll();
+updateDisplay();
 }
 
 function showMainUI() {
@@ -169,12 +142,18 @@ function updateDisplay() {
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
 const p = (state.cur / state.max) * 100;
-const box = document.getElementById("boxRest"), txt = document.getElementById("statusText");
-box.className = "status"
-if(p > 75) { box.classList.add("bg-green"); txt.textContent="Stabil" }
-else if(p > 50) { box.classList.add("bg-yellow"); txt.textContent="Achtung" }
-else if(p > 25) { box.classList.add("bg-orange"); txt.textContent="Schonung!" }
-else { box.classList.add("bg-red"); txt.textContent="STOPP" }
+const body = document.getElementById("mainBody");
+const boxRest = document.getElementById("boxRest");
+const boxLimit = document.getElementById("boxLimit");
+
+body.className = ""
+boxRest.className = "status"
+boxLimit.className = "status"
+
+if(p > 75) { body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green"); }
+else if(p > 50) { body.classList.add("mode-yellow"); boxRest.classList.add("bg-yellow"); boxLimit.classList.add("bg-yellow"); }
+else if(p > 25) { body.classList.add("mode-orange"); boxRest.classList.add("bg-orange"); boxLimit.classList.add("bg-orange"); }
+else { body.classList.add("mode-red"); boxRest.classList.add("bg-red"); boxLimit.classList.add("bg-red"); }
 
 const header = document.getElementById("pacingHeader");
 if (state.block >= 30) {
@@ -186,12 +165,15 @@ state.cur = Math.max(0, state.cur - 1);
 state.used.push({n: "⚠️ STRAFE: PENE-Warnung", v: 1, t: nowTime()});
 state.pene = true;
 saveAll();
+updateDisplay();
 }
 } else if (state.block >= 20) {
 header.style.display = "block"
 header.className = "warn-rot"
 header.innerHTML = `PAUSE EMPFOHLEN! (Block: ${state.block})`;
-} else { header.style.display = "none" }
+} else {
+header.style.display = "none"
+}
 renderUsed();
 }
 
@@ -199,10 +181,11 @@ function nowTime() { return new Date().toLocaleTimeString([], {hour: '2-digit', 
 
 function addCatalogEntry() {
 const n = document.getElementById("loadName").value.trim();
-const v = +document.getElementById("loadVal").value;
-if(!n || !v) return;
+const v = parseInt(document.getElementById("loadVal").value);
+if(!n || isNaN(v)) return;
 loads.push({n, v});
-saveAll(); renderCatalog();
+saveAll();
+renderCatalog();
 document.getElementById("loadName").value = ""
 document.getElementById("loadVal").value = ""
 }
@@ -211,8 +194,28 @@ function renderCatalog() {
 const div = document.getElementById("catalog");
 div.innerHTML = ""
 loads.forEach((l, i) => {
-div.innerHTML += `<div class="item"><span class="clickable-name" onclick="applyLoad(${i})"><strong>${l.n}</strong> (${l.v})</span><div><button class="small-btn" style="background:var(--blue)" onclick="applyLoad(${i})">+</button><button class="small-btn" style="background:var(--gray)" onclick="editCatalog(${i})">✎</button><button class="small-btn" style="background:var(--red)" onclick="deleteCatalog(${i})">✕</button></div></div>`;
+div.innerHTML += `<div class="item">
+<span style="flex-grow:1;cursor:pointer;padding:8px 0;" onclick="applyLoad(${i})"><strong>${l.n}</strong> (${l.v})</span>
+<div style="display:flex;">
+<button class="small-btn" style="background:var(--blue); color:#fff" onclick="applyLoad(${i})">+</button>
+<button class="small-btn" style="background:var(--gray); color:#fff" onclick="editCatalog(${i})">✎</button>
+<button class="small-btn" style="background:var(--red); color:#fff" onclick="deleteCatalog(${i})">✕</button>
+<button class="small-btn btn-sort" onclick="moveItem(${i}, -1)">↑</button>
+<button class="small-btn btn-sort" onclick="moveItem(${i}, 1)">↓</button>
+</div>
+</div>`;
 });
+}
+
+function moveItem(index, direction) {
+const newIndex = index + direction;
+if (newIndex >= 0 && newIndex < loads.length) {
+const temp = loads[index];
+loads[index] = loads[newIndex];
+loads[newIndex] = temp;
+saveAll();
+renderCatalog();
+}
 }
 
 function applyLoad(i) {
@@ -220,54 +223,75 @@ if(state.max <= 0) return alert("Bitte erst den Tag starten!");
 state.cur = Math.max(0, state.cur - loads[i].v);
 state.block += loads[i].v;
 state.used.push({...loads[i], t: nowTime()});
-saveAll(); updateDisplay();
+saveAll();
+updateDisplay();
 }
 
 function renderUsed() {
-const div = document.getElementById("dayList"); div.innerHTML = ""
+const div = document.getElementById("dayList");
+div.innerHTML = ""
 state.used.slice().reverse().forEach(u => {
 const isWarn = u.n.includes("STRAFE"), isPause = u.v < 0;
-div.innerHTML += `<div class="item"><span><span class="time-label">${u.t || ''}</span> <span style="${isWarn?'color:var(--red);font-weight:bold':''}">${u.n}</span></span><span style="color:${isPause?'var(--green)':'var(--red)'}">${isPause?'+':'-'}${Math.abs(u.v)}</span></div>`;
+div.innerHTML += `<div class="item"><span><span style="font-size:11px;opacity:0.8;margin-right:8px">${u.t || ''}</span> <span>${u.n}</span></span><span>${isPause?'+':'-'}${Math.abs(u.v)}</span></div>`;
 });
 }
 
 function doPause() {
-state.cur += 3; state.block = 0; state.pene = false;
-state.used.push({n: "☕ Pause / Erholung", v: -3, t: nowTime()});
-saveAll(); updateDisplay();
+state.cur += 3;
+state.block = 0;
+state.pene = false;
+state.used.push({n: "☕ Pause", v: -3, t: nowTime()});
+saveAll();
+updateDisplay();
 }
 
 function undoLast() {
 if(state.used.length === 0) return;
 const last = state.used.pop();
-if(last.n.includes("STRAFE")) { state.cur += last.v; state.pene = false; }
-else { state.cur += last.v; if(last.v > 0) state.block = Math.max(0, state.block - last.v); }
-saveAll(); updateDisplay();
+if(last.n.includes("STRAFE")) {
+state.cur += 1; state.pene = false; state.block = 29;
+} else {
+state.cur += last.v;
+if(last.v > 0) state.block = Math.max(0, state.block - last.v);
+}
+saveAll();
+updateDisplay();
 }
 
 function resetDay() {
-if(!confirm("Guten Morgen! (Neuer Tag)")) return;
-archiveDay();
+if(!confirm("Tag wirklich zurücksetzen?")) return;
 resetDayInternal();
 }
 
 function resetDayInternal() {
-state.max = 0; state.cur = 0; state.used = []; state.block = 0; state.pene = false;
-saveAll();
-document.getElementById("sleep").value = ""
-document.getElementById("feeling").selectedIndex = 0;
+// 1. Daten löschen
+state = { max: 0, cur: 0, block: 0, used: [], date: "", pene: false };
+localStorage.setItem(STORAGE_STATE, JSON.stringify(state));
+// 2. Felder manuell leeren (bevor der Reload kommt)
+const sleepInput = document.getElementById("sleep");
+const feelingSelect = document.getElementById("feeling");
+if(sleepInput) sleepInput.value = ""
+if(feelingSelect) feelingSelect.selectedIndex = 0;
+// 3. Neu laden
 location.reload();
 }
 
 function editCatalog(i) {
 const n = prompt("Name:", loads[i].n), v = prompt("Punkte:", loads[i].v);
-if(n && v) { loads[i] = {n, v: +v}; saveAll(); renderCatalog(); }
+if(n && v) {
+loads[i] = {n, v: parseInt(v)};
+saveAll();
+renderCatalog();
+}
 }
 
 function deleteCatalog(i) {
-if(confirm("Löschen?")) { loads.splice(i, 1); saveAll(); renderCatalog(); }
+if(confirm("Löschen?")) {
+loads.splice(i, 1);
+saveAll();
+renderCatalog();
+}
 }
 </script>
-
 </body>
 </html>
