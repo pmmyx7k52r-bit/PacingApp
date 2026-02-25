@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Belastungskonto 3.9.1</title>
+<title>Belastungskonto 3.9.1.4</title>
 <style>
 :root{
 --green:#34c759; --yellow:#ffcc00; --orange:#ff9500; --red:#ff3b30;
@@ -24,7 +24,8 @@ button{width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;fo
 button:active{opacity:0.7;}
 .btn-start{background:var(--blue);margin-top:12px}
 .btn-reset{background:var(--gray);margin-top:8px;font-size:13px;}
-.btn-add{background:var(--green);width:auto;padding:10px 14px;margin-top:6px;}
+.btn-add{background:var(--blue);width:auto;padding:10px 14px;margin-top:6px; white-space: nowrap;}
+
 .btn-pause{background:var(--pause);margin-bottom:4px;display:none}
 .pause-hint{display:none;font-size:12px;padding:8px;border-radius:8px;margin-bottom:12px;line-height:1.4;border-left:4px solid var(--pause); background: rgba(255,255,255,0.2); color: inherit;}
 
@@ -47,11 +48,18 @@ button:active{opacity:0.7;}
 .small-btn{width:34px;height:34px;padding:0;font-size:14px;border-radius:8px;margin-left:4px;display:inline-flex;align-items:center;justify-content:center;}
 .btn-sort{background:rgba(0,0,0,0.1); color:inherit; font-size:16px;}
 input,select{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:16px;margin-top:6px;box-sizing:border-box;background:rgba(255,255,255,0.9); color:#000;}
+
+#toast{
+position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:20px;
+font-weight:bold; display:none; z-index:3000; pointer-events:none;
+}
 </style>
 </head>
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
+<div id="toast">Erfasst 👍🏼</div>
 
 <div id="statusWrap" class="status-wrap">
 <div class="status bg-green" id="boxLimit">Limit<span id="valStart" class="big">0</span></div>
@@ -82,7 +90,7 @@ input,select{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.1);border-rad
 <div style="display:flex;gap:6px;align-items:flex-end;">
 <input id="loadName" style="flex:2" placeholder="Aktivität">
 <input id="loadVal" style="flex:0.8" type="number" placeholder="Pkt.">
-<button class="btn-add" style="flex:0.5" onclick="addCatalogEntry()">Neu</button>
+<button class="btn-add" style="flex:0.5" onclick="addCatalogEntry()">💾 Neu</button>
 </div>
 <div id="catalog" style="margin-top: 15px;"></div>
 </div>
@@ -93,11 +101,27 @@ input,select{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.1);border-rad
 <button onclick="undoLast()" style="background:var(--orange); width:100%; padding:14px; border:none; border-radius:12px; font-weight:700; color:#fff; margin-top:15px">Letzten Eintrag rückgängig</button>
 </div>
 
+<div style="margin-top: 20px; text-align: center;">
+<button id="showCheckBtn" style="background:none; color:var(--gray); font-size:12px; text-decoration:underline; display:none;" onclick="toggleCheck()">Morgen-Check bearbeiten</button>
+</div>
+
 <script>
 const STORAGE_LOADS = "pacing_catalog_data"
 const STORAGE_STATE = "pacing_daily_state"
 
-let loads = JSON.parse(localStorage.getItem(STORAGE_LOADS)) || [{n: "Spaziergang", v: 5}, {n: "Einkaufen", v: 12}];
+const myLoads = [
+{n: "Puls > 88", v: 1},
+{n: "3-Minuten-Arbeiten", v: 2},
+{n: "Aufstehen", v: 3},
+{n: "Leichte Arbeiten (Frühstück/Bett)", v: 2},
+{n: "30 Min. achtsame Bewegung", v: 5},
+{n: "Längere leichte Arbeiten", v: 10},
+{n: "Ärgern", v: 10},
+{n: "Problem wälzen", v: 10},
+{n: "Längere starke Konzentration", v: 10}
+];
+
+let loads = JSON.parse(localStorage.getItem(STORAGE_LOADS)) || myLoads;
 let state = JSON.parse(localStorage.getItem(STORAGE_STATE)) || { max: 0, cur: 0, block: 0, used: [], date: "", pene: false };
 
 window.onload = function() {
@@ -115,6 +139,13 @@ renderCatalog();
 function saveAll() {
 localStorage.setItem(STORAGE_LOADS, JSON.stringify(loads));
 localStorage.setItem(STORAGE_STATE, JSON.stringify(state));
+}
+
+function showToast(msg = "Erfasst 👍🏼") {
+const t = document.getElementById("toast");
+t.textContent = msg;
+t.style.display = "block"
+setTimeout(() => { t.style.display = "none" }, 1500);
 }
 
 function startDay() {
@@ -136,6 +167,13 @@ function showMainUI() {
 document.getElementById("statusWrap").style.display = "flex"
 document.getElementById("pauseBtn").style.display = "block"
 document.getElementById("pauseHint").style.display = "block"
+document.getElementById("cardCheck").style.display = "none" // Ausblenden
+document.getElementById("showCheckBtn").style.display = "inline-block" // Button unten zeigen
+}
+
+function toggleCheck() {
+const card = document.getElementById("cardCheck");
+card.style.display = card.style.display === "none" ? "block" : "none"
 }
 
 function updateDisplay() {
@@ -188,6 +226,7 @@ saveAll();
 renderCatalog();
 document.getElementById("loadName").value = ""
 document.getElementById("loadVal").value = ""
+showToast("Gespeichert 💾");
 }
 
 function renderCatalog() {
@@ -225,13 +264,14 @@ state.block += loads[i].v;
 state.used.push({...loads[i], t: nowTime()});
 saveAll();
 updateDisplay();
+showToast();
 }
 
 function renderUsed() {
 const div = document.getElementById("dayList");
 div.innerHTML = ""
 state.used.slice().reverse().forEach(u => {
-const isWarn = u.n.includes("STRAFE"), isPause = u.v < 0;
+const isPause = u.v < 0;
 div.innerHTML += `<div class="item"><span><span style="font-size:11px;opacity:0.8;margin-right:8px">${u.t || ''}</span> <span>${u.n}</span></span><span>${isPause?'+':'-'}${Math.abs(u.v)}</span></div>`;
 });
 }
@@ -243,6 +283,7 @@ state.pene = false;
 state.used.push({n: "☕ Pause", v: -3, t: nowTime()});
 saveAll();
 updateDisplay();
+showToast("Pause verbucht ☕");
 }
 
 function undoLast() {
@@ -264,15 +305,10 @@ resetDayInternal();
 }
 
 function resetDayInternal() {
-// 1. Daten löschen
 state = { max: 0, cur: 0, block: 0, used: [], date: "", pene: false };
 localStorage.setItem(STORAGE_STATE, JSON.stringify(state));
-// 2. Felder manuell leeren (bevor der Reload kommt)
-const sleepInput = document.getElementById("sleep");
-const feelingSelect = document.getElementById("feeling");
-if(sleepInput) sleepInput.value = ""
-if(feelingSelect) feelingSelect.selectedIndex = 0;
-// 3. Neu laden
+document.getElementById("sleep").value = ""
+document.getElementById("feeling").selectedIndex = 0;
 location.reload();
 }
 
