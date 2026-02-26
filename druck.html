@@ -1,38 +1,36 @@
 <!DOCTYPE html>
+
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp</title>
+<title>3.9.2</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
-<link rel="apple-touch-icon" href="faultier_icon.png">
 
 <style>
 :root{
 --green:#34c759; --yellow:#ffcc00; --orange:#ff9500; --red:#ff3b30;
 --blue:#007aff; --gray:#8e8e93; --pause:#5856d6;
 }
-body{font-family:-apple-system,system-ui,sans-serif; background:#f2f2f7; margin:0; padding:12px; padding-top:85px; -webkit-tap-highlight-color: transparent;}
+body{font-family:-apple-system,system-ui,sans-serif; background:#f2f2f7; margin:0; padding:10px; padding-top:80px; -webkit-tap-highlight-color: transparent;}
 
-.card{background: #fff; border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 4px 12px rgba(0,0,0,.15); transition: background-color 0.3s, color 0.3s;}
+.card{background: #fff; border-radius:14px; padding:12px 14px; margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,.15); transition: background-color 0.3s, color 0.3s;}
 
 .mode-green .card { background-color: var(--green); color: #fff; }
 .mode-yellow .card { background-color: var(--yellow); color: #000; }
 .mode-orange .card { background-color: var(--orange); color: #fff; }
 .mode-red .card { background-color: var(--red); color: #fff; }
 
-.card h3, .card strong { color: inherit; }
-
-button{width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:16px;color:#fff;cursor:pointer;transition:opacity 0.2s; touch-action: manipulation;}
+button{width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;color:#fff;cursor:pointer;transition:opacity 0.2s; touch-action: manipulation;}
 button:active{opacity:0.7;}
 .btn-start{background:var(--blue);margin-top:12px}
 .btn-reset{background:var(--gray);margin-top:8px;font-size:13px;}
 .btn-add{background:var(--blue);width:auto;padding:10px 14px;margin-top:6px; white-space: nowrap;}
-
 .btn-pause{background:var(--pause);margin-bottom:4px;display:none}
+
 .pause-hint{display:none;font-size:12px;padding:8px;border-radius:8px;margin-bottom:12px;line-height:1.4;border-left:4px solid var(--pause); background: rgba(255,255,255,0.2); color: inherit;}
 
 #pacingHeader{position:fixed;top:0;left:0;width:100%;padding:10px;text-align:center;font-weight:800;z-index:2000;display:none;box-shadow:0 2px 10px rgba(0,0,0,0.2);box-sizing:border-box;}
@@ -41,9 +39,9 @@ button:active{opacity:0.7;}
 .blink{animation:blinker 0.9s linear infinite;}
 @keyframes blinker{50%{opacity:0.3;}}
 
-.status-wrap{display:none;gap:10px;margin-bottom:12px}
-.status{flex:1;border-radius:14px;padding:14px;color:#fff;font-weight:800;text-align:center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; flex-direction: column; justify-content: center;}
-.big{font-size:2rem;display:block;margin:5px 0}
+.status-wrap{display:none;gap:8px;margin-bottom:10px}
+.status{flex:1;border-radius:12px;padding:10px;color:#fff;font-weight:800;text-align:center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; flex-direction: column; justify-content: center;}
+.big{font-size:1.7rem;display:block;margin:3px 0}
 .status-msg{font-size: 0.75rem; font-weight: 600; line-height: 1.2; margin-top: 4px;}
 
 .bg-green{background:var(--green)}
@@ -56,17 +54,31 @@ button:active{opacity:0.7;}
 .btn-sort{background:rgba(0,0,0,0.1); color:inherit; font-size:16px;}
 input,select{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:16px;margin-top:6px;box-sizing:border-box;background:rgba(255,255,255,0.9); color:#000;}
 
+/* Schlafqualität Buttons */
+.schlaf-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:8px; }
+.schlaf-btn {
+padding:10px 4px; border:2px solid #d1d1d6; border-radius:10px;
+font-weight:700; font-size:12px; color:#333; background:#f9f9f9;
+cursor:pointer; text-align:center; transition:all 0.15s; width:100%;
+line-height:1.2;
+}
+.schlaf-btn.selected { border-color:var(--blue); background:var(--blue); color:#fff; }
+.schlaf-btn .schlaf-val { font-size:10px; font-weight:400; opacity:0.7; display:block; margin-top:2px; }
+.individuell-row { display:none; margin-top:6px; }
+.individuell-row.open { display:block; }
+
 #toast{
 position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
 background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:20px;
 font-weight:bold; display:none; z-index:3000; pointer-events:none;
 }
 </style>
+
 </head>
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
-<div id="toast">Erfasst 👍🏼</div>
+<div id="toast">Erfasst</div>
 
 <div id="statusWrap" class="status-wrap">
 <div class="status bg-green" id="boxLimit">Limit<span id="valStart" class="big">0</span></div>
@@ -77,14 +89,35 @@ Rest<span id="valRest" class="big">0</span>
 </div>
 
 <button id="pauseBtn" class="btn-pause" onclick="doPause()">☕ PAUSE (+3 & Block-Reset)</button>
+
 <div id="pauseHint" class="pause-hint">
 <strong>Hinweis:</strong> Ruhe zur Puls-Normalisierung ist KEINE Pause!
 </div>
 
 <div class="card" id="cardCheck">
 <h3>Morgen-Check</h3>
-<input id="sleep" type="number" placeholder="Schlafindex (z.B. 65)">
-<select id="feeling">
+
+<label style="font-weight:600;font-size:13px;margin-top:4px;display:block;">Schlafqualität <span style="font-weight:400;color:#8e8e93;">(bitte eins auswählen)</span></label>
+
+<div class="schlaf-grid">
+<button type="button" class="schlaf-btn" id="sq_sehr_gut" onclick="selectSchlaf(90, this)">
+Sehr gut<span class="schlaf-val">90 Punkte</span>
+</button>
+<button type="button" class="schlaf-btn" id="sq_normal" onclick="selectSchlaf(80, this)">
+Normal<span class="schlaf-val">80 Punkte</span>
+</button>
+<button type="button" class="schlaf-btn" id="sq_schlecht" onclick="selectSchlaf(79, this)">
+Schlecht<span class="schlaf-val">79 Punkte</span>
+</button>
+<button type="button" class="schlaf-btn" id="sq_individuell" onclick="selectSchlaf(null, this)">
+Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
+</button>
+</div>
+<div class="individuell-row" id="individuellRow">
+<input id="sleep" type="number" placeholder="Eigener Wert (z.B. laut Schlaftracker)">
+</div>
+
+<label style="font-weight:600;font-size:13px;margin-top:10px;display:block;">Wie fühlst du dich? <span style="font-weight:400;color:#8e8e93;">(bitte auch noch auswählen)</span></label><select id="feeling" style="margin-top:4px;">
 <option value="" disabled selected>Wie fühlst du dich?</option>
 <option value="12">Es geht mir gut (+12)</option>
 <option value="4">Leichter Druck, es geht aber (+4)</option>
@@ -93,81 +126,121 @@ Rest<span id="valRest" class="big">0</span>
 </select>
 <button class="btn-start" onclick="startDay()">Tag starten</button>
 <button class="btn-reset" onclick="resetDay()">Neuer Tag (Reset)</button>
+
 </div>
 
 <div class="card" id="cardCatalog">
 <h3>Belastungskatalog</h3>
 <div style="display:flex;gap:6px;align-items:flex-end;">
-<input id="loadName" style="flex:2" placeholder="Aktivität">
-<input id="loadVal" style="flex:0.8" type="number" placeholder="Pkt.">
-<button class="btn-add" style="flex:0.5" onclick="addCatalogEntry()">💾 Neu</button>
+<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
+<input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
+<button class="btn-add" style="flex:0.5" onclick="addCatalogEntry()">Neu</button>
 </div>
-<div id="catalog" style="margin-top: 15px;"></div>
+<div id="catalog" style="margin-top:15px;"></div>
 </div>
 
 <div class="card" id="cardUsed">
 <h3>Heutige Aktivitäten</h3>
 <div id="dayList"></div>
-<button onclick="undoLast()" style="background:var(--orange); width:100%; padding:14px; border:none; border-radius:12px; font-weight:700; color:#fff; margin-top:15px">Letzten Eintrag rückgängig</button>
+<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">Letzten Eintrag rückgängig</button>
 </div>
 
-<div style="margin-top: 20px; text-align: center;">
-<button id="showCheckBtn" style="background:none; color:var(--gray); font-size:12px; text-decoration:underline; display:none;" onclick="toggleCheck()">Morgen-Check bearbeiten</button>
+<div style="margin-top:20px;text-align:center;">
+<button id="showCheckBtn" style="background:none;border:none;color:var(--gray);font-size:12px;text-decoration:underline;display:none;width:auto;padding:8px;" onclick="toggleCheck()">Morgen-Check bearbeiten</button>
 </div>
 
 <script>
-const STORAGE_LOADS = "pacing_catalog_data"
-const STORAGE_STATE = "pacing_daily_state"
+var STORAGE_LOADS = "pacing_catalog_data"
+var STORAGE_STATE = "pacing_daily_state"
 
-const myLoads = [
-{n: "Puls > 88", v: 1},
-{n: "3-Minuten-Arbeiten", v: 2},
-{n: "Aufstehen", v: 3},
-{n: "Leichte Arbeiten (Frühstück/Bett)", v: 2},
-{n: "30 Min. achtsame Bewegung", v: 5},
-{n: "Längere leichte Arbeiten", v: 10},
-{n: "Ärgern", v: 10},
-{n: "Problem wälzen", v: 10},
-{n: "Längere starke Konzentration", v: 10}
+var myLoads = [
+{n:"Puls > 88",v:1},
+{n:"3-Minuten-Arbeiten",v:2},
+{n:"Aufstehen",v:3},
+{n:"Leichte Arbeiten (z.B. Frühstück/Bett machen)",v:2},
+{n:"30 Min. achtsame Bewegung",v:5},
+{n:"Längere leichte Arbeiten",v:10},
+{n:"Ärgern",v:10},
+{n:"Problem wälzen",v:10},
+{n:"Längere starke Konzentration",v:10}
 ];
 
-let loads = JSON.parse(localStorage.getItem(STORAGE_LOADS)) || myLoads;
-let state = JSON.parse(localStorage.getItem(STORAGE_STATE)) || { max: 0, cur: 0, block: 0, used: [], date: "", pene: false };
+function storeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
+var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false};
+
+var schlafWert = null; // aktuell gewaehlter Schlafwert
 
 window.onload = function() {
-const today = new Date().toDateString();
-if (state.date && state.date !== today && state.max > 0) {
-if(confirm("Guten Morgen! Neuen Tag beginnen?")) { resetDayInternal(); }
+var today = new Date().toDateString();
+if(state.date && state.date !== today && state.max > 0) {
+resetDayInternal();
 }
-if (state.max > 0) {
-showMainUI();
-updateDisplay();
-}
+if(state.max > 0) { showMainUI(); updateDisplay(); }
 renderCatalog();
 };
 
 function saveAll() {
-localStorage.setItem(STORAGE_LOADS, JSON.stringify(loads));
-localStorage.setItem(STORAGE_STATE, JSON.stringify(state));
+storeSet(STORAGE_LOADS, JSON.stringify(loads));
+storeSet(STORAGE_STATE, JSON.stringify(state));
 }
 
-function showToast(msg = "Erfasst 👍🏼") {
-const t = document.getElementById("toast");
-t.textContent = msg;
+function showToast(msg) {
+var t = document.getElementById("toast");
+t.textContent = msg || "Erfasst"
 t.style.display = "block"
-setTimeout(() => { t.style.display = "none" }, 1500);
+setTimeout(function(){ t.style.display="none" }, 1500);
+}
+
+// Schlafqualität auswaehlen
+function selectSchlaf(wert, btn) {
+// Alle deselektieren
+var btns = document.querySelectorAll(".schlaf-btn");
+for(var i=0; i<btns.length; i++) btns[i].classList.remove("selected");
+btn.classList.add("selected");
+
+var row = document.getElementById("individuellRow");
+if(wert === null) {
+// Individuell
+schlafWert = null;
+row.classList.add("open");
+document.getElementById("sleep").focus();
+} else {
+schlafWert = wert;
+row.classList.remove("open");
+document.getElementById("sleep").value = ""
+}
 }
 
 function startDay() {
-const s = document.getElementById("sleep").value;
-const f = document.getElementById("feeling").value;
-if(!f || !s || s <= 0) return alert("Bitte Schlafindex und Gefühl eingeben.");
-state.max = parseInt(s) + parseInt(f);
+// Schlafwert ermitteln
+var s = schlafWert;
+if(s === null) {
+// Individuell-Feld pruefen
+var ind = parseFloat(document.getElementById("sleep").value);
+if(isNaN(ind) || ind <= 0) {
+showToast("Bitte Schlafqualität und Wert eingeben!");
+return;
+}
+s = ind;
+}
+if(s === null || s === undefined) {
+showToast("Bitte Schlafqualität auswaehlen!");
+return;
+}
+
+var f = document.getElementById("feeling").value;
+if(!f) { showToast("Bitte Gefuehl auswaehlen!"); return; }
+
+state.max = Math.max(1, s + parseFloat(f));
 state.cur = state.max;
 state.used = [];
 state.block = 0;
 state.pene = false;
 state.date = new Date().toDateString();
+
 showMainUI();
 saveAll();
 updateDisplay();
@@ -182,18 +255,19 @@ document.getElementById("showCheckBtn").style.display = "inline-block"
 }
 
 function toggleCheck() {
-const card = document.getElementById("cardCheck");
-card.style.display = card.style.display === "none" ? "block" : "none"
+var card = document.getElementById("cardCheck");
+card.style.display = (card.style.display === "none") ? "block" : "none"
 }
 
 function updateDisplay() {
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
-const p = (state.cur / state.max) * 100;
-const body = document.getElementById("mainBody");
-const boxRest = document.getElementById("boxRest");
-const boxLimit = document.getElementById("boxLimit");
-const msgEl = document.getElementById("statusMsg");
+
+var p = state.max > 0 ? (state.cur / state.max) * 100 : 0;
+var body = document.getElementById("mainBody");
+var boxRest = document.getElementById("boxRest");
+var boxLimit = document.getElementById("boxLimit");
+var msgEl = document.getElementById("statusMsg");
 
 body.className = ""
 boxRest.className = "status"
@@ -201,160 +275,182 @@ boxLimit.className = "status"
 
 if(p > 75) {
 body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green");
-msgEl.textContent = "Alles gut! Alles aber Achtsam!"
-}
-else if(p > 50) {
+msgEl.textContent = "Alles gut! Aber achtsam bleiben!"
+} else if(p > 50) {
 body.classList.add("mode-yellow"); boxRest.classList.add("bg-yellow"); boxLimit.classList.add("bg-yellow");
-msgEl.textContent = "Achtsam bleiben! Pausen einplanen!"
-}
-else if(p > 25) {
+msgEl.textContent = "Achtsam! Pausen einplanen!"
+} else if(p > 25) {
 body.classList.add("mode-orange"); boxRest.classList.add("bg-orange"); boxLimit.classList.add("bg-orange");
 msgEl.textContent = "Langsam! Schonung!"
-}
-else {
+} else {
 body.classList.add("mode-red"); boxRest.classList.add("bg-red"); boxLimit.classList.add("bg-red");
-msgEl.textContent = "Stop!!! Nur noch das Notwendigste!!!"
+msgEl.textContent = "STOP! Nur noch das Notwendigste!"
 }
 
-const header = document.getElementById("pacingHeader");
-if (state.block >= 30) {
+var header = document.getElementById("pacingHeader");
+if(state.block >= 30) {
 header.style.display = "block"
 header.className = "warn-pene"
-header.innerHTML = `<span class="blink">⚡ PAUSE ERZWINGEN! ⚡</span><br><small>Block: ${state.block}</small>`;
+header.innerHTML = "<span class='blink'>&#9889; PAUSE ERZWINGEN! &#9889;</span><br><small>Block: " + state.block + "</small>"
 if(!state.pene) {
 state.cur = Math.max(0, state.cur - 1);
-state.used.push({n: "⚠️ STRAFE: PENE-Warnung", v: 1, t: nowTime()});
+state.used.push({n:"STRAFE: PENE-Warnung",v:1,t:nowTime()});
 state.pene = true;
 saveAll();
-updateDisplay();
 }
-} else if (state.block >= 20) {
+} else if(state.block >= 20) {
 header.style.display = "block"
 header.className = "warn-rot"
-header.innerHTML = `PAUSE EMPFOHLEN! (Block: ${state.block})`;
+header.innerHTML = "PAUSE EMPFOHLEN! (Block: " + state.block + ")"
+state.pene = false;
 } else {
 header.style.display = "none"
+state.pene = false;
 }
 renderUsed();
 }
 
-function nowTime() { return new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
+function nowTime() { return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
 
 function addCatalogEntry() {
-const n = document.getElementById("loadName").value.trim();
-const v = parseInt(document.getElementById("loadVal").value);
+var n = document.getElementById("loadName").value.trim();
+var v = parseInt(document.getElementById("loadVal").value);
 if(!n || isNaN(v)) return;
-loads.push({n, v});
-saveAll();
-renderCatalog();
+loads.push({n:n,v:v});
+saveAll(); renderCatalog();
 document.getElementById("loadName").value = ""
 document.getElementById("loadVal").value = ""
-showToast("Gespeichert 💾");
+showToast("Gespeichert");
 }
 
 function renderCatalog() {
-const div = document.getElementById("catalog");
+var div = document.getElementById("catalog");
 div.innerHTML = ""
-loads.forEach((l, i) => {
-div.innerHTML += `<div class="item">
-<span style="flex-grow:1;cursor:pointer;padding:8px 0;" onclick="applyLoad(${i})"><strong>${l.n}</strong> (${l.v})</span>
-<div style="display:flex;">
-<button class="small-btn" style="background:var(--blue); color:#fff" onclick="applyLoad(${i})">+</button>
-<button class="small-btn" style="background:var(--gray); color:#fff" onclick="editCatalog(${i})">✎</button>
-<button class="small-btn" style="background:var(--red); color:#fff" onclick="deleteCatalog(${i})">✕</button>
-<button class="small-btn btn-sort" onclick="moveItem(${i}, -1)">↑</button>
-<button class="small-btn btn-sort" onclick="moveItem(${i}, 1)">↓</button>
-</div>
-</div>`;
-});
+for(var i=0; i<loads.length; i++) {
+(function(idx, l) {
+var row = document.createElement("div");
+row.className = "item"
+
+var name = document.createElement("span");
+name.style.cssText = "flex-grow:1;cursor:pointer;padding:8px 0;"
+name.innerHTML = "<strong>" + l.n + "</strong> (" + l.v + ")"
+name.onclick = function(){ applyLoad(idx); };
+
+var btns = document.createElement("div");
+btns.style.display = "flex"
+
+function mkBtn(txt, bg, fn) {
+var b = document.createElement("button");
+b.className = "small-btn"
+b.style.background = bg;
+b.style.color = "#fff"
+b.textContent = txt;
+b.onclick = fn;
+return b;
 }
 
-function moveItem(index, direction) {
-const newIndex = index + direction;
-if (newIndex >= 0 && newIndex < loads.length) {
-const temp = loads[index];
-loads[index] = loads[newIndex];
-loads[newIndex] = temp;
-saveAll();
-renderCatalog();
+btns.appendChild(mkBtn("+", "#007aff", function(){ applyLoad(idx); }));
+btns.appendChild(mkBtn("✎", "#8e8e93", function(){ editCatalog(idx); }));
+btns.appendChild(mkBtn("✕", "#ff3b30", function(){ deleteCatalog(idx); }));
+btns.appendChild(mkBtn("↑", "rgba(0,0,0,0.1)", function(){ moveItem(idx,-1); }));
+btns.appendChild(mkBtn("↓", "rgba(0,0,0,0.1)", function(){ moveItem(idx,1); }));
+
+row.appendChild(name);
+row.appendChild(btns);
+div.appendChild(row);
+})(i, loads[i]);
+}
+}
+
+function moveItem(index, dir) {
+var ni = index + dir;
+if(ni >= 0 && ni < loads.length) {
+var tmp = loads[index]; loads[index] = loads[ni]; loads[ni] = tmp;
+saveAll(); renderCatalog();
 }
 }
 
 function applyLoad(i) {
-if(state.max <= 0) return alert("Bitte erst den Tag starten!");
+if(state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
 state.cur = Math.max(0, state.cur - loads[i].v);
 state.block += loads[i].v;
-state.used.push({...loads[i], t: nowTime()});
-saveAll();
-updateDisplay();
+state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime()});
+saveAll(); updateDisplay();
 showToast();
 }
 
 function renderUsed() {
-const div = document.getElementById("dayList");
+var div = document.getElementById("dayList");
 div.innerHTML = ""
-state.used.slice().reverse().forEach(u => {
-const isPause = u.v < 0;
-div.innerHTML += `<div class="item"><span><span style="font-size:11px;opacity:0.8;margin-right:8px">${u.t || ''}</span> <span>${u.n}</span></span><span>${isPause?'+':'-'}${Math.abs(u.v)}</span></div>`;
-});
+var list = state.used.slice().reverse();
+for(var j=0; j<list.length; j++) {
+var u = list[j], ip = u.v < 0;
+var row = document.createElement("div");
+row.className = "item"
+row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "</span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
+div.appendChild(row);
+}
 }
 
 function doPause() {
-state.cur += 3;
-state.block = 0;
-state.pene = false;
-state.used.push({n: "☕ Pause", v: -3, t: nowTime()});
-saveAll();
-updateDisplay();
+state.cur = Math.min(state.max, state.cur + 3);
+state.block = 0; state.pene = false;
+state.used.push({n:"Pause",v:-3,t:nowTime()});
+saveAll(); updateDisplay();
 showToast("Pause verbucht ☕");
 }
 
 function undoLast() {
-if(state.used.length === 0) return;
-const last = state.used.pop();
-if(last.n.includes("STRAFE")) {
-state.cur += 1; state.pene = false; state.block = 29;
+if(!state.used.length) return;
+var last = state.used.pop();
+if(last.n.indexOf("STRAFE") >= 0) {
+state.cur = Math.min(state.max, state.cur + 1); state.pene = false; state.block = 29;
+} else if(last.v < 0) {
+state.cur = Math.max(0, state.cur + last.v); state.block = 0;
 } else {
-state.cur += last.v;
-if(last.v > 0) state.block = Math.max(0, state.block - last.v);
+state.cur = Math.min(state.max, state.cur + last.v);
+state.block = Math.max(0, state.block - last.v);
 }
-saveAll();
-updateDisplay();
+saveAll(); updateDisplay();
 }
 
 function resetDay() {
-if(!confirm("Tag wirklich zurücksetzen?")) return;
 resetDayInternal();
 }
 
 function resetDayInternal() {
-state = { max: 0, cur: 0, block: 0, used: [], date: "", pene: false };
-localStorage.setItem(STORAGE_STATE, JSON.stringify(state));
-// Morgen-Check Felder im HTML explizit leeren
-const sleepInput = document.getElementById("sleep");
-const feelingSelect = document.getElementById("feeling");
-if(sleepInput) sleepInput.value = ""
-if(feelingSelect) feelingSelect.selectedIndex = 0;
-
-location.reload();
+state = {max:0,cur:0,block:0,used:[],date:"",pene:false};
+saveAll();
+schlafWert = null;
+var btns = document.querySelectorAll(".schlaf-btn");
+for(var i=0; i<btns.length; i++) btns[i].classList.remove("selected");
+document.getElementById("individuellRow").classList.remove("open");
+document.getElementById("sleep").value = ""
+document.getElementById("feeling").selectedIndex = 0;
+document.getElementById("statusWrap").style.display = "none"
+document.getElementById("pauseBtn").style.display = "none"
+document.getElementById("pauseHint").style.display = "none"
+document.getElementById("pacingHeader").style.display = "none"
+document.getElementById("cardCheck").style.display = "block"
+document.getElementById("showCheckBtn").style.display = "none"
+document.getElementById("dayList").innerHTML = ""
+document.getElementById("mainBody").className = ""
+showToast("Neuer Tag gestartet! ☀️");
 }
 
 function editCatalog(i) {
-const n = prompt("Name:", loads[i].n), v = prompt("Punkte:", loads[i].v);
-if(n && v) {
-loads[i] = {n, v: parseInt(v)};
-saveAll();
-renderCatalog();
-}
+var n = prompt("Name:", loads[i].n);
+if(n === null) return;
+var v = prompt("Punkte:", loads[i].v);
+if(v === null) return;
+loads[i] = {n:n.trim(), v:parseInt(v)};
+saveAll(); renderCatalog();
 }
 
 function deleteCatalog(i) {
-if(confirm("Löschen?")) {
-loads.splice(i, 1);
-saveAll();
-renderCatalog();
-}
+loads.splice(i,1); saveAll(); renderCatalog();
 }
 </script>
+
 </body>
 </html>
