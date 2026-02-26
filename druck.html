@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>3.9.2</title>
+<title>PacingApp4.0.4</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -78,11 +78,11 @@ font-weight:bold; display:none; z-index:3000; pointer-events:none;
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
-<div id="toast">Erfasst</div>
+<div id="toast">Erfasst 👍</div>
 
 <div id="statusWrap" class="status-wrap">
-<div class="status bg-green" id="boxLimit">Limit<span id="valStart" class="big">0</span></div>
-<div id="boxRest" class="status bg-green">
+<div class="status bg-green" id="boxLimit" style="flex:0.6;font-size:13px;">Limit<span id="valStart" class="big" style="font-size:1.3rem;">0</span></div>
+<div id="boxRest" class="status bg-green" style="flex:1.4;">
 Rest<span id="valRest" class="big">0</span>
 <span id="statusMsg" class="status-msg"></span>
 </div>
@@ -125,12 +125,12 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 <option value="-12">Schwerer Druck, Pfeifen, es geht nichts (-12)</option>
 </select>
 <button class="btn-start" onclick="startDay()">Tag starten</button>
-<button class="btn-reset" onclick="resetDay()">Neuer Tag (Reset)</button>
+<button class="btn-reset" onclick="resetDay()">Neuer Tag! (Reset!)</button>
 
 </div>
 
-<div class="card" id="cardCatalog">
-<h3>Belastungskatalog</h3>
+<div class="card" id="cardCatalog" style="display:none;">
+<h3>Belastungskatalog <button type="button" onclick="resetKatalog()" style="background:none;border:none;color:#8e8e93;font-size:11px;font-weight:400;text-decoration:underline;width:auto;padding:0;cursor:pointer;">Standard wiederherstellen</button></h3>
 <div style="display:flex;gap:6px;align-items:flex-end;">
 <input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
 <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
@@ -139,14 +139,14 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 <div id="catalog" style="margin-top:15px;"></div>
 </div>
 
-<div class="card" id="cardUsed">
+<div class="card" id="cardUsed" style="display:none;">
 <h3>Heutige Aktivitäten</h3>
 <div id="dayList"></div>
 <button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">Letzten Eintrag rückgängig</button>
 </div>
 
 <div style="margin-top:20px;text-align:center;">
-<button id="showCheckBtn" style="background:none;border:none;color:var(--gray);font-size:12px;text-decoration:underline;display:none;width:auto;padding:8px;" onclick="toggleCheck()">Morgen-Check bearbeiten</button>
+<button id="showCheckBtn" style="background:none;border:none;color:var(--gray);font-size:12px;text-decoration:underline;display:none;width:auto;padding:8px;" onclick="toggleCheck()">Zum Tages-Reset</button>
 </div>
 
 <script>
@@ -164,6 +164,13 @@ var myLoads = [
 {n:"Problem wälzen",v:10},
 {n:"Längere starke Konzentration",v:10}
 ];
+
+function resetKatalog() {
+loads = JSON.parse(JSON.stringify(myLoads));
+storeSet(STORAGE_LOADS, JSON.stringify(loads));
+renderCatalog();
+showToast("Katalog zurückgesetzt 🔄");
+}
 
 function storeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
@@ -189,7 +196,7 @@ storeSet(STORAGE_STATE, JSON.stringify(state));
 
 function showToast(msg) {
 var t = document.getElementById("toast");
-t.textContent = msg || "Erfasst"
+t.textContent = msg || "Erfasst 👍"
 t.style.display = "block"
 setTimeout(function(){ t.style.display="none" }, 1500);
 }
@@ -252,11 +259,12 @@ document.getElementById("pauseBtn").style.display = "block"
 document.getElementById("pauseHint").style.display = "block"
 document.getElementById("cardCheck").style.display = "none"
 document.getElementById("showCheckBtn").style.display = "inline-block"
+document.getElementById("cardCatalog").style.display = "block"
+document.getElementById("cardUsed").style.display = "block"
 }
 
 function toggleCheck() {
-var card = document.getElementById("cardCheck");
-card.style.display = (card.style.display === "none") ? "block" : "none"
+resetDayInternal();
 }
 
 function updateDisplay() {
@@ -433,6 +441,8 @@ document.getElementById("pauseHint").style.display = "none"
 document.getElementById("pacingHeader").style.display = "none"
 document.getElementById("cardCheck").style.display = "block"
 document.getElementById("showCheckBtn").style.display = "none"
+document.getElementById("cardCatalog").style.display = "none"
+document.getElementById("cardUsed").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("mainBody").className = ""
 showToast("Neuer Tag gestartet! ☀️");
