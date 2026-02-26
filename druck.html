@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp4.0.4</title>
+<title>Belastungskonto 4.0.4.1</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -106,8 +106,8 @@ Sehr gut<span class="schlaf-val">90 Punkte</span>
 <button type="button" class="schlaf-btn" id="sq_normal" onclick="selectSchlaf(80, this)">
 Normal<span class="schlaf-val">80 Punkte</span>
 </button>
-<button type="button" class="schlaf-btn" id="sq_schlecht" onclick="selectSchlaf(79, this)">
-Schlecht<span class="schlaf-val">79 Punkte</span>
+<button type="button" class="schlaf-btn" id="sq_schlecht" onclick="selectSchlaf(70, this)">
+Schlecht<span class="schlaf-val">70 Punkte</span>
 </button>
 <button type="button" class="schlaf-btn" id="sq_individuell" onclick="selectSchlaf(null, this)">
 Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
@@ -118,6 +118,7 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 </div>
 
 <label style="font-weight:600;font-size:13px;margin-top:10px;display:block;">Wie fühlst du dich? <span style="font-weight:400;color:#8e8e93;">(bitte auch noch auswählen)</span></label><select id="feeling" style="margin-top:4px;">
+
 <option value="" disabled selected>Wie fühlst du dich?</option>
 <option value="12">Es geht mir gut (+12)</option>
 <option value="4">Leichter Druck, es geht aber (+4)</option>
@@ -178,7 +179,7 @@ function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
 var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false};
 
-var schlafWert = null; // aktuell gewaehlter Schlafwert
+var schlafWert = null;
 
 window.onload = function() {
 var today = new Date().toDateString();
@@ -201,16 +202,12 @@ t.style.display = "block"
 setTimeout(function(){ t.style.display="none" }, 1500);
 }
 
-// Schlafqualität auswaehlen
 function selectSchlaf(wert, btn) {
-// Alle deselektieren
 var btns = document.querySelectorAll(".schlaf-btn");
 for(var i=0; i<btns.length; i++) btns[i].classList.remove("selected");
 btn.classList.add("selected");
-
 var row = document.getElementById("individuellRow");
 if(wert === null) {
-// Individuell
 schlafWert = null;
 row.classList.add("open");
 document.getElementById("sleep").focus();
@@ -222,32 +219,21 @@ document.getElementById("sleep").value = ""
 }
 
 function startDay() {
-// Schlafwert ermitteln
 var s = schlafWert;
 if(s === null) {
-// Individuell-Feld pruefen
 var ind = parseFloat(document.getElementById("sleep").value);
-if(isNaN(ind) || ind <= 0) {
-showToast("Bitte Schlafqualität und Wert eingeben!");
-return;
-}
+if(isNaN(ind) || ind <= 0) { showToast("Bitte Schlafqualität und Wert eingeben!"); return; }
 s = ind;
 }
-if(s === null || s === undefined) {
-showToast("Bitte Schlafqualität auswaehlen!");
-return;
-}
-
+if(s === null || s === undefined) { showToast("Bitte Schlafqualität auswählen!"); return; }
 var f = document.getElementById("feeling").value;
-if(!f) { showToast("Bitte Gefuehl auswaehlen!"); return; }
-
+if(!f) { showToast("Bitte Gefühl auswählen!"); return; }
 state.max = Math.max(1, s + parseFloat(f));
 state.cur = state.max;
 state.used = [];
 state.block = 0;
 state.pene = false;
 state.date = new Date().toDateString();
-
 showMainUI();
 saveAll();
 updateDisplay();
@@ -270,17 +256,14 @@ resetDayInternal();
 function updateDisplay() {
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
-
 var p = state.max > 0 ? (state.cur / state.max) * 100 : 0;
 var body = document.getElementById("mainBody");
 var boxRest = document.getElementById("boxRest");
 var boxLimit = document.getElementById("boxLimit");
 var msgEl = document.getElementById("statusMsg");
-
 body.className = ""
 boxRest.className = "status"
 boxLimit.className = "status"
-
 if(p > 75) {
 body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green");
 msgEl.textContent = "Alles gut! Aber achtsam bleiben!"
@@ -294,7 +277,6 @@ msgEl.textContent = "Langsam! Schonung!"
 body.classList.add("mode-red"); boxRest.classList.add("bg-red"); boxLimit.classList.add("bg-red");
 msgEl.textContent = "STOP! Nur noch das Notwendigste!"
 }
-
 var header = document.getElementById("pacingHeader");
 if(state.block >= 30) {
 header.style.display = "block"
@@ -338,15 +320,12 @@ for(var i=0; i<loads.length; i++) {
 (function(idx, l) {
 var row = document.createElement("div");
 row.className = "item"
-
 var name = document.createElement("span");
 name.style.cssText = "flex-grow:1;cursor:pointer;padding:8px 0;"
 name.innerHTML = "<strong>" + l.n + "</strong> (" + l.v + ")"
 name.onclick = function(){ applyLoad(idx); };
-
 var btns = document.createElement("div");
 btns.style.display = "flex"
-
 function mkBtn(txt, bg, fn) {
 var b = document.createElement("button");
 b.className = "small-btn"
@@ -356,13 +335,11 @@ b.textContent = txt;
 b.onclick = fn;
 return b;
 }
-
 btns.appendChild(mkBtn("+", "#007aff", function(){ applyLoad(idx); }));
 btns.appendChild(mkBtn("✎", "#8e8e93", function(){ editCatalog(idx); }));
 btns.appendChild(mkBtn("✕", "#ff3b30", function(){ deleteCatalog(idx); }));
 btns.appendChild(mkBtn("↑", "rgba(0,0,0,0.1)", function(){ moveItem(idx,-1); }));
 btns.appendChild(mkBtn("↓", "rgba(0,0,0,0.1)", function(){ moveItem(idx,1); }));
-
 row.appendChild(name);
 row.appendChild(btns);
 div.appendChild(row);
