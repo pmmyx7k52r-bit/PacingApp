@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Belastungskonto 4.0.4.1</title>
+<title>PacingApp4.0.6.1</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -67,6 +65,8 @@ line-height:1.2;
 .individuell-row { display:none; margin-top:6px; }
 .individuell-row.open { display:block; }
 
+.rolling-warn{background:#ffedea;border:2px solid #ff3b30;color:#ff3b30;padding:10px 12px;border-radius:12px;font-weight:bold;margin-bottom:10px;display:none;text-align:center;font-size:13px;}
+
 #toast{
 position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
 background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:20px;
@@ -93,6 +93,8 @@ Rest<span id="valRest" class="big">0</span>
 <div id="pauseHint" class="pause-hint">
 <strong>Hinweis:</strong> Ruhe zur Puls-Normalisierung ist KEINE Pause!
 </div>
+
+<div id="rollingWarnBox" class="rolling-warn">⚠️ Mehrere Tage im roten Bereich!<br>Auf Rolling PENE aufpassen!</div>
 
 <div class="card" id="cardCheck">
 <h3>Morgen-Check</h3>
@@ -146,8 +148,12 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 <button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">Letzten Eintrag rückgängig</button>
 </div>
 
+<div style="margin-top:10px;text-align:center;">
+<button id="debugBtn" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;display:none;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;" onclick="showHistory()">History anzeigen</button>
+</div>
+
 <div style="margin-top:20px;text-align:center;">
-<button id="showCheckBtn" style="background:none;border:none;color:var(--gray);font-size:12px;text-decoration:underline;display:none;width:auto;padding:8px;" onclick="toggleCheck()">Zum Tages-Reset</button>
+<button id="showCheckBtn" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;" onclick="toggleCheck()">Neuer Tag / Reset</button>
 </div>
 
 <script>
@@ -177,14 +183,18 @@ function storeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return nul
 function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
 var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
-var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false};
+var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[]};
+// history wird im state gespeichert
 
 var schlafWert = null;
 
 window.onload = function() {
+checkRollingPene();
 var today = new Date().toDateString();
 if(state.date && state.date !== today && state.max > 0) {
+archiveDay();
 resetDayInternal();
+return;
 }
 if(state.max > 0) { showMainUI(); updateDisplay(); }
 renderCatalog();
@@ -193,6 +203,31 @@ renderCatalog();
 function saveAll() {
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
 storeSet(STORAGE_STATE, JSON.stringify(state));
+}
+
+function archiveDay() {
+if(state.max <= 0) return;
+if(!state.history) state.history = [];
+var pct = (state.cur / state.max) * 100;
+state.history.push(pct <= 25);
+if(state.history.length > 7) state.history.shift();
+saveAll();
+}
+
+function checkRollingPene() {
+var h = state.history || [];
+var red = 0;
+for(var i=0; i<h.length; i++){ if(h[i]) red++; }
+var pctHeute = state.max > 0 ? (state.cur / state.max) * 100 : 100;
+if(state.max > 0 && pctHeute <= 25) red++;
+var last2ok = h.length >= 2 && !h[h.length-1] && !h[h.length-2];
+var box = document.getElementById("rollingWarnBox");
+if(red >= 3 && !last2ok) {
+box.style.display = "block"
+box.innerHTML = "⚠️ Mehrere Tage im roten Bereich!<br>Auf Rolling PENE aufpassen!"
+} else {
+box.style.display = "none"
+}
 }
 
 function showToast(msg) {
@@ -245,11 +280,13 @@ document.getElementById("pauseBtn").style.display = "block"
 document.getElementById("pauseHint").style.display = "block"
 document.getElementById("cardCheck").style.display = "none"
 document.getElementById("showCheckBtn").style.display = "inline-block"
+document.getElementById("debugBtn").style.display = "inline-block"
 document.getElementById("cardCatalog").style.display = "block"
 document.getElementById("cardUsed").style.display = "block"
 }
 
 function toggleCheck() {
+try { archiveDay(); } catch(e) {}
 resetDayInternal();
 }
 
@@ -298,6 +335,7 @@ header.style.display = "none"
 state.pene = false;
 }
 renderUsed();
+checkRollingPene();
 }
 
 function nowTime() { return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
@@ -400,11 +438,14 @@ saveAll(); updateDisplay();
 }
 
 function resetDay() {
+archiveDay();
 resetDayInternal();
 }
 
 function resetDayInternal() {
-state = {max:0,cur:0,block:0,used:[],date:"",pene:false};
+try { saveAll(); } catch(e) {}
+var savedHistory = state.history || [];
+state = {max:0,cur:0,block:0,used:[],date:"",pene:false,history:savedHistory};
 saveAll();
 schlafWert = null;
 var btns = document.querySelectorAll(".schlaf-btn");
@@ -423,6 +464,14 @@ document.getElementById("cardUsed").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("mainBody").className = ""
 showToast("Neuer Tag gestartet! ☀️");
+}
+
+function showHistory() {
+var h = state.history || [];
+var txt = h.length + " Tage: "
+for(var i=0; i<h.length; i++) txt += (h[i]?"R":"o") + (i<h.length-1?",":"");
+if(h.length===0) txt = "History leer"
+showToast(txt);
 }
 
 function editCatalog(i) {
