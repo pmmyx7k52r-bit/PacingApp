@@ -1,8 +1,10 @@
+<!DOCTYPE html>
+
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp4.0.6.1</title>
+<title>Belastungskonto 4.0.4</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -132,14 +134,15 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 
 </div>
 
-<div class="card" id="cardCatalog" style="display:none;">
-<h3>Belastungskatalog <button type="button" onclick="resetKatalog()" style="background:none;border:none;color:#8e8e93;font-size:11px;font-weight:400;text-decoration:underline;width:auto;padding:0;cursor:pointer;">Standard wiederherstellen</button></h3>
+<div class="card" id="cardCatalog">
+<h3>Belastungskatalog</h3>
 <div style="display:flex;gap:6px;align-items:flex-end;">
 <input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
 <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
 <button class="btn-add" style="flex:0.5" onclick="addCatalogEntry()">Neu</button>
 </div>
 <div id="catalog" style="margin-top:15px;"></div>
+<button type="button" onclick="resetKatalog()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">↺ Grundkatalog wiederherstellen</button>
 </div>
 
 <div class="card" id="cardUsed" style="display:none;">
@@ -281,7 +284,6 @@ document.getElementById("pauseHint").style.display = "block"
 document.getElementById("cardCheck").style.display = "none"
 document.getElementById("showCheckBtn").style.display = "inline-block"
 document.getElementById("debugBtn").style.display = "inline-block"
-document.getElementById("cardCatalog").style.display = "block"
 document.getElementById("cardUsed").style.display = "block"
 }
 
@@ -459,7 +461,6 @@ document.getElementById("pauseHint").style.display = "none"
 document.getElementById("pacingHeader").style.display = "none"
 document.getElementById("cardCheck").style.display = "block"
 document.getElementById("showCheckBtn").style.display = "none"
-document.getElementById("cardCatalog").style.display = "none"
 document.getElementById("cardUsed").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("mainBody").className = ""
