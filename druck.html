@@ -197,6 +197,7 @@ var today = new Date().toDateString();
 if(state.date && state.date !== today && state.max > 0) {
 archiveDay();
 resetDayInternal();
+renderCatalog();
 return;
 }
 if(state.max > 0) { showMainUI(); updateDisplay(); }
