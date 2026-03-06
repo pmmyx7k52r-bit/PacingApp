@@ -69,6 +69,16 @@ line-height:1.2;
 
 .rolling-warn{background:#ffedea;border:2px solid #ff3b30;color:#ff3b30;padding:10px 12px;border-radius:12px;font-weight:bold;margin-bottom:10px;display:none;text-align:center;font-size:13px;}
 
+.pause-timer-bar {
+position:fixed; top:0; left:0; width:100%; padding:10px;
+text-align:center; font-weight:800; z-index:1999;
+box-shadow:0 2px 10px rgba(0,0,0,0.2); box-sizing:border-box;
+display:none; font-size:14px;
+}
+.pt-yellow { background:var(--yellow); color:#000; margin-top:0; }
+.pt-orange { background:var(--orange); color:#fff; }
+.pt-red { background:var(--red); color:#fff; animation:blinker 1.2s linear infinite; }
+
 #toast{
 position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
 background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:20px;
@@ -80,6 +90,7 @@ font-weight:bold; display:none; z-index:3000; pointer-events:none;
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
+<div id="pauseTimerBar" class="pause-timer-bar"></div>
 <div id="toast">Erfasst 👍</div>
 
 <div id="statusWrap" class="status-wrap">
@@ -190,9 +201,61 @@ var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],
 // history wird im state gespeichert
 
 var schlafWert = null;
+var lastActionTime = null; // Timestamp der letzten Aktivität/Pause
+var pauseTimerInterval = null;
+
+function startPauseTimer() {
+lastActionTime = Date.now();
+storeSet("pacing_timer_start", String(lastActionTime));
+if(pauseTimerInterval) clearInterval(pauseTimerInterval);
+pauseTimerInterval = setInterval(checkPauseTimer, 60000);
+checkPauseTimer();
+}
+
+function stopPauseTimer() {
+if(pauseTimerInterval) clearInterval(pauseTimerInterval);
+pauseTimerInterval = null;
+lastActionTime = null;
+storeSet("pacing_timer_start", "");
+document.getElementById("pauseTimerBar").style.display = "none"
+document.body.style.paddingTop = "80px"
+}
+
+function checkPauseTimer() {
+if(!lastActionTime || state.max <= 0) return;
+var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
+var bar = document.getElementById("pauseTimerBar");
+// pacingHeader hat z-index 2000, timer-bar 1999 - body padding anpassen
+if(minuten >= 120) {
+bar.style.display = "block"
+bar.className = "pause-timer-bar pt-red"
+bar.innerHTML = "🛑 " + minuten + " Min. ohne Pause – jetzt pausieren!"
+document.body.style.paddingTop = "120px"
+} else if(minuten >= 90) {
+bar.style.display = "block"
+bar.className = "pause-timer-bar pt-orange"
+bar.innerHTML = "⚠️ " + minuten + " Min. ohne Pause – bald Pause einplanen!"
+document.body.style.paddingTop = "120px"
+} else if(minuten >= 45) {
+bar.style.display = "block"
+bar.className = "pause-timer-bar pt-yellow"
+bar.innerHTML = "💛 " + minuten + " Min. – an eine Pause denken!"
+document.body.style.paddingTop = "120px"
+} else {
+bar.style.display = "none"
+document.body.style.paddingTop = "80px"
+}
+}
 
 window.onload = function() {
 checkRollingPene();
+// Timer wiederherstellen nach App-Neustart
+var savedTimer = storeGet("pacing_timer_start");
+if(savedTimer && state.max > 0) {
+lastActionTime = parseInt(savedTimer);
+pauseTimerInterval = setInterval(checkPauseTimer, 60000);
+checkPauseTimer();
+}
 var today = new Date().toDateString();
 if(state.date && state.date !== today && state.max > 0) {
 archiveDay();
@@ -403,6 +466,7 @@ state.block += loads[i].v;
 state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime()});
 saveAll(); updateDisplay();
 showToast();
+if(!lastActionTime) startPauseTimer(); // nur starten wenn Timer noch nicht läuft
 }
 
 function renderUsed() {
@@ -424,6 +488,7 @@ state.block = 0; state.pene = false;
 state.used.push({n:"Pause",v:-3,t:nowTime()});
 saveAll(); updateDisplay();
 showToast("Pause verbucht ☕");
+stopPauseTimer();
 }
 
 function undoLast() {
@@ -465,6 +530,7 @@ document.getElementById("showCheckBtn").style.display = "none"
 document.getElementById("cardUsed").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("mainBody").className = ""
+stopPauseTimer();
 showToast("Neuer Tag gestartet! ☀️");
 }
 
