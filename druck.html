@@ -224,22 +224,28 @@ document.body.style.paddingTop = "80px"
 function checkPauseTimer() {
 if(!lastActionTime || state.max <= 0) return;
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
+var pct = (state.cur / state.max) * 100;
+
+// Dynamische Grenzen je nach Restenergie
+var empfohlen, erzwingen;
+if(pct >= 70) {
+empfohlen = 22; erzwingen = 32;
+} else if(pct >= 40) {
+empfohlen = 18; erzwingen = 28;
+} else {
+empfohlen = 14; erzwingen = 22;
+}
+
 var bar = document.getElementById("pauseTimerBar");
-// pacingHeader hat z-index 2000, timer-bar 1999 - body padding anpassen
-if(minuten >= 120) {
+if(minuten >= erzwingen) {
 bar.style.display = "block"
 bar.className = "pause-timer-bar pt-red"
 bar.innerHTML = "🛑 " + minuten + " Min. ohne Pause – jetzt pausieren!"
 document.body.style.paddingTop = "120px"
-} else if(minuten >= 90) {
+} else if(minuten >= empfohlen) {
 bar.style.display = "block"
 bar.className = "pause-timer-bar pt-orange"
-bar.innerHTML = "⚠️ " + minuten + " Min. ohne Pause – bald Pause einplanen!"
-document.body.style.paddingTop = "120px"
-} else if(minuten >= 45) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-yellow"
-bar.innerHTML = "💛 " + minuten + " Min. – an eine Pause denken!"
+bar.innerHTML = "⚠️ " + minuten + " Min. ohne Pause – Pause empfohlen!"
 document.body.style.paddingTop = "120px"
 } else {
 bar.style.display = "none"
