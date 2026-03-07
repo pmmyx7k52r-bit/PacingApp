@@ -1,559 +1,221 @@
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Belastungskonto 4.0.4</title>
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Pacing">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacing Tool</title>
 
 <style>
-:root{
---green:#34c759; --yellow:#ffcc00; --orange:#ff9500; --red:#ff3b30;
---blue:#007aff; --gray:#8e8e93; --pause:#5856d6;
+body{
+font-family:-apple-system,system-ui;
+background:#f2f2f7;
+padding:20px;
 }
-body{font-family:-apple-system,system-ui,sans-serif; background:#f2f2f7; margin:0; padding:10px; padding-top:80px; -webkit-tap-highlight-color: transparent;}
 
-.card{background: #fff; border-radius:14px; padding:12px 14px; margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,.15); transition: background-color 0.3s, color 0.3s;}
-
-.mode-green .card { background-color: var(--green); color: #fff; }
-.mode-yellow .card { background-color: var(--yellow); color: #000; }
-.mode-orange .card { background-color: var(--orange); color: #fff; }
-.mode-red .card { background-color: var(--red); color: #fff; }
-
-button{width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;color:#fff;cursor:pointer;transition:opacity 0.2s; touch-action: manipulation;}
-button:active{opacity:0.7;}
-.btn-start{background:var(--blue);margin-top:12px}
-.btn-reset{background:var(--gray);margin-top:8px;font-size:13px;}
-.btn-add{background:var(--blue);width:auto;padding:10px 14px;margin-top:6px; white-space: nowrap;}
-.btn-pause{background:var(--pause);margin-bottom:4px;display:none}
-
-.pause-hint{display:none;font-size:12px;padding:8px;border-radius:8px;margin-bottom:12px;line-height:1.4;border-left:4px solid var(--pause); background: rgba(255,255,255,0.2); color: inherit;}
-
-#pacingHeader{position:fixed;top:0;left:0;width:100%;padding:10px;text-align:center;font-weight:800;z-index:2000;display:none;box-shadow:0 2px 10px rgba(0,0,0,0.2);box-sizing:border-box;}
-.warn-rot{background:var(--red);color:#fff;}
-.warn-pene{background:#000;color:var(--yellow);border-bottom:3px solid var(--red);}
-.blink{animation:blinker 0.9s linear infinite;}
-@keyframes blinker{50%{opacity:0.3;}}
-
-.status-wrap{display:none;gap:8px;margin-bottom:10px}
-.status{flex:1;border-radius:12px;padding:10px;color:#fff;font-weight:800;text-align:center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; flex-direction: column; justify-content: center;}
-.big{font-size:1.7rem;display:block;margin:3px 0}
-.status-msg{font-size: 0.75rem; font-weight: 600; line-height: 1.2; margin-top: 4px;}
-
-.bg-green{background:var(--green)}
-.bg-yellow{background:var(--yellow);color:#000}
-.bg-orange{background:var(--orange)}
-.bg-red{background:var(--red)}
-
-.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.1)}
-.small-btn{width:34px;height:34px;padding:0;font-size:14px;border-radius:8px;margin-left:4px;display:inline-flex;align-items:center;justify-content:center;}
-.btn-sort{background:rgba(0,0,0,0.1); color:inherit; font-size:16px;}
-input,select{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:16px;margin-top:6px;box-sizing:border-box;background:rgba(255,255,255,0.9); color:#000;}
-
-/* Schlafqualität Buttons */
-.schlaf-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:8px; }
-.schlaf-btn {
-padding:10px 4px; border:2px solid #d1d1d6; border-radius:10px;
-font-weight:700; font-size:12px; color:#333; background:#f9f9f9;
-cursor:pointer; text-align:center; transition:all 0.15s; width:100%;
-line-height:1.2;
+.card{
+background:white;
+padding:15px;
+border-radius:12px;
+margin-bottom:12px;
+box-shadow:0 4px 10px rgba(0,0,0,.15);
 }
-.schlaf-btn.selected { border-color:var(--blue); background:var(--blue); color:#fff; }
-.schlaf-btn .schlaf-val { font-size:10px; font-weight:400; opacity:0.7; display:block; margin-top:2px; }
-.individuell-row { display:none; margin-top:6px; }
-.individuell-row.open { display:block; }
 
-.rolling-warn{background:#ffedea;border:2px solid #ff3b30;color:#ff3b30;padding:10px 12px;border-radius:12px;font-weight:bold;margin-bottom:10px;display:none;text-align:center;font-size:13px;}
-
-.pause-timer-bar {
-position:fixed; top:0; left:0; width:100%; padding:10px;
-text-align:center; font-weight:800; z-index:1999;
-box-shadow:0 2px 10px rgba(0,0,0,0.2); box-sizing:border-box;
-display:none; font-size:14px;
+button{
+padding:12px;
+border:none;
+border-radius:10px;
+font-weight:700;
+margin-top:6px;
+cursor:pointer;
 }
-.pt-yellow { background:var(--yellow); color:#000; margin-top:0; }
-.pt-orange { background:var(--orange); color:#fff; }
-.pt-red { background:var(--red); color:#fff; animation:blinker 1.2s linear infinite; }
 
-#toast{
-position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
-background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:20px;
-font-weight:bold; display:none; z-index:3000; pointer-events:none;
+.btn-load{background:#007aff;color:white;width:100%}
+.btn-micro{background:#ffcc00}
+.btn-rest{background:#34c759;color:white}
+
+.status{
+font-size:18px;
+font-weight:bold;
+margin-top:6px;
+}
+
+.warn{
+color:#ff3b30;
+font-weight:bold;
 }
 </style>
-
 </head>
-<body id="mainBody">
 
-<div id="pacingHeader"></div>
-<div id="pauseTimerBar" class="pause-timer-bar"></div>
-<div id="toast">Erfasst 👍</div>
+<body>
 
-<div id="statusWrap" class="status-wrap">
-<div class="status bg-green" id="boxLimit" style="flex:0.6;font-size:13px;">Limit<span id="valStart" class="big" style="font-size:1.3rem;">0</span></div>
-<div id="boxRest" class="status bg-green" style="flex:1.4;">
-Rest<span id="valRest" class="big">0</span>
-<span id="statusMsg" class="status-msg"></span>
-</div>
-</div>
+<div class="card">
+<h3>Status</h3>
 
-<button id="pauseBtn" class="btn-pause" onclick="doPause()">☕ PAUSE</button>
+<div class="status">Limit: <span id="limit">0</span></div>
+<div class="status">Rest: <span id="rest">0</span></div>
+<div class="status">Block: <span id="block">0</span></div>
+<div class="status">Pausezeit: <span id="pauseTime">0</span> min</div>
 
-<div id="pauseHint" class="pause-hint">
-<strong>Hinweis:</strong> Ruhe zur Puls-Normalisierung ist KEINE Pause!
-</div>
-
-<div id="rollingWarnBox" class="rolling-warn">⚠️ Mehrere Tage im roten Bereich!<br>Auf Rolling PENE aufpassen!</div>
-
-<div class="card" id="cardCheck">
-<h3>Morgen-Check</h3>
-
-<label style="font-weight:600;font-size:13px;margin-top:4px;display:block;">Schlafqualität <span style="font-weight:400;color:#8e8e93;">(bitte eins auswählen)</span></label>
-
-<div class="schlaf-grid">
-<button type="button" class="schlaf-btn" id="sq_sehr_gut" onclick="selectSchlaf(90, this)">
-Sehr gut<span class="schlaf-val">90 Punkte</span>
-</button>
-<button type="button" class="schlaf-btn" id="sq_normal" onclick="selectSchlaf(80, this)">
-Normal<span class="schlaf-val">80 Punkte</span>
-</button>
-<button type="button" class="schlaf-btn" id="sq_schlecht" onclick="selectSchlaf(70, this)">
-Schlecht<span class="schlaf-val">70 Punkte</span>
-</button>
-<button type="button" class="schlaf-btn" id="sq_individuell" onclick="selectSchlaf(null, this)">
-Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
-</button>
-</div>
-<div class="individuell-row" id="individuellRow">
-<input id="sleep" type="number" placeholder="Eigener Wert (z.B. laut Schlaftracker)">
-</div>
-
-<label style="font-weight:600;font-size:13px;margin-top:10px;display:block;">Wie fühlst du dich? <span style="font-weight:400;color:#8e8e93;">(bitte auch noch auswählen)</span></label><select id="feeling" style="margin-top:4px;">
-
-<option value="" disabled selected>Wie fühlst du dich?</option>
-<option value="12">Es geht mir gut (+12)</option>
-<option value="4">Leichter Druck, es geht aber (+4)</option>
-<option value="-6">Starker Druck/Nebel, es geht irgendwie (-6)</option>
-<option value="-12">Schwerer Druck, Pfeifen, es geht nichts (-12)</option>
-</select>
-<button class="btn-start" onclick="startDay()">Tag starten</button>
-<button class="btn-reset" onclick="resetDay()">Neuer Tag! (Reset!)</button>
+<div id="warning" class="warn"></div>
 
 </div>
 
-<div class="card" id="cardCatalog">
-<h3>Belastungskatalog</h3>
-<div style="display:flex;gap:6px;align-items:flex-end;">
-<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
-<input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
-<button class="btn-add" style="flex:0.5" onclick="addCatalogEntry()">Neu</button>
-</div>
-<div id="catalog" style="margin-top:15px;"></div>
-<button type="button" onclick="resetKatalog()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">↺ Grundkatalog wiederherstellen</button>
+<div class="card">
+
+<h3>Morgenwert</h3>
+
+<input id="sleep" type="number" placeholder="Schlafwert">
+<input id="feeling" type="number" placeholder="Gefühl (+ / -)">
+<button onclick="startDay()">Tag starten</button>
+
 </div>
 
-<div class="card" id="cardUsed" style="display:none;">
-<h3>Heutige Aktivitäten</h3>
-<div id="dayList"></div>
-<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">Letzten Eintrag rückgängig</button>
+<div class="card">
+
+<h3>Belastung</h3>
+
+<button class="btn-load" onclick="addLoad(2)">Leichte Aktivität (2)</button>
+<button class="btn-load" onclick="addLoad(5)">Bewegung (5)</button>
+<button class="btn-load" onclick="addLoad(10)">Konzentration (10)</button>
+
 </div>
 
-<div style="margin-top:10px;text-align:center;">
-<button id="debugBtn" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;display:none;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;" onclick="showHistory()">History anzeigen</button>
-</div>
+<div class="card">
 
-<div style="margin-top:20px;text-align:center;">
-<button id="showCheckBtn" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;" onclick="toggleCheck()">Neuer Tag / Reset</button>
+<h3>Pausen</h3>
+
+<button class="btn-micro" onclick="microPause()">☕ Mikro-Pause</button>
+<button class="btn-rest" onclick="restPause()">🛋 Erholungs-Pause</button>
+
 </div>
 
 <script>
-var STORAGE_LOADS = "pacing_catalog_data"
-var STORAGE_STATE = "pacing_daily_state"
 
-var myLoads = [
-{n:"Puls > 88",v:1},
-{n:"3-Minuten-Arbeiten",v:2},
-{n:"Aufstehen",v:3},
-{n:"Leichte Arbeiten (z.B. Frühstück/Bett machen)",v:2},
-{n:"30 Min. achtsame Bewegung",v:5},
-{n:"Längere leichte Arbeiten",v:10},
-{n:"Ärgern",v:10},
-{n:"Problem wälzen",v:10},
-{n:"Längere starke Konzentration",v:10}
-];
-
-function resetKatalog() {
-loads = JSON.parse(JSON.stringify(myLoads));
-storeSet(STORAGE_LOADS, JSON.stringify(loads));
-renderCatalog();
-showToast("Katalog zurückgesetzt 🔄");
+let state={
+limit:0,
+rest:0,
+block:0,
+loads:[],
+lastPause:Date.now()
 }
 
-function storeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function startDay(){
 
-var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
-var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[]};
-// history wird im state gespeichert
+let s=parseFloat(document.getElementById("sleep").value)
+let f=parseFloat(document.getElementById("feeling").value)
 
-var schlafWert = null;
-var lastActionTime = null; // Timestamp der letzten Aktivität/Pause
-var pauseTimerInterval = null;
+if(isNaN(s)||isNaN(f))return
 
-function startPauseTimer() {
-lastActionTime = Date.now();
-storeSet("pacing_timer_start", String(lastActionTime));
-if(pauseTimerInterval) clearInterval(pauseTimerInterval);
-pauseTimerInterval = setInterval(checkPauseTimer, 60000);
-checkPauseTimer();
+state.limit=s+f
+state.rest=state.limit
+state.block=0
+state.loads=[]
+state.lastPause=Date.now()
+
+update()
+
 }
 
-function stopPauseTimer() {
-if(pauseTimerInterval) clearInterval(pauseTimerInterval);
-pauseTimerInterval = null;
-lastActionTime = null;
-storeSet("pacing_timer_start", "");
-document.getElementById("pauseTimerBar").style.display = "none"
-document.body.style.paddingTop = "80px"
+function addLoad(v){
+
+state.rest=Math.max(0,state.rest-v)
+state.block+=v
+
+state.loads.push({
+time:Date.now(),
+val:v
+})
+
+update()
+
 }
 
-function checkPauseTimer() {
-if(!lastActionTime || state.max <= 0) return;
-var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
-var bar = document.getElementById("pauseTimerBar");
-// pacingHeader hat z-index 2000, timer-bar 1999 - body padding anpassen
-if(minuten >= 120) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-red"
-bar.innerHTML = "🛑 " + minuten + " Min. ohne Pause – jetzt pausieren!"
-document.body.style.paddingTop = "120px"
-} else if(minuten >= 90) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-orange"
-bar.innerHTML = "⚠️ " + minuten + " Min. ohne Pause – bald Pause einplanen!"
-document.body.style.paddingTop = "120px"
-} else if(minuten >= 45) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-yellow"
-bar.innerHTML = "💛 " + minuten + " Min. – an eine Pause denken!"
-document.body.style.paddingTop = "120px"
-} else {
-bar.style.display = "none"
-document.body.style.paddingTop = "80px"
-}
+function microPause(){
+
+state.block=Math.max(0,state.block-10)
+state.rest=Math.min(state.limit,state.rest+1)
+
+state.lastPause=Date.now()
+
+update()
+
 }
 
-window.onload = function() {
-checkRollingPene();
-// Timer wiederherstellen nach App-Neustart
-var savedTimer = storeGet("pacing_timer_start");
-if(savedTimer && state.max > 0) {
-lastActionTime = parseInt(savedTimer);
-pauseTimerInterval = setInterval(checkPauseTimer, 60000);
-checkPauseTimer();
-}
-var today = new Date().toDateString();
-if(state.date && state.date !== today && state.max > 0) {
-archiveDay();
-resetDayInternal();
-renderCatalog();
-return;
-}
-if(state.max > 0) { showMainUI(); updateDisplay(); }
-renderCatalog();
-};
+function restPause(){
 
-function saveAll() {
-storeSet(STORAGE_LOADS, JSON.stringify(loads));
-storeSet(STORAGE_STATE, JSON.stringify(state));
+state.block=0
+state.rest=Math.min(state.limit,state.rest+3)
+
+state.lastPause=Date.now()
+
+update()
+
 }
 
-function archiveDay() {
-if(state.max <= 0) return;
-if(!state.history) state.history = [];
-var pct = (state.cur / state.max) * 100;
-state.history.push(pct <= 25);
-if(state.history.length > 7) state.history.shift();
-saveAll();
+function dynamicLimits(){
+
+let p=(state.rest/state.limit)*100
+
+if(p>70)return{warn:22,stop:32}
+if(p>40)return{warn:18,stop:28}
+return{warn:14,stop:22}
+
 }
 
-function checkRollingPene() {
-var h = state.history || [];
-var red = 0;
-for(var i=0; i<h.length; i++){ if(h[i]) red++; }
-var pctHeute = state.max > 0 ? (state.cur / state.max) * 100 : 100;
-if(state.max > 0 && pctHeute <= 25) red++;
-var last2ok = h.length >= 2 && !h[h.length-1] && !h[h.length-2];
-var box = document.getElementById("rollingWarnBox");
-if(red >= 3 && !last2ok) {
-box.style.display = "block"
-box.innerHTML = "⚠️ Mehrere Tage im roten Bereich!<br>Auf Rolling PENE aufpassen!"
-} else {
-box.style.display = "none"
-}
+function loadDensity(){
+
+let now=Date.now()
+
+let recent=state.loads.filter(l=>now-l.time<900000)
+
+let sum=0
+
+recent.forEach(l=>sum+=l.val)
+
+return sum
+
 }
 
-function showToast(msg) {
-var t = document.getElementById("toast");
-t.textContent = msg || "Erfasst 👍"
-t.style.display = "block"
-setTimeout(function(){ t.style.display="none" }, 1500);
+function update(){
+
+document.getElementById("limit").textContent=state.limit
+document.getElementById("rest").textContent=state.rest
+document.getElementById("block").textContent=state.block
+
+let minutes=Math.floor((Date.now()-state.lastPause)/60000)
+
+document.getElementById("pauseTime").textContent=minutes
+
+let lim=dynamicLimits()
+
+let warn=""
+
+if(state.block>=lim.stop){
+warn="⚠ Pause erzwingen"
 }
 
-function selectSchlaf(wert, btn) {
-var btns = document.querySelectorAll(".schlaf-btn");
-for(var i=0; i<btns.length; i++) btns[i].classList.remove("selected");
-btn.classList.add("selected");
-var row = document.getElementById("individuellRow");
-if(wert === null) {
-schlafWert = null;
-row.classList.add("open");
-document.getElementById("sleep").focus();
-} else {
-schlafWert = wert;
-row.classList.remove("open");
-document.getElementById("sleep").value = ""
-}
+else if(state.block>=lim.warn){
+warn="Pause empfohlen"
 }
 
-function startDay() {
-var s = schlafWert;
-if(s === null) {
-var ind = parseFloat(document.getElementById("sleep").value);
-if(isNaN(ind) || ind <= 0) { showToast("Bitte Schlafqualität und Wert eingeben!"); return; }
-s = ind;
-}
-if(s === null || s === undefined) { showToast("Bitte Schlafqualität auswählen!"); return; }
-var f = document.getElementById("feeling").value;
-if(!f) { showToast("Bitte Gefühl auswählen!"); return; }
-state.max = Math.max(1, s + parseFloat(f));
-state.cur = state.max;
-state.used = [];
-state.block = 0;
-state.pene = false;
-state.date = new Date().toDateString();
-showMainUI();
-saveAll();
-updateDisplay();
+if(loadDensity()>12){
+warn="⚠ Hohe Belastungsdichte – Mikro-Pause"
 }
 
-function showMainUI() {
-document.getElementById("statusWrap").style.display = "flex"
-document.getElementById("pauseBtn").style.display = "block"
-document.getElementById("pauseHint").style.display = "block"
-document.getElementById("cardCheck").style.display = "none"
-document.getElementById("showCheckBtn").style.display = "inline-block"
-document.getElementById("debugBtn").style.display = "inline-block"
-document.getElementById("cardUsed").style.display = "block"
+if(
+(state.rest/state.limit)<0.35 &&
+state.block>15 &&
+minutes>40
+){
+warn="⚠ Crashrisiko – sofort Pause"
 }
 
-function toggleCheck() {
-try { archiveDay(); } catch(e) {}
-resetDayInternal();
+document.getElementById("warning").textContent=warn
+
 }
 
-function updateDisplay() {
-document.getElementById("valStart").textContent = state.max;
-document.getElementById("valRest").textContent = state.cur;
-var p = state.max > 0 ? (state.cur / state.max) * 100 : 0;
-var body = document.getElementById("mainBody");
-var boxRest = document.getElementById("boxRest");
-var boxLimit = document.getElementById("boxLimit");
-var msgEl = document.getElementById("statusMsg");
-body.className = ""
-boxRest.className = "status"
-boxLimit.className = "status"
-if(p > 75) {
-body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green");
-msgEl.textContent = "Alles gut! Aber achtsam bleiben!"
-} else if(p > 50) {
-body.classList.add("mode-yellow"); boxRest.classList.add("bg-yellow"); boxLimit.classList.add("bg-yellow");
-msgEl.textContent = "Achtsam! Pausen einplanen!"
-} else if(p > 25) {
-body.classList.add("mode-orange"); boxRest.classList.add("bg-orange"); boxLimit.classList.add("bg-orange");
-msgEl.textContent = "Langsam! Schonung!"
-} else {
-body.classList.add("mode-red"); boxRest.classList.add("bg-red"); boxLimit.classList.add("bg-red");
-msgEl.textContent = "STOP! Nur noch das Notwendigste!"
-}
-var header = document.getElementById("pacingHeader");
-if(state.block >= 30) {
-header.style.display = "block"
-header.className = "warn-pene"
-header.innerHTML = "<span class='blink'>&#9889; PAUSE ERZWINGEN! &#9889;</span><br><small>Block: " + state.block + "</small>"
-if(!state.pene) {
-state.cur = Math.max(0, state.cur - 1);
-state.used.push({n:"STRAFE: PENE-Warnung",v:1,t:nowTime()});
-state.pene = true;
-saveAll();
-}
-} else if(state.block >= 20) {
-header.style.display = "block"
-header.className = "warn-rot"
-header.innerHTML = "PAUSE EMPFOHLEN! (Block: " + state.block + ")"
-state.pene = false;
-} else {
-header.style.display = "none"
-state.pene = false;
-}
-renderUsed();
-checkRollingPene();
-}
+setInterval(update,30000)
 
-function nowTime() { return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
-
-function addCatalogEntry() {
-var n = document.getElementById("loadName").value.trim();
-var v = parseInt(document.getElementById("loadVal").value);
-if(!n || isNaN(v)) return;
-loads.push({n:n,v:v});
-saveAll(); renderCatalog();
-document.getElementById("loadName").value = ""
-document.getElementById("loadVal").value = ""
-showToast("Gespeichert");
-}
-
-function renderCatalog() {
-var div = document.getElementById("catalog");
-div.innerHTML = ""
-for(var i=0; i<loads.length; i++) {
-(function(idx, l) {
-var row = document.createElement("div");
-row.className = "item"
-var name = document.createElement("span");
-name.style.cssText = "flex-grow:1;cursor:pointer;padding:8px 0;"
-name.innerHTML = "<strong>" + l.n + "</strong> (" + l.v + ")"
-name.onclick = function(){ applyLoad(idx); };
-var btns = document.createElement("div");
-btns.style.display = "flex"
-function mkBtn(txt, bg, fn) {
-var b = document.createElement("button");
-b.className = "small-btn"
-b.style.background = bg;
-b.style.color = "#fff"
-b.textContent = txt;
-b.onclick = fn;
-return b;
-}
-btns.appendChild(mkBtn("+", "#007aff", function(){ applyLoad(idx); }));
-btns.appendChild(mkBtn("✎", "#8e8e93", function(){ editCatalog(idx); }));
-btns.appendChild(mkBtn("✕", "#ff3b30", function(){ deleteCatalog(idx); }));
-btns.appendChild(mkBtn("↑", "rgba(0,0,0,0.1)", function(){ moveItem(idx,-1); }));
-btns.appendChild(mkBtn("↓", "rgba(0,0,0,0.1)", function(){ moveItem(idx,1); }));
-row.appendChild(name);
-row.appendChild(btns);
-div.appendChild(row);
-})(i, loads[i]);
-}
-}
-
-function moveItem(index, dir) {
-var ni = index + dir;
-if(ni >= 0 && ni < loads.length) {
-var tmp = loads[index]; loads[index] = loads[ni]; loads[ni] = tmp;
-saveAll(); renderCatalog();
-}
-}
-
-function applyLoad(i) {
-if(state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
-state.cur = Math.max(0, state.cur - loads[i].v);
-state.block += loads[i].v;
-state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime()});
-saveAll(); updateDisplay();
-showToast();
-if(!lastActionTime) startPauseTimer(); // nur starten wenn Timer noch nicht läuft
-}
-
-function renderUsed() {
-var div = document.getElementById("dayList");
-div.innerHTML = ""
-var list = state.used.slice().reverse();
-for(var j=0; j<list.length; j++) {
-var u = list[j], ip = u.v < 0;
-var row = document.createElement("div");
-row.className = "item"
-row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "</span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
-div.appendChild(row);
-}
-}
-
-function doPause() {
-state.cur = Math.min(state.max, state.cur + 3);
-state.block = 0; state.pene = false;
-state.used.push({n:"Pause",v:-3,t:nowTime()});
-saveAll(); updateDisplay();
-showToast("Pause verbucht ☕");
-stopPauseTimer();
-}
-
-function undoLast() {
-if(!state.used.length) return;
-var last = state.used.pop();
-if(last.n.indexOf("STRAFE") >= 0) {
-state.cur = Math.min(state.max, state.cur + 1); state.pene = false; state.block = 29;
-} else if(last.v < 0) {
-state.cur = Math.max(0, state.cur + last.v); state.block = 0;
-} else {
-state.cur = Math.min(state.max, state.cur + last.v);
-state.block = Math.max(0, state.block - last.v);
-}
-saveAll(); updateDisplay();
-}
-
-function resetDay() {
-archiveDay();
-resetDayInternal();
-}
-
-function resetDayInternal() {
-try { saveAll(); } catch(e) {}
-var savedHistory = state.history || [];
-state = {max:0,cur:0,block:0,used:[],date:"",pene:false,history:savedHistory};
-saveAll();
-schlafWert = null;
-var btns = document.querySelectorAll(".schlaf-btn");
-for(var i=0; i<btns.length; i++) btns[i].classList.remove("selected");
-document.getElementById("individuellRow").classList.remove("open");
-document.getElementById("sleep").value = ""
-document.getElementById("feeling").selectedIndex = 0;
-document.getElementById("statusWrap").style.display = "none"
-document.getElementById("pauseBtn").style.display = "none"
-document.getElementById("pauseHint").style.display = "none"
-document.getElementById("pacingHeader").style.display = "none"
-document.getElementById("cardCheck").style.display = "block"
-document.getElementById("showCheckBtn").style.display = "none"
-document.getElementById("cardUsed").style.display = "none"
-document.getElementById("dayList").innerHTML = ""
-document.getElementById("mainBody").className = ""
-stopPauseTimer();
-showToast("Neuer Tag gestartet! ☀️");
-}
-
-function showHistory() {
-var h = state.history || [];
-var txt = h.length + " Tage: "
-for(var i=0; i<h.length; i++) txt += (h[i]?"R":"o") + (i<h.length-1?",":"");
-if(h.length===0) txt = "History leer"
-showToast(txt);
-}
-
-function editCatalog(i) {
-var n = prompt("Name:", loads[i].n);
-if(n === null) return;
-var v = prompt("Punkte:", loads[i].v);
-if(v === null) return;
-loads[i] = {n:n.trim(), v:parseInt(v)};
-saveAll(); renderCatalog();
-}
-
-function deleteCatalog(i) {
-loads.splice(i,1); saveAll(); renderCatalog();
-}
 </script>
 
 </body>
