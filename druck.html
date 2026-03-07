@@ -79,6 +79,23 @@ display:none; font-size:14px;
 .pt-orange { background:var(--orange); color:#fff; }
 .pt-red { background:var(--red); color:#fff; animation:blinker 1.2s linear infinite; }
 
+#crashWarnBar {
+position:fixed; bottom:140px; left:12px; right:12px;
+background:#ff3b30; color:#fff; padding:12px 16px;
+border-radius:14px; font-weight:700; font-size:14px;
+display:none; z-index:3001; text-align:center;
+box-shadow:0 4px 16px rgba(0,0,0,0.3);
+animation:blinker 1.2s linear infinite;
+}
+
+#mikroPauseBar {
+position:fixed; bottom:80px; left:12px; right:12px;
+background:#ff9500; color:#fff; padding:12px 16px;
+border-radius:14px; font-weight:700; font-size:14px;
+display:none; z-index:3000; text-align:center;
+box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+
 #toast{
 position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
 background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:20px;
@@ -92,6 +109,8 @@ font-weight:bold; display:none; z-index:3000; pointer-events:none;
 <div id="pacingHeader"></div>
 <div id="pauseTimerBar" class="pause-timer-bar"></div>
 <div id="toast">Erfasst 👍</div>
+<div id="mikroPauseBar">⚠️ Mikro-Pause empfohlen – viel in kurzer Zeit!</div>
+<div id="crashWarnBar">⚠️ Crash-Risiko! Rest gering + Block hoch + lange ohne Pause!</div>
 
 <div id="statusWrap" class="status-wrap">
 <div class="status bg-green" id="boxLimit" style="flex:0.6;font-size:13px;">Limit<span id="valStart" class="big" style="font-size:1.3rem;">0</span></div>
@@ -408,6 +427,7 @@ state.pene = false;
 }
 renderUsed();
 checkRollingPene();
+checkCrashRisiko();
 }
 
 function nowTime() { return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
@@ -469,10 +489,43 @@ function applyLoad(i) {
 if(state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
 state.cur = Math.max(0, state.cur - loads[i].v);
 state.block += loads[i].v;
-state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime()});
+state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime(), ts:Date.now()});
 saveAll(); updateDisplay();
 showToast();
-if(!lastActionTime) startPauseTimer(); // nur starten wenn Timer noch nicht läuft
+if(!lastActionTime) startPauseTimer();
+checkBelastungsdichte();
+checkCrashRisiko();
+}
+
+function checkCrashRisiko() {
+if(state.max <= 0) return;
+var pct = (state.cur / state.max) * 100;
+var minuten = lastActionTime ? Math.floor((Date.now() - lastActionTime) / 60000) : 0;
+var bar = document.getElementById("crashWarnBar");
+if(pct < 35 && state.block > 15 && minuten >= 40) {
+bar.style.display = "block"
+} else {
+bar.style.display = "none"
+}
+}
+
+function checkBelastungsdichte() {
+// Prüfe ob in den letzten 15 Minuten mehr als 12 Punkte gebucht wurden
+var jetzt = Date.now();
+var fenster = 15 * 60 * 1000; // 15 Minuten in ms
+var punkte = 0;
+for(var i=0; i<state.used.length; i++) {
+var u = state.used[i];
+if(u.v > 0 && u.ts && (jetzt - u.ts) <= fenster) {
+punkte += u.v;
+}
+}
+var bar = document.getElementById("mikroPauseBar");
+if(punkte > 12) {
+bar.style.display = "block"
+bar.innerHTML = "⚠️ Mikro-Pause empfohlen – " + punkte + " Punkte in 15 Min.!"
+setTimeout(function(){ bar.style.display = "none" }, 5000);
+}
 }
 
 function renderUsed() {
@@ -537,6 +590,8 @@ document.getElementById("cardUsed").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("mainBody").className = ""
 stopPauseTimer();
+document.getElementById("crashWarnBar").style.display="none"
+document.getElementById("mikroPauseBar").style.display="none"
 showToast("Neuer Tag gestartet! ☀️");
 }
 
