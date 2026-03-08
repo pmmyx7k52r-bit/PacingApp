@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Belastungskonto 4.0.4</title>
+<title>PacingApp 4.2.1.6</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -96,6 +96,18 @@ cursor:pointer; text-align:center; touch-action:manipulation;
 transition:all 0.15s; width:100%; line-height:1.3;
 }
 .symptom-btn.aktiv { border-color:#ff3b30; background:#ff3b30; color:#fff; }
+.pos-wrap {
+display:inline-flex; gap:3px; margin-left:6px;
+}
+.pos-tag {
+display:inline-block; font-size:10px; font-weight:700; padding:2px 6px;
+border-radius:6px; cursor:pointer; touch-action:manipulation;
+user-select:none; opacity:0.35;
+}
+.pos-tag.aktiv { opacity:1; }
+.pos-aufrecht { background:#ff9500; color:#fff; }
+.pos-liegend { background:#34c759; color:#fff; }
+
 .symptom-eintrag { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.08); font-size:14px; }
 .symptom-eintrag .s-time { font-size:11px; color:#8e8e93; margin-right:8px; }
 .symptom-eintrag .s-del { background:#ff3b30; border:none; border-radius:6px; color:#fff; font-size:12px; padding:4px 8px; cursor:pointer; width:auto; font-weight:700; }
@@ -122,6 +134,7 @@ font-weight:bold; display:none; z-index:3000; pointer-events:none;
 <div id="pauseTimerBar" class="pause-timer-bar"></div>
 <div id="toast">Erfasst 👍</div>
 <div id="mikroPauseBar">⚠️ Mikro-Pause empfohlen – viel in kurzer Zeit!</div>
+<div id="aufrechtWarnBar" style="position:fixed;bottom:200px;left:12px;right:12px;color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3002;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);"></div>
 <div id="crashWarnBar">⚠️ Crash-Risiko! Rest gering + Block hoch + lange ohne Pause!</div>
 
 <div id="statusWrap" class="status-wrap">
@@ -473,6 +486,7 @@ state.pene = false;
 renderUsed();
 checkRollingPene();
 checkCrashRisiko();
+updateAufrechtWarnung();
 }
 
 function nowTime() { return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
@@ -534,7 +548,7 @@ function applyLoad(i) {
 if(state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
 state.cur = Math.max(0, state.cur - loads[i].v);
 state.block += loads[i].v;
-state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime(), ts:Date.now()});
+state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime(), ts:Date.now(), pos:"aufrecht"});
 saveAll(); updateDisplay();
 showToast();
 if(!lastActionTime) startPauseTimer();
@@ -563,6 +577,53 @@ renderSymptome();
 function renderSymptome() {
 // Symptome werden in renderUsed zusammen mit Aktivitäten angezeigt
 renderUsed();
+}
+
+function togglePosition(idx) {
+if(!state.used[idx]) return;
+state.used[idx].pos = (state.used[idx].pos === "aufrecht") ? "liegend" : "aufrecht"
+saveAll();
+renderUsed();
+updateAufrechtWarnung();
+}
+
+function getAufrechtMinuten() {
+// Berechne Gesamtzeit aufrecht heute
+var jetzt = Date.now();
+var minuten = 0;
+var sorted = state.used.slice().sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+for(var i=0; i<sorted.length; i++) {
+var e = sorted[i];
+if(!e.ts) continue;
+var pos = e.pos || (e.v < 0 ? "liegend" : "aufrecht");
+if(pos !== "aufrecht") continue;
+// Ende = nächster Eintrag oder jetzt
+var ende = jetzt;
+for(var j=i+1; j<sorted.length; j++) {
+if(sorted[j].ts) { ende = sorted[j].ts; break; }
+}
+minuten += Math.round((ende - e.ts) / 60000);
+}
+return minuten;
+}
+
+function updateAufrechtWarnung() {
+if(state.max <= 0) return;
+var min = getAufrechtMinuten();
+var pct = (state.cur / state.max) * 100;
+var bar = document.getElementById("aufrechtWarnBar");
+if(!bar) return;
+if(pct < 40 && min > 30) {
+bar.style.display = "block"
+bar.innerHTML = "🚨 Crash-Risiko! " + min + " Min. aufrecht + Restenergie niedrig!"
+bar.style.background = "#ff3b30"
+} else if(min > 45) {
+bar.style.display = "block"
+bar.innerHTML = "🛏️ " + min + " Min. aufrecht – Liegepause sinnvoll!"
+bar.style.background = "#ff9500"
+} else {
+bar.style.display = "none"
+}
 }
 
 function checkCrashRisiko() {
@@ -603,11 +664,22 @@ div.innerHTML = ""
 // Aktivitäten und Symptome zusammenführen
 var combined = [];
 for(var j=0; j<state.used.length; j++) {
-combined.push({ts: state.used[j].ts||0, t: state.used[j].t||"", type:"aktivitaet", data:state.used[j]});
+// Fallback: Einträge ohne ts anhand der Uhrzeit (t) sortieren
+var ts = state.used[j].ts || 0;
+if(!ts && state.used[j].t) {
+var parts = state.used[j].t.split(":");
+if(parts.length === 2) ts = parseInt(parts[0])*60 + parseInt(parts[1]);
+}
+combined.push({ts: ts, t: state.used[j].t||"", type:"aktivitaet", data:state.used[j]});
 }
 var symp = state.symptome || [];
 for(var k=0; k<symp.length; k++) {
-combined.push({ts: symp[k].ts||0, t: symp[k].t||"", type:"symptom", data:symp[k], origIdx:k});
+var sts = symp[k].ts || 0;
+if(!sts && symp[k].t) {
+var sparts = symp[k].t.split(":");
+if(sparts.length === 2) sts = parseInt(sparts[0])*60 + parseInt(sparts[1]);
+}
+combined.push({ts: sts, t: symp[k].t||"", type:"symptom", data:symp[k], origIdx:k});
 }
 // Nach Zeit sortieren (neueste zuerst)
 combined.sort(function(a,b){ return b.ts - a.ts; });
@@ -618,7 +690,12 @@ var row = document.createElement("div");
 row.className = "item"
 if(entry.type === "aktivitaet") {
 var u = entry.data, ip = u.v < 0;
-row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "</span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
+var pos = u.pos || (u.v < 0 ? "liegend" : "aufrecht");
+var origUsedIdx = state.used.indexOf(u);
+var upAktiv = pos === "aufrecht" ? " aktiv" : ""
+var downAktiv = pos === "liegend" ? " aktiv" : ""
+var downLabel = pos === "liegend" ? "↓" : "↓?"
+row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "<span class='pos-wrap'><span class='pos-tag pos-aufrecht" + upAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>↑</span><span class='pos-tag pos-liegend" + downAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>" + downLabel + "</span></span></span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
 } else {
 var s = entry.data;
 var oi = entry.origIdx;
@@ -630,9 +707,8 @@ div.appendChild(row);
 }
 
 function doPause() {
-state.cur = Math.min(state.max, state.cur + 3);
 state.block = 0; state.pene = false;
-state.used.push({n:"Pause",v:-3,t:nowTime(),ts:Date.now()});
+state.used.push({n:"Pause",v:0,t:nowTime(),ts:Date.now(),pos:"liegend"});
 saveAll(); updateDisplay();
 showToast("Pause verbucht ☕");
 stopPauseTimer();
@@ -696,6 +772,7 @@ document.getElementById("mainBody").className = ""
 stopPauseTimer();
 document.getElementById("crashWarnBar").style.display="none"
 document.getElementById("mikroPauseBar").style.display="none"
+var aw=document.getElementById("aufrechtWarnBar"); if(aw) aw.style.display="none"
 showToast("Neuer Tag gestartet! ☀️");
 }
 
