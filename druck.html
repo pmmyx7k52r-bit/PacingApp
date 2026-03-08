@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1</title>
+<title>Belastungskonto 4.0.4</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -88,10 +88,10 @@ box-shadow:0 4px 16px rgba(0,0,0,0.3);
 animation:blinker 1.2s linear infinite;
 }
 
-.symptom-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:8px; }
+.symptom-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin-top:8px; }
 .symptom-btn {
-padding:8px 4px; border:2px solid #d1d1d6; border-radius:10px;
-font-weight:700; font-size:11px; color:#333; background:#f9f9f9;
+padding:6px 4px; border:1.5px solid #d1d1d6; border-radius:8px;
+font-weight:600; font-size:11px; color:#333; background:#f9f9f9;
 cursor:pointer; text-align:center; touch-action:manipulation;
 transition:all 0.15s; width:100%; line-height:1.3;
 }
@@ -125,11 +125,12 @@ font-weight:bold; display:none; z-index:3000; pointer-events:none;
 <div id="crashWarnBar">⚠️ Crash-Risiko! Rest gering + Block hoch + lange ohne Pause!</div>
 
 <div id="statusWrap" class="status-wrap">
-<div class="status bg-green" id="boxLimit" style="flex:0.6;font-size:13px;">Limit<span id="valStart" class="big" style="font-size:1.3rem;">0</span></div>
-<div id="boxRest" class="status bg-green" style="flex:1.4;">
-Rest<span id="valRest" class="big">0</span>
+<div class="status bg-green" id="boxLimit" style="flex:0.7;font-size:12px;">Limit<span id="valStart" class="big" style="font-size:1.2rem;">0</span></div>
+<div class="status bg-green" id="boxSpielraum" style="flex:1.6;">
+Aktivspielraum<span id="valSpielraum" class="big">0</span>
 <span id="statusMsg" class="status-msg"></span>
 </div>
+<div id="boxRest" class="status bg-green" style="flex:0.7;font-size:12px;">Rest<span id="valRest" class="big" style="font-size:1.2rem;">0</span></div>
 </div>
 
 <button id="pauseBtn" class="btn-pause" onclick="doPause()">☕ PAUSE</button>
@@ -200,10 +201,12 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 <div class="card" id="cardSymptome" style="display:none;">
 <h3>Symptom-Tracking</h3>
 <div class="symptom-grid">
-<button type="button" class="symptom-btn" id="sBtn0" onclick="logSymptom(0)">🤯 Kopf-Druck</button>
-<button type="button" class="symptom-btn" id="sBtn1" onclick="logSymptom(1)">👁️ Augenschmerzen</button>
-<button type="button" class="symptom-btn" id="sBtn2" onclick="logSymptom(2)">🌫️ Brain-Fog</button>
-<button type="button" class="symptom-btn" id="sBtn3" onclick="logSymptom(3)">😴 Erschöpfung</button>
+<button type="button" class="symptom-btn" onclick="logSymptom(0)">🤯 Kopf-Druck</button>
+<button type="button" class="symptom-btn" onclick="logSymptom(1)">👁️ Augen</button>
+<button type="button" class="symptom-btn" onclick="logSymptom(2)">🌫️ Brain-Fog</button>
+<button type="button" class="symptom-btn" onclick="logSymptom(3)">😴 Erschöpfung</button>
+<button type="button" class="symptom-btn" onclick="logSymptom(4)">🔔 Pfeifen</button>
+<button type="button" class="symptom-btn" onclick="logSymptom(5)">😬 Unruhe</button>
 </div>
 <div id="symptomList" style="margin-top:10px;"></div>
 </div>
@@ -378,7 +381,14 @@ s = ind;
 if(s === null || s === undefined) { showToast("Bitte Schlafqualität auswählen!"); return; }
 var f = document.getElementById("feeling").value;
 if(!f) { showToast("Bitte Gefühl auswählen!"); return; }
-state.max = Math.max(1, s + parseFloat(f));
+var berechnetes = s + parseFloat(f);
+// Automatische Reduktion wenn 2 der letzten 3 Tage rot waren
+var h = state.history || [];
+var letzten3 = h.slice(-3);
+var roteVortage = letzten3.filter(function(d){ return d; }).length;
+var reduktion = (roteVortage >= 2) ? 5 : 0;
+state.max = Math.max(1, berechnetes - reduktion);
+state._reduktion = reduktion; // merken für Hinweis
 state.cur = state.max;
 state.used = [];
 state.block = 0;
@@ -387,6 +397,11 @@ state.date = new Date().toDateString();
 showMainUI();
 saveAll();
 updateDisplay();
+if(state._reduktion > 0) {
+showToast("⚠️ Limit -" + state._reduktion + " Punkte wegen belasteter Vortage");
+} else {
+showToast("Tag gestartet! 💪");
+}
 }
 
 function showMainUI() {
@@ -407,27 +422,32 @@ resetDayInternal();
 }
 
 function updateDisplay() {
+var grenze = Math.ceil(state.max * 0.25);
+var spielraum = Math.max(0, state.cur - grenze);
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
+document.getElementById("valSpielraum").textContent = spielraum;
 var p = state.max > 0 ? (state.cur / state.max) * 100 : 0;
 var body = document.getElementById("mainBody");
 var boxRest = document.getElementById("boxRest");
 var boxLimit = document.getElementById("boxLimit");
+var boxSpielraum = document.getElementById("boxSpielraum");
 var msgEl = document.getElementById("statusMsg");
 body.className = ""
 boxRest.className = "status"
 boxLimit.className = "status"
+boxSpielraum.className = "status"
 if(p > 75) {
-body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green");
+body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green"); boxSpielraum.classList.add("bg-green");
 msgEl.textContent = "Alles gut! Aber achtsam bleiben!"
 } else if(p > 50) {
-body.classList.add("mode-yellow"); boxRest.classList.add("bg-yellow"); boxLimit.classList.add("bg-yellow");
+body.classList.add("mode-yellow"); boxRest.classList.add("bg-yellow"); boxLimit.classList.add("bg-yellow"); boxSpielraum.classList.add("bg-yellow");
 msgEl.textContent = "Achtsam! Pausen einplanen!"
 } else if(p > 25) {
-body.classList.add("mode-orange"); boxRest.classList.add("bg-orange"); boxLimit.classList.add("bg-orange");
+body.classList.add("mode-orange"); boxRest.classList.add("bg-orange"); boxLimit.classList.add("bg-orange"); boxSpielraum.classList.add("bg-orange");
 msgEl.textContent = "Langsam! Schonung!"
 } else {
-body.classList.add("mode-red"); boxRest.classList.add("bg-red"); boxLimit.classList.add("bg-red");
+body.classList.add("mode-red"); boxRest.classList.add("bg-red"); boxLimit.classList.add("bg-red"); boxSpielraum.classList.add("bg-red");
 msgEl.textContent = "STOP! Nur noch das Notwendigste!"
 }
 var header = document.getElementById("pacingHeader");
@@ -437,7 +457,7 @@ header.className = "warn-pene"
 header.innerHTML = "<span class='blink'>&#9889; PAUSE ERZWINGEN! &#9889;</span><br><small>Block: " + state.block + "</small>"
 if(!state.pene) {
 state.cur = Math.max(0, state.cur - 1);
-state.used.push({n:"STRAFE: PENE-Warnung",v:1,t:nowTime()});
+state.used.push({n:"STRAFE: PENE-Warnung",v:1,t:nowTime(),ts:Date.now()});
 state.pene = true;
 saveAll();
 }
@@ -522,8 +542,8 @@ checkBelastungsdichte();
 checkCrashRisiko();
 }
 
-var symptomNamen = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung"];
-var symptomIcons = ["🤯","👁️","🌫️","😴"];
+var symptomNamen = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe"];
+var symptomIcons = ["🤯","👁️","🌫️","😴","🔔","😬"];
 
 function logSymptom(idx) {
 if(!state.symptome) state.symptome = [];
@@ -612,7 +632,7 @@ div.appendChild(row);
 function doPause() {
 state.cur = Math.min(state.max, state.cur + 3);
 state.block = 0; state.pene = false;
-state.used.push({n:"Pause",v:-3,t:nowTime()});
+state.used.push({n:"Pause",v:-3,t:nowTime(),ts:Date.now()});
 saveAll(); updateDisplay();
 showToast("Pause verbucht ☕");
 stopPauseTimer();
