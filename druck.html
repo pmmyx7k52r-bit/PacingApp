@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Belastungskonto 4.0.4</title>
+<title>PacingApp 4.2.1</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -87,6 +87,18 @@ display:none; z-index:3001; text-align:center;
 box-shadow:0 4px 16px rgba(0,0,0,0.3);
 animation:blinker 1.2s linear infinite;
 }
+
+.symptom-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:8px; }
+.symptom-btn {
+padding:8px 4px; border:2px solid #d1d1d6; border-radius:10px;
+font-weight:700; font-size:11px; color:#333; background:#f9f9f9;
+cursor:pointer; text-align:center; touch-action:manipulation;
+transition:all 0.15s; width:100%; line-height:1.3;
+}
+.symptom-btn.aktiv { border-color:#ff3b30; background:#ff3b30; color:#fff; }
+.symptom-eintrag { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.08); font-size:14px; }
+.symptom-eintrag .s-time { font-size:11px; color:#8e8e93; margin-right:8px; }
+.symptom-eintrag .s-del { background:#ff3b30; border:none; border-radius:6px; color:#fff; font-size:12px; padding:4px 8px; cursor:pointer; width:auto; font-weight:700; }
 
 #mikroPauseBar {
 position:fixed; bottom:80px; left:12px; right:12px;
@@ -185,6 +197,17 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 <button id="debugBtn" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;display:none;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;" onclick="showHistory()">History anzeigen</button>
 </div>
 
+<div class="card" id="cardSymptome" style="display:none;">
+<h3>Symptom-Tracking</h3>
+<div class="symptom-grid">
+<button type="button" class="symptom-btn" id="sBtn0" onclick="logSymptom(0)">🤯 Kopf-Druck</button>
+<button type="button" class="symptom-btn" id="sBtn1" onclick="logSymptom(1)">👁️ Augenschmerzen</button>
+<button type="button" class="symptom-btn" id="sBtn2" onclick="logSymptom(2)">🌫️ Brain-Fog</button>
+<button type="button" class="symptom-btn" id="sBtn3" onclick="logSymptom(3)">😴 Erschöpfung</button>
+</div>
+<div id="symptomList" style="margin-top:10px;"></div>
+</div>
+
 <div style="margin-top:20px;text-align:center;">
 <button id="showCheckBtn" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;" onclick="toggleCheck()">Neuer Tag / Reset</button>
 </div>
@@ -216,7 +239,7 @@ function storeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return nul
 function storeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
 var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
-var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[]};
+var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[],symptome:[]};
 // history wird im state gespeichert
 
 var schlafWert = null;
@@ -248,11 +271,11 @@ var pct = (state.cur / state.max) * 100;
 // Dynamische Grenzen je nach Restenergie
 var empfohlen, erzwingen;
 if(pct >= 70) {
-empfohlen = 22; erzwingen = 32;
+empfohlen = 45; erzwingen = 60;
 } else if(pct >= 40) {
-empfohlen = 18; erzwingen = 28;
+empfohlen = 30; erzwingen = 45;
 } else {
-empfohlen = 14; erzwingen = 22;
+empfohlen = 20; erzwingen = 30;
 }
 
 var bar = document.getElementById("pauseTimerBar");
@@ -288,7 +311,7 @@ resetDayInternal();
 renderCatalog();
 return;
 }
-if(state.max > 0) { showMainUI(); updateDisplay(); }
+if(state.max > 0) { showMainUI(); updateDisplay(); renderSymptome(); }
 renderCatalog();
 };
 
@@ -374,6 +397,8 @@ document.getElementById("cardCheck").style.display = "none"
 document.getElementById("showCheckBtn").style.display = "inline-block"
 document.getElementById("debugBtn").style.display = "inline-block"
 document.getElementById("cardUsed").style.display = "block"
+document.getElementById("cardSymptome").style.display = "block"
+renderSymptome();
 }
 
 function toggleCheck() {
@@ -497,6 +522,29 @@ checkBelastungsdichte();
 checkCrashRisiko();
 }
 
+var symptomNamen = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung"];
+var symptomIcons = ["🤯","👁️","🌫️","😴"];
+
+function logSymptom(idx) {
+if(!state.symptome) state.symptome = [];
+state.symptome.push({s:idx, t:nowTime(), ts:Date.now()});
+saveAll();
+renderSymptome();
+showToast(symptomIcons[idx] + " " + symptomNamen[idx] + " erfasst");
+}
+
+function deleteSymptom(idx) {
+if(!state.symptome) return;
+state.symptome.splice(idx, 1);
+saveAll();
+renderSymptome();
+}
+
+function renderSymptome() {
+// Symptome werden in renderUsed zusammen mit Aktivitäten angezeigt
+renderUsed();
+}
+
 function checkCrashRisiko() {
 if(state.max <= 0) return;
 var pct = (state.cur / state.max) * 100;
@@ -531,12 +579,32 @@ setTimeout(function(){ bar.style.display = "none" }, 5000);
 function renderUsed() {
 var div = document.getElementById("dayList");
 div.innerHTML = ""
-var list = state.used.slice().reverse();
-for(var j=0; j<list.length; j++) {
-var u = list[j], ip = u.v < 0;
+
+// Aktivitäten und Symptome zusammenführen
+var combined = [];
+for(var j=0; j<state.used.length; j++) {
+combined.push({ts: state.used[j].ts||0, t: state.used[j].t||"", type:"aktivitaet", data:state.used[j]});
+}
+var symp = state.symptome || [];
+for(var k=0; k<symp.length; k++) {
+combined.push({ts: symp[k].ts||0, t: symp[k].t||"", type:"symptom", data:symp[k], origIdx:k});
+}
+// Nach Zeit sortieren (neueste zuerst)
+combined.sort(function(a,b){ return b.ts - a.ts; });
+
+for(var i=0; i<combined.length; i++) {
+var entry = combined[i];
 var row = document.createElement("div");
 row.className = "item"
+if(entry.type === "aktivitaet") {
+var u = entry.data, ip = u.v < 0;
 row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "</span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
+} else {
+var s = entry.data;
+var oi = entry.origIdx;
+row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (s.t||"") + "</span>" + symptomIcons[s.s] + " " + symptomNamen[s.s] + "</span>"
+
+}
 div.appendChild(row);
 }
 }
@@ -551,7 +619,21 @@ stopPauseTimer();
 }
 
 function undoLast() {
-if(!state.used.length) return;
+if(!state.symptome) state.symptome = [];
+// Letzten Eintrag (Aktivität ODER Symptom) nach Timestamp finden
+var lastUsed = state.used.length ? state.used[state.used.length-1] : null;
+var lastSymp = state.symptome.length ? state.symptome[state.symptome.length-1] : null;
+
+var usedTs = lastUsed ? (lastUsed.ts||0) : 0;
+var sympTs = lastSymp ? (lastSymp.ts||0) : 0;
+
+if(sympTs > usedTs && lastSymp) {
+// Letztes Symptom rückgängig
+state.symptome.pop();
+saveAll(); updateDisplay();
+showToast("Symptom rückgängig ↩️");
+} else if(lastUsed) {
+// Letzte Aktivität rückgängig
 var last = state.used.pop();
 if(last.n.indexOf("STRAFE") >= 0) {
 state.cur = Math.min(state.max, state.cur + 1); state.pene = false; state.block = 29;
@@ -563,6 +645,7 @@ state.block = Math.max(0, state.block - last.v);
 }
 saveAll(); updateDisplay();
 }
+}
 
 function resetDay() {
 archiveDay();
@@ -572,7 +655,7 @@ resetDayInternal();
 function resetDayInternal() {
 try { saveAll(); } catch(e) {}
 var savedHistory = state.history || [];
-state = {max:0,cur:0,block:0,used:[],date:"",pene:false,history:savedHistory};
+state = {max:0,cur:0,block:0,used:[],date:"",pene:false,history:savedHistory,symptome:[]};
 saveAll();
 schlafWert = null;
 var btns = document.querySelectorAll(".schlaf-btn");
@@ -587,6 +670,7 @@ document.getElementById("pacingHeader").style.display = "none"
 document.getElementById("cardCheck").style.display = "block"
 document.getElementById("showCheckBtn").style.display = "none"
 document.getElementById("cardUsed").style.display = "none"
+document.getElementById("cardSymptome").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("mainBody").className = ""
 stopPauseTimer();
