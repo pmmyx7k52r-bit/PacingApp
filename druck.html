@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.6</title>
+<title>PacingApp 4.2.1.7</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -589,20 +589,25 @@ updateAufrechtWarnung();
 
 function getAufrechtMinuten() {
 // Berechne Gesamtzeit aufrecht heute
+// Logik: aufrecht-Phase dauert von Beginn bis zum nächsten liegend-Eintrag
 var jetzt = Date.now();
 var minuten = 0;
 var sorted = state.used.slice().sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+var aufrechtSeit = null;
 for(var i=0; i<sorted.length; i++) {
 var e = sorted[i];
 if(!e.ts) continue;
 var pos = e.pos || (e.v < 0 ? "liegend" : "aufrecht");
-if(pos !== "aufrecht") continue;
-// Ende = nächster Eintrag oder jetzt
-var ende = jetzt;
-for(var j=i+1; j<sorted.length; j++) {
-if(sorted[j].ts) { ende = sorted[j].ts; break; }
+if(pos === "aufrecht" && aufrechtSeit === null) {
+aufrechtSeit = e.ts; // aufrecht-Phase beginnt
+} else if(pos === "liegend" && aufrechtSeit !== null) {
+minuten += Math.round((e.ts - aufrechtSeit) / 60000); // Phase endet
+aufrechtSeit = null;
 }
-minuten += Math.round((ende - e.ts) / 60000);
+}
+// Laufende aufrecht-Phase bis jetzt
+if(aufrechtSeit !== null) {
+minuten += Math.round((jetzt - aufrechtSeit) / 60000);
 }
 return minuten;
 }
