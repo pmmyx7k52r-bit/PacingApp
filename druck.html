@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.7.1</title>
+<title>PacingApp 4.2.1.7.2</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -602,7 +602,8 @@ var jetzt = Date.now();
 var minuten = 0;
 // Fallback: ts aus Uhrzeit berechnen wenn nicht vorhanden
 var sorted = state.used.slice().map(function(e) {
-return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || (e.v < 0 ? "liegend" : "aufrecht")};
+var defaultPos = (e.n === "Pause" || e.v < 0) ? "liegend" : "aufrecht"
+return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || defaultPos};
 }).filter(function(e){ return e.ts > 0; })
 .sort(function(a,b){ return a.ts - b.ts; });
 
@@ -705,7 +706,7 @@ var row = document.createElement("div");
 row.className = "item"
 if(entry.type === "aktivitaet") {
 var u = entry.data, ip = u.v < 0;
-var pos = u.pos || (u.v < 0 ? "liegend" : "aufrecht");
+var pos = u.pos || (u.n === "Pause" || u.v < 0 ? "liegend" : "aufrecht");
 var origUsedIdx = state.used.indexOf(u);
 var upAktiv = pos === "aufrecht" ? " aktiv" : ""
 var downAktiv = pos === "liegend" ? " aktiv" : ""
