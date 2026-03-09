@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.5</title>
+<title>PacingApp 4.2.2.7</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -208,7 +208,11 @@ font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
 </div>
 
 <div class="card" id="cardCatalog">
-<h3>Belastungskatalog</h3>
+<div class="symptom-header" onclick="toggleCatalogCard()">
+<h3>Belastungskatalog <span style="font-size:11px;font-weight:400;opacity:0.6;">· Tippen: auf / erneut: zu</span></h3>
+<span class="symptom-chevron" id="catalogChevron">▼</span>
+</div>
+<div class="symptom-body" id="catalogBody">
 <div style="display:flex;gap:6px;align-items:flex-end;">
 <input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
 <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
@@ -216,11 +220,12 @@ font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
 </div>
 <div id="catalog" style="margin-top:15px;"></div>
 <button type="button" onclick="resetKatalog()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">↺ Grundkatalog wiederherstellen</button>
+</div><!-- /catalogBody -->
 </div>
 
 <div class="card" id="cardSymptome" style="display:none;">
 <div class="symptom-header" onclick="toggleSymptomCard()">
-<h3>Symptome erfassen</h3>
+<h3>Symptome erfassen <span style="font-size:11px;font-weight:400;opacity:0.6;">· Tippen: auf / erneut: zu</span></h3>
 <span class="symptom-chevron" id="symptomChevron">▼</span>
 </div>
 <div class="symptom-body" id="symptomBody">
@@ -582,6 +587,15 @@ checkCrashRisiko();
 }
 
 var _pendingSymptom = null;
+
+function toggleCatalogCard() {
+var body = document.getElementById("catalogBody");
+var chev = document.getElementById("catalogChevron");
+if(!body) return;
+var isOpen = body.classList.contains("open");
+body.className = isOpen ? "symptom-body" : "symptom-body open"
+chev.className = isOpen ? "symptom-chevron" : "symptom-chevron open"
+}
 
 function toggleSymptomCard() {
 var body = document.getElementById("symptomBody");
