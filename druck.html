@@ -259,15 +259,6 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 </div>
 <div id="symptomList" style="margin-top:10px;"></div>
 
-<div class="schwere-overlay" id="schwerebverlay" onclick="closeSchwere()"></div>
-<div class="schwere-picker" id="schwerePicker">
-<h4 id="schwereTitle">Schweregrad</h4>
-<div class="schwere-btns">
-<button class="schwere-btn schwere-leicht" onclick="logSymptomMitSchwere('leicht')">leicht</button>
-<button class="schwere-btn schwere-mittel" onclick="logSymptomMitSchwere('mittel')">mittel</button>
-<button class="schwere-btn schwere-schwer" onclick="logSymptomMitSchwere('schwer')">schwer</button>
-</div>
-</div>
 </div>
 
 <div style="margin-top:20px;text-align:center;">
@@ -909,5 +900,14 @@ loads.splice(i,1); saveAll(); renderCatalog();
 }
 </script>
 
+<div class="schwere-overlay" id="schwerebverlay" onclick="closeSchwere()"></div>
+<div class="schwere-picker" id="schwerePicker">
+<h4 id="schwereTitle">Schweregrad</h4>
+<div class="schwere-btns">
+<button class="schwere-btn schwere-leicht" onclick="logSymptomMitSchwere('leicht')">leicht</button>
+<button class="schwere-btn schwere-mittel" onclick="logSymptomMitSchwere('mittel')">mittel</button>
+<button class="schwere-btn schwere-schwer" onclick="logSymptomMitSchwere('schwer')">schwer</button>
+</div>
+</div>
 </body>
 </html>
