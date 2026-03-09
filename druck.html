@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.7</title>
+<title>PacingApp 4.2.1.7.1</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -587,25 +587,35 @@ renderUsed();
 updateAufrechtWarnung();
 }
 
+function timeStrToTs(t) {
+// Konvertiert "HH:MM" zu einem Timestamp für heute
+if(!t) return 0;
+var parts = t.split(":");
+if(parts.length !== 2) return 0;
+var d = new Date();
+d.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+return d.getTime();
+}
+
 function getAufrechtMinuten() {
-// Berechne Gesamtzeit aufrecht heute
-// Logik: aufrecht-Phase dauert von Beginn bis zum nächsten liegend-Eintrag
 var jetzt = Date.now();
 var minuten = 0;
-var sorted = state.used.slice().sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+// Fallback: ts aus Uhrzeit berechnen wenn nicht vorhanden
+var sorted = state.used.slice().map(function(e) {
+return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || (e.v < 0 ? "liegend" : "aufrecht")};
+}).filter(function(e){ return e.ts > 0; })
+.sort(function(a,b){ return a.ts - b.ts; });
+
 var aufrechtSeit = null;
 for(var i=0; i<sorted.length; i++) {
 var e = sorted[i];
-if(!e.ts) continue;
-var pos = e.pos || (e.v < 0 ? "liegend" : "aufrecht");
-if(pos === "aufrecht" && aufrechtSeit === null) {
-aufrechtSeit = e.ts; // aufrecht-Phase beginnt
-} else if(pos === "liegend" && aufrechtSeit !== null) {
-minuten += Math.round((e.ts - aufrechtSeit) / 60000); // Phase endet
+if(e.pos === "aufrecht" && aufrechtSeit === null) {
+aufrechtSeit = e.ts;
+} else if(e.pos === "liegend" && aufrechtSeit !== null) {
+minuten += Math.round((e.ts - aufrechtSeit) / 60000);
 aufrechtSeit = null;
 }
 }
-// Laufende aufrecht-Phase bis jetzt
 if(aufrechtSeit !== null) {
 minuten += Math.round((jetzt - aufrechtSeit) / 60000);
 }
