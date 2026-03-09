@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.8.3</title>
+<title>PacingApp 4.2.1.5</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -164,12 +164,12 @@ font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
 <div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">🛑 STOP! Energie kritisch – keine weiteren Aktivitäten!</div>
 
 <div id="statusWrap" class="status-wrap">
-<div class="status bg-green" id="boxLimit" style="flex:0.7;font-size:12px;">Limit<span id="valStart" class="big" style="font-size:1.2rem;">0</span></div>
+<div class="status bg-green" id="boxLimit" style="flex:0.7;font-size:12px;">🎯 Limit<span id="valStart" class="big" style="font-size:1.2rem;">0</span></div>
 <div class="status bg-green" id="boxSpielraum" style="flex:1.6;">
-Aktivspielraum<span id="valSpielraum" class="big">0</span>
+⚡ Spielraum<span id="valSpielraum" class="big">0</span>
 <span id="statusMsg" class="status-msg"></span>
 </div>
-<div id="boxRest" class="status bg-green" style="flex:0.7;font-size:12px;">Rest<span id="valRest" class="big" style="font-size:1.2rem;">0</span></div>
+<div id="boxRest" class="status bg-green" style="flex:0.7;font-size:12px;">🔋 Rest<span id="valRest" class="big" style="font-size:1.2rem;">0</span></div>
 </div>
 
 <div id="pauseWrap" class="pause-wrap">
@@ -178,7 +178,7 @@ Aktivspielraum<span id="valSpielraum" class="big">0</span>
 </div>
 
 <div id="pauseHint" class="pause-hint">
-<strong>Hinweis:</strong> Ruhe zur Puls-Normalisierung ist KEINE Pause!
+☕ <strong>Hinweis:</strong> Ruhe zur Puls-Normalisierung ist KEINE Pause!
 </div>
 
 <div id="rollingWarnBox" class="rolling-warn">⚠️ Mehrere Tage im roten Bereich!<br>Auf Rolling PENE aufpassen!</div>
@@ -241,7 +241,7 @@ Aktivspielraum<span id="valSpielraum" class="big">0</span>
 <div class="card" id="cardUsed" style="display:none;">
 <h3>Heutige Aktivitäten</h3>
 <div id="dayList"></div>
-<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">Letzten Eintrag rückgängig</button>
+<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">↩ Rückgängig</button>
 </div>
 
 <div style="margin-top:10px;text-align:center;">
@@ -249,7 +249,7 @@ Aktivspielraum<span id="valSpielraum" class="big">0</span>
 </div>
 
 <div style="margin-top:20px;text-align:center;">
-<button id="showCheckBtn" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;" onclick="toggleCheck()">Neuer Tag / Reset</button>
+<button id="showCheckBtn" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;" onclick="toggleCheck()">Neuen Tag starten</button>
 </div>
 
 <div id="schwereOverlay" class="schwere-overlay" onclick="closeSchwere()" style="display:none;"></div>
@@ -259,6 +259,7 @@ Aktivspielraum<span id="valSpielraum" class="big">0</span>
 <button class="schwere-btn schwere-leicht" onclick="logSymptomMitSchwere('leicht')">leicht</button>
 <button class="schwere-btn schwere-mittel" onclick="logSymptomMitSchwere('mittel')">mittel</button>
 <button class="schwere-btn schwere-schwer" onclick="logSymptomMitSchwere('schwer')">schwer</button>
+<button class="schwere-btn" style="background:#34c759;color:#fff;" onclick="logSymptomMitSchwere('weg')">✓ weg</button>
 </div>
 </div>
 
@@ -427,7 +428,7 @@ var reduktion = (roteVortage >= 2) ? 5 : 0;
 state.max = Math.max(1, berechnetes - reduktion);
 state._reduktion = reduktion;
 state.cur = state.max;
-state.used = [{n:"Tag gestartet",v:0,t:nowTime(),ts:Date.now(),pos:"liegend"}];
+state.used = [{n:"🌅 Tag gestartet",v:0,t:nowTime(),ts:Date.now(),pos:"liegend"}];
 state.block = 0;
 state.pene = false;
 state.date = new Date().toDateString();
@@ -494,7 +495,7 @@ header.className = "warn-pene"
 header.innerHTML = "<span class='blink'>&#9889; PAUSE ERZWINGEN! &#9889;</span><br><small>Block: " + state.block + "</small>"
 if(!state.pene) {
 state.cur = Math.max(0, state.cur - 1);
-state.used.push({n:"STRAFE: PENE-Warnung",v:-1,t:nowTime(),ts:Date.now()});
+state.used.push({n:"STRAFE: PENE-Warnung",v:-1,t:nowTime(),ts:Date.now(),pos:"aufrecht"});
 state.pene = true;
 saveAll();
 }
@@ -606,7 +607,11 @@ document.getElementById("schwereOverlay").style.display = "none"
 
 function logSymptomMitSchwere(schwere) {
 if(_pendingSymptom === null) return;
+if(schwere === 'weg') {
+logSymptomWeg(_pendingSymptom);
+} else {
 logSymptom(_pendingSymptom, schwere);
+}
 closeSchwere();
 }
 
@@ -619,6 +624,14 @@ state.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere||"leicht"});
 saveAll();
 renderSymptome();
 showToast(symptomIcons[idx] + " " + symptomNamen[idx] + " (" + (schwere||"leicht") + ")");
+}
+
+function logSymptomWeg(idx) {
+if(!state.symptome) state.symptome = [];
+state.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
+saveAll();
+renderSymptome();
+showToast(symptomIcons[idx] + " " + symptomNamen[idx] + " – weg ✓");
 }
 
 function deleteSymptom(idx) {
@@ -667,6 +680,7 @@ var aufrechtSeit = null;
 for(var j=0; j<sorted.length; j++) {
 var e = sorted[j];
 if(e.ts <= letztesPause) continue;
+if(e.n === "Pause") continue; // Pause selbst nicht als Aufrechtzeit werten
 if(e.pos === "aufrecht" && aufrechtSeit === null) {
 aufrechtSeit = e.ts;
 } else if(e.pos === "liegend" && aufrechtSeit !== null) {
@@ -713,8 +727,8 @@ if(u.v > 0 && u.ts && (jetzt - u.ts) < 7200000) last2h += u.v;
 var risk = 0;
 if(pct < 40) risk += 1;
 if(pct < 25) risk += 2;
-if(last2h > 12) risk += 1;
 if(last2h > 18) risk += 2;
+else if(last2h > 12) risk += 1;
 if(upright > 90) risk += 1;
 return risk;
 }
@@ -726,7 +740,7 @@ var score = getCrashScore();
 var crashBar = document.getElementById("crashWarnBar");
 var notBar = document.getElementById("notbremsBar");
 // Notbremse: Rest < 15%
-if(pct < 15) {
+if(pct < 20) {
 notBar.style.display = "block"
 crashBar.style.display = "none"
 } else if(score >= 4) {
@@ -736,6 +750,7 @@ notBar.style.display = "none"
 } else if(score >= 2) {
 crashBar.style.display = "block"
 crashBar.innerHTML = "⚠️ Erhöhte Vorsicht (Score " + score + ") – Aktivitäten reduzieren!"
+crashBar.style.background = "#e07800"
 crashBar.style.animation = "none"
 notBar.style.display = "none"
 } else {
@@ -798,7 +813,9 @@ row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'
 } else {
 var s = entry.data;
 var swLabel = s.sw ? " (" + s.sw + ")" : ""
-row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (s.t||"") + "</span>" + symptomIcons[s.s] + " " + symptomNamen[s.s] + swLabel + "</span>"
+var wegLabel = s.weg ? " <span style='color:#34c759;font-weight:700;'>✓ weg</span>" : swLabel;
+var opacity = s.weg ? "opacity:0.6;" : ""
+row.innerHTML = "<span style='" + opacity + "'><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (s.t||"") + "</span>" + symptomIcons[s.s] + " " + symptomNamen[s.s] + wegLabel + "</span>"
 }
 div.appendChild(row);
 }
