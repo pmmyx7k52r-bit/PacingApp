@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.8</title>
+<title>PacingApp 4.2.8.3</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -161,6 +161,7 @@ font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
 <div id="mikroPauseBar">⚠️ Mikro-Pause empfohlen – viel in kurzer Zeit!</div>
 <div id="aufrechtWarnBar" style="position:fixed;bottom:200px;left:12px;right:12px;color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3002;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);"></div>
 <div id="crashWarnBar">⚠️ Crash-Risiko! Rest gering + Block hoch + lange ohne Pause!</div>
+<div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">🛑 STOP! Energie kritisch – keine weiteren Aktivitäten!</div>
 
 <div id="statusWrap" class="status-wrap">
 <div class="status bg-green" id="boxLimit" style="flex:0.7;font-size:12px;">Limit<span id="valStart" class="big" style="font-size:1.2rem;">0</span></div>
@@ -364,7 +365,7 @@ function archiveDay() {
 if(state.max <= 0) return;
 if(!state.history) state.history = [];
 var pct = (state.cur / state.max) * 100;
-state.history.push(pct <= 25);
+state.history.push(pct < 25);
 if(state.history.length > 7) state.history.shift();
 saveAll();
 }
@@ -374,7 +375,7 @@ var h = state.history || [];
 var red = 0;
 for(var i=0; i<h.length; i++){ if(h[i]) red++; }
 var pctHeute = state.max > 0 ? (state.cur / state.max) * 100 : 100;
-if(state.max > 0 && pctHeute <= 25) red++;
+if(state.max > 0 && pctHeute < 25) red++;
 var last2ok = h.length >= 2 && !h[h.length-1] && !h[h.length-2];
 var box = document.getElementById("rollingWarnBox");
 if(red >= 3 && !last2ok) {
@@ -426,7 +427,7 @@ var reduktion = (roteVortage >= 2) ? 5 : 0;
 state.max = Math.max(1, berechnetes - reduktion);
 state._reduktion = reduktion;
 state.cur = state.max;
-state.used = [];
+state.used = [{n:"Tag gestartet",v:0,t:nowTime(),ts:Date.now(),pos:"liegend"}];
 state.block = 0;
 state.pene = false;
 state.date = new Date().toDateString();
@@ -463,7 +464,6 @@ var spielraum = Math.max(0, state.cur - grenze);
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
 document.getElementById("valSpielraum").textContent = spielraum;
-var p = state.max > 0 ? (state.cur / state.max) * 100 : 0;
 var body = document.getElementById("mainBody");
 var boxRest = document.getElementById("boxRest");
 var boxLimit = document.getElementById("boxLimit");
@@ -473,18 +473,19 @@ body.className = ""
 boxRest.className = "status"
 boxLimit.className = "status"
 boxSpielraum.className = "status"
-if(p > 75) {
+// Farbe basiert auf Spielraum, nicht Gesamtrest
+if(spielraum > state.max * 0.5) {
 body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green"); boxSpielraum.classList.add("bg-green");
 msgEl.textContent = "Alles gut! Aber achtsam bleiben!"
-} else if(p > 50) {
+} else if(spielraum > state.max * 0.25) {
 body.classList.add("mode-yellow"); boxRest.classList.add("bg-yellow"); boxLimit.classList.add("bg-yellow"); boxSpielraum.classList.add("bg-yellow");
 msgEl.textContent = "Achtsam! Pausen einplanen!"
-} else if(p > 25) {
+} else if(spielraum > 0) {
 body.classList.add("mode-orange"); boxRest.classList.add("bg-orange"); boxLimit.classList.add("bg-orange"); boxSpielraum.classList.add("bg-orange");
-msgEl.textContent = "Langsam! Schonung!"
+msgEl.textContent = "Langsam! Nur noch Reserve!"
 } else {
 body.classList.add("mode-red"); boxRest.classList.add("bg-red"); boxLimit.classList.add("bg-red"); boxSpielraum.classList.add("bg-red");
-msgEl.textContent = "STOP! Nur noch das Notwendigste!"
+msgEl.textContent = "STOP! Reserve aufgebraucht!"
 }
 var header = document.getElementById("pacingHeader");
 if(state.block >= 30) {
@@ -493,7 +494,7 @@ header.className = "warn-pene"
 header.innerHTML = "<span class='blink'>&#9889; PAUSE ERZWINGEN! &#9889;</span><br><small>Block: " + state.block + "</small>"
 if(!state.pene) {
 state.cur = Math.max(0, state.cur - 1);
-state.used.push({n:"STRAFE: PENE-Warnung",v:1,t:nowTime(),ts:Date.now()});
+state.used.push({n:"STRAFE: PENE-Warnung",v:-1,t:nowTime(),ts:Date.now()});
 state.pene = true;
 saveAll();
 }
@@ -574,7 +575,7 @@ state.block += loads[i].v;
 state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime(), ts:Date.now(), pos:"aufrecht"});
 saveAll(); updateDisplay();
 showToast();
-if(!lastActionTime) startPauseTimer();
+startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
 }
@@ -669,12 +670,12 @@ if(e.ts <= letztesPause) continue;
 if(e.pos === "aufrecht" && aufrechtSeit === null) {
 aufrechtSeit = e.ts;
 } else if(e.pos === "liegend" && aufrechtSeit !== null) {
-minuten += Math.round((e.ts - aufrechtSeit) / 60000);
+minuten += Math.floor((e.ts - aufrechtSeit) / 60000);
 aufrechtSeit = null;
 }
 }
 if(aufrechtSeit !== null) {
-minuten += Math.round((jetzt - aufrechtSeit) / 60000);
+minuten += Math.floor((jetzt - aufrechtSeit) / 60000);
 }
 return minuten;
 }
@@ -698,15 +699,48 @@ bar.style.display = "none"
 }
 }
 
+function getCrashScore() {
+if(state.max <= 0) return 0;
+var pct = (state.cur / state.max) * 100;
+var upright = getAufrechtMinuten();
+// Belastung der letzten 2 Stunden
+var jetzt = Date.now();
+var last2h = 0;
+for(var i=0; i<state.used.length; i++) {
+var u = state.used[i];
+if(u.v > 0 && u.ts && (jetzt - u.ts) < 7200000) last2h += u.v;
+}
+var risk = 0;
+if(pct < 40) risk += 1;
+if(pct < 25) risk += 2;
+if(last2h > 12) risk += 1;
+if(last2h > 18) risk += 2;
+if(upright > 90) risk += 1;
+return risk;
+}
+
 function checkCrashRisiko() {
 if(state.max <= 0) return;
 var pct = (state.cur / state.max) * 100;
-var minuten = lastActionTime ? Math.floor((Date.now() - lastActionTime) / 60000) : 0;
-var bar = document.getElementById("crashWarnBar");
-if(pct < 35 && state.block > 15 && minuten >= 40) {
-bar.style.display = "block"
+var score = getCrashScore();
+var crashBar = document.getElementById("crashWarnBar");
+var notBar = document.getElementById("notbremsBar");
+// Notbremse: Rest < 15%
+if(pct < 15) {
+notBar.style.display = "block"
+crashBar.style.display = "none"
+} else if(score >= 4) {
+crashBar.style.display = "block"
+crashBar.innerHTML = "⚠️ Crash-Risiko hoch (Score " + score + ")! Jetzt längere Ruhepause!"
+notBar.style.display = "none"
+} else if(score >= 2) {
+crashBar.style.display = "block"
+crashBar.innerHTML = "⚠️ Erhöhte Vorsicht (Score " + score + ") – Aktivitäten reduzieren!"
+crashBar.style.animation = "none"
+notBar.style.display = "none"
 } else {
-bar.style.display = "none"
+crashBar.style.display = "none"
+notBar.style.display = "none"
 }
 }
 
@@ -778,6 +812,7 @@ saveAll(); updateDisplay();
 showToast("Pause verbucht ☕ (" + min + " Min.)");
 stopPauseTimer();
 checkBelastungsdichte();
+lastActionTime = Date.now();
 setTimeout(function() {
 if(state.max > 0) {
 state.used.push({n:"Aufrecht nach Pause",v:0,t:nowTime(),ts:Date.now(),pos:"aufrecht"});
@@ -840,6 +875,7 @@ document.getElementById("dayList").innerHTML = ""
 document.getElementById("mainBody").className = ""
 stopPauseTimer();
 document.getElementById("crashWarnBar").style.display="none"
+var nb=document.getElementById("notbremsBar"); if(nb) nb.style.display="none"
 document.getElementById("mikroPauseBar").style.display="none"
 var aw=document.getElementById("aufrechtWarnBar"); if(aw) aw.style.display="none"
 showToast("Neuer Tag gestartet! ☀️");
