@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.5</title>
+<title>PacingApp 4.2.1.8</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -172,8 +172,8 @@ Aktivspielraum<span id="valSpielraum" class="big">0</span>
 </div>
 
 <div id="pauseWrap" class="pause-wrap">
-<button class="btn-pause-big" onclick="doPause(10)">☕ PAUSE</button>
-<button class="btn-pause-small" onclick="doPause(5)">5 Min.</button>
+<button class="btn-pause-big" onclick="doPause(10)">☕ PAUSE (10 Min.)</button>
+<button class="btn-pause-small" onclick="doPause(5)">Pause (5 Min.)</button>
 </div>
 
 <div id="pauseHint" class="pause-hint">
@@ -217,16 +217,6 @@ Aktivspielraum<span id="valSpielraum" class="big">0</span>
 <button type="button" onclick="resetKatalog()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">↺ Grundkatalog wiederherstellen</button>
 </div>
 
-<div class="card" id="cardUsed" style="display:none;">
-<h3>Heutige Aktivitäten</h3>
-<div id="dayList"></div>
-<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">Letzten Eintrag rückgängig</button>
-</div>
-
-<div style="margin-top:10px;text-align:center;">
-<button id="debugBtn" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;display:none;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;" onclick="showHistory()">History anzeigen</button>
-</div>
-
 <div class="card" id="cardSymptome" style="display:none;">
 <div class="symptom-header" onclick="toggleSymptomCard()">
 <h3>Symptome erfassen</h3>
@@ -247,11 +237,21 @@ Aktivspielraum<span id="valSpielraum" class="big">0</span>
 <div id="symptomList" style="margin-top:10px;"></div>
 </div>
 
+<div class="card" id="cardUsed" style="display:none;">
+<h3>Heutige Aktivitäten</h3>
+<div id="dayList"></div>
+<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">Letzten Eintrag rückgängig</button>
+</div>
+
+<div style="margin-top:10px;text-align:center;">
+<button id="debugBtn" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;display:none;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;" onclick="showHistory()">History anzeigen</button>
+</div>
+
 <div style="margin-top:20px;text-align:center;">
 <button id="showCheckBtn" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;" onclick="toggleCheck()">Neuer Tag / Reset</button>
 </div>
 
-<div id="schwerebverlay" class="schwere-overlay" onclick="closeSchwere()" style="display:none;"></div>
+<div id="schwereOverlay" class="schwere-overlay" onclick="closeSchwere()" style="display:none;"></div>
 <div id="schwerePicker" class="schwere-picker" style="display:none;">
 <h4 id="schwereTitle">Schweregrad</h4>
 <div class="schwere-btns">
@@ -594,13 +594,13 @@ function pickSchwere(idx) {
 _pendingSymptom = idx;
 document.getElementById("schwereTitle").textContent = symptomIcons[idx] + " " + symptomNamen[idx];
 document.getElementById("schwerePicker").style.display = "block"
-document.getElementById("schwerebverlay").style.display = "block"
+document.getElementById("schwereOverlay").style.display = "block"
 }
 
 function closeSchwere() {
 _pendingSymptom = null;
 document.getElementById("schwerePicker").style.display = "none"
-document.getElementById("schwerebverlay").style.display = "none"
+document.getElementById("schwereOverlay").style.display = "none"
 }
 
 function logSymptomMitSchwere(schwere) {
@@ -777,11 +777,13 @@ state.used.push({n:"Pause",v:0,t:nowTime(),ts:Date.now(),pos:"liegend"});
 saveAll(); updateDisplay();
 showToast("Pause verbucht ☕ (" + min + " Min.)");
 stopPauseTimer();
+checkBelastungsdichte();
 setTimeout(function() {
 if(state.max > 0) {
 state.used.push({n:"Aufrecht nach Pause",v:0,t:nowTime(),ts:Date.now(),pos:"aufrecht"});
 saveAll(); updateDisplay();
 showToast("⏱️ " + min + " Min. Pause – wieder aufrecht?");
+startPauseTimer();
 }
 }, min * 60 * 1000);
 }
