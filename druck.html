@@ -607,14 +607,14 @@ chev.className = isOpen ? "symptom-chevron" : "symptom-chevron open"
 function pickSchwere(idx) {
 _pendingSymptom = idx;
 document.getElementById("schwereTitle").textContent = symptomIcons[idx] + " " + symptomNamen[idx];
-document.getElementById("schwerePicker").classList.add("open");
-document.getElementById("schwerebverlay").classList.add("open");
+document.getElementById("schwerePicker").style.display = "block"
+document.getElementById("schwerebverlay").style.display = "block"
 }
 
 function closeSchwere() {
 _pendingSymptom = null;
-document.getElementById("schwerePicker").classList.remove("open");
-document.getElementById("schwerebverlay").classList.remove("open");
+document.getElementById("schwerePicker").style.display = "none"
+document.getElementById("schwerebverlay").style.display = "none"
 }
 
 function logSymptomMitSchwere(schwere) {
@@ -900,8 +900,8 @@ loads.splice(i,1); saveAll(); renderCatalog();
 }
 </script>
 
-<div class="schwere-overlay" id="schwerebverlay" onclick="closeSchwere()"></div>
-<div class="schwere-picker" id="schwerePicker">
+<div class="schwere-overlay" id="schwerebverlay" onclick="closeSchwere()" style="display:none;"></div>
+<div class="schwere-picker" id="schwerePicker" style="display:none;">
 <h4 id="schwereTitle">Schweregrad</h4>
 <div class="schwere-btns">
 <button class="schwere-btn schwere-leicht" onclick="logSymptomMitSchwere('leicht')">leicht</button>
