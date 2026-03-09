@@ -88,6 +88,35 @@ box-shadow:0 4px 16px rgba(0,0,0,0.3);
 animation:blinker 1.2s linear infinite;
 }
 
+.symptom-header {
+display:flex; justify-content:space-between; align-items:center;
+cursor:pointer; touch-action:manipulation; user-select:none; padding:4px 0;
+}
+.symptom-header h3 { margin:0; }
+.symptom-chevron { font-size:14px; color:#8e8e93; transition:transform 0.2s; }
+.symptom-chevron.open { transform:rotate(180deg); }
+.symptom-body { display:none; }
+.symptom-body.open { display:block; }
+
+.schwere-picker {
+display:none; position:fixed; left:50%; transform:translateX(-50%);
+bottom:100px; z-index:4000; background:#fff; border-radius:16px;
+box-shadow:0 8px 32px rgba(0,0,0,0.25); padding:16px; min-width:260px;
+text-align:center;
+}
+.schwere-picker.open { display:block; }
+.schwere-picker h4 { margin:0 0 12px; font-size:15px; color:#333; }
+.schwere-btns { display:flex; gap:8px; justify-content:center; }
+.schwere-btn {
+flex:1; padding:10px 6px; border:none; border-radius:10px;
+font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
+}
+.schwere-leicht { background:#34c759; color:#fff; }
+.schwere-mittel { background:#ff9500; color:#fff; }
+.schwere-schwer { background:#ff3b30; color:#fff; }
+.schwere-overlay { display:none; position:fixed; inset:0; z-index:3999; }
+.schwere-overlay.open { display:block; }
+
 .symptom-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin-top:8px; }
 .symptom-btn {
 padding:6px 4px; border:1.5px solid #d1d1d6; border-radius:8px;
@@ -212,16 +241,33 @@ Eigener Wert<span class="schlaf-val">z.B. Schlaftracker</span>
 </div>
 
 <div class="card" id="cardSymptome" style="display:none;">
-<h3>Symptom-Tracking</h3>
-<div class="symptom-grid">
-<button type="button" class="symptom-btn" onclick="logSymptom(0)">🤯 Kopf-Druck</button>
-<button type="button" class="symptom-btn" onclick="logSymptom(1)">👁️ Augen</button>
-<button type="button" class="symptom-btn" onclick="logSymptom(2)">🌫️ Brain-Fog</button>
-<button type="button" class="symptom-btn" onclick="logSymptom(3)">😴 Erschöpfung</button>
-<button type="button" class="symptom-btn" onclick="logSymptom(4)">🔔 Pfeifen</button>
-<button type="button" class="symptom-btn" onclick="logSymptom(5)">😬 Unruhe</button>
+<div class="symptom-header" onclick="toggleSymptomCard()">
+<h3>Symptome erfassen</h3>
+<span class="symptom-chevron" id="symptomChevron">▼</span>
+</div>
+<div class="symptom-body" id="symptomBody">
+<div class="symptom-grid" style="margin-top:8px;">
+<button type="button" class="symptom-btn" onclick="pickSchwere(0)">🤯 Kopf-Druck</button>
+<button type="button" class="symptom-btn" onclick="pickSchwere(1)">👁️ Augen</button>
+<button type="button" class="symptom-btn" onclick="pickSchwere(2)">🌫️ Brain-Fog</button>
+<button type="button" class="symptom-btn" onclick="pickSchwere(3)">😴 Erschöpfung</button>
+<button type="button" class="symptom-btn" onclick="pickSchwere(4)">🔔 Pfeifen</button>
+<button type="button" class="symptom-btn" onclick="pickSchwere(5)">😬 Unruhe</button>
+<button type="button" class="symptom-btn" onclick="pickSchwere(6)">💪 Muskelschmerz</button>
+<button type="button" class="symptom-btn" onclick="pickSchwere(7)">🦴 Gelenkschmerz</button>
+</div>
 </div>
 <div id="symptomList" style="margin-top:10px;"></div>
+
+<div class="schwere-overlay" id="schwerebverlay" onclick="closeSchwere()"></div>
+<div class="schwere-picker" id="schwerePicker">
+<h4 id="schwereTitle">Schweregrad</h4>
+<div class="schwere-btns">
+<button class="schwere-btn schwere-leicht" onclick="logSymptomMitSchwere('leicht')">leicht</button>
+<button class="schwere-btn schwere-mittel" onclick="logSymptomMitSchwere('mittel')">mittel</button>
+<button class="schwere-btn schwere-schwer" onclick="logSymptomMitSchwere('schwer')">schwer</button>
+</div>
+</div>
 </div>
 
 <div style="margin-top:20px;text-align:center;">
@@ -556,15 +602,45 @@ checkBelastungsdichte();
 checkCrashRisiko();
 }
 
-var symptomNamen = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe"];
-var symptomIcons = ["🤯","👁️","🌫️","😴","🔔","😬"];
+var _pendingSymptom = null;
 
-function logSymptom(idx) {
+function toggleSymptomCard() {
+var body = document.getElementById("symptomBody");
+var chev = document.getElementById("symptomChevron");
+if(!body) return;
+var isOpen = body.classList.contains("open");
+body.className = isOpen ? "symptom-body" : "symptom-body open"
+chev.className = isOpen ? "symptom-chevron" : "symptom-chevron open"
+}
+
+function pickSchwere(idx) {
+_pendingSymptom = idx;
+document.getElementById("schwereTitle").textContent = symptomIcons[idx] + " " + symptomNamen[idx];
+document.getElementById("schwerePicker").classList.add("open");
+document.getElementById("schwerebverlay").classList.add("open");
+}
+
+function closeSchwere() {
+_pendingSymptom = null;
+document.getElementById("schwerePicker").classList.remove("open");
+document.getElementById("schwerebverlay").classList.remove("open");
+}
+
+function logSymptomMitSchwere(schwere) {
+if(_pendingSymptom === null) return;
+logSymptom(_pendingSymptom, schwere);
+closeSchwere();
+}
+
+var symptomNamen = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
+var symptomIcons = ["🤯","👁️","🌫️","😴","🔔","😬","💪","🦴"];
+
+function logSymptom(idx, schwere) {
 if(!state.symptome) state.symptome = [];
-state.symptome.push({s:idx, t:nowTime(), ts:Date.now()});
+state.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere||"leicht"});
 saveAll();
 renderSymptome();
-showToast(symptomIcons[idx] + " " + symptomNamen[idx] + " erfasst");
+showToast(symptomIcons[idx] + " " + symptomNamen[idx] + " (" + (schwere||"leicht") + ")");
 }
 
 function deleteSymptom(idx) {
@@ -721,12 +797,12 @@ var pos = u.pos || (u.n === "Pause" || u.v < 0 ? "liegend" : "aufrecht");
 var origUsedIdx = state.used.indexOf(u);
 var upAktiv = pos === "aufrecht" ? " aktiv" : ""
 var downAktiv = pos === "liegend" ? " aktiv" : ""
-var downLabel = pos === "liegend" ? "↓" : "↓?"
-row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "<span class='pos-wrap'><span class='pos-tag pos-aufrecht" + upAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>↑</span><span class='pos-tag pos-liegend" + downAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>" + downLabel + "</span></span></span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
+var downLabel = pos === "liegend" ? "liegend" : "liegend?"
+row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "<span class='pos-wrap'><span class='pos-tag pos-aufrecht" + upAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>aufrecht</span><span class='pos-tag pos-liegend" + downAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>" + downLabel + "</span></span></span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
 } else {
 var s = entry.data;
 var oi = entry.origIdx;
-row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (s.t||"") + "</span>" + symptomIcons[s.s] + " " + symptomNamen[s.s] + "</span>"
+var swLabel = s.sw ? " (" + s.sw + ")" : "" row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (s.t||"") + "</span>" + symptomIcons[s.s] + " " + symptomNamen[s.s] + swLabel + "</span>"
 
 }
 div.appendChild(row);
@@ -739,6 +815,14 @@ state.used.push({n:"Pause",v:0,t:nowTime(),ts:Date.now(),pos:"liegend"});
 saveAll(); updateDisplay();
 showToast("Pause verbucht ☕");
 stopPauseTimer();
+// Nach 10 Minuten automatisch aufrecht starten
+setTimeout(function() {
+if(state.max > 0) {
+state.used.push({n:"Aufrecht nach Pause",v:0,t:nowTime(),ts:Date.now(),pos:"aufrecht"});
+saveAll(); updateDisplay();
+showToast("⏱️ 10 Min. Pause – wieder aufrecht?");
+}
+}, 10 * 60 * 1000);
 }
 
 function undoLast() {
