@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.7.2</title>
+<title>PacingApp 4.2.1.5</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -598,18 +598,29 @@ return d.getTime();
 }
 
 function getAufrechtMinuten() {
+// Nur die aufrecht-Zeit SEIT der letzten Pause zählen
 var jetzt = Date.now();
-var minuten = 0;
-// Fallback: ts aus Uhrzeit berechnen wenn nicht vorhanden
 var sorted = state.used.slice().map(function(e) {
 var defaultPos = (e.n === "Pause" || e.v < 0) ? "liegend" : "aufrecht"
 return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || defaultPos};
 }).filter(function(e){ return e.ts > 0; })
 .sort(function(a,b){ return a.ts - b.ts; });
 
+// Letzten liegend-Eintrag (Pause) finden
+var letztesPause = 0;
+for(var i=sorted.length-1; i>=0; i--) {
+if(sorted[i].pos === "liegend") {
+letztesPause = sorted[i].ts;
+break;
+}
+}
+
+// Aufrecht-Zeit nur nach letzter Pause summieren
+var minuten = 0;
 var aufrechtSeit = null;
-for(var i=0; i<sorted.length; i++) {
-var e = sorted[i];
+for(var j=0; j<sorted.length; j++) {
+var e = sorted[j];
+if(e.ts <= letztesPause) continue; // vor letzter Pause ignorieren
 if(e.pos === "aufrecht" && aufrechtSeit === null) {
 aufrechtSeit = e.ts;
 } else if(e.pos === "liegend" && aufrechtSeit !== null) {
