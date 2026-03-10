@@ -220,7 +220,7 @@ font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
 </div>
 <div id="catalog" style="margin-top:15px;"></div>
 <button type="button" onclick="resetKatalog()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">↺ Grundkatalog wiederherstellen</button>
-</div><!-- /catalogBody -->
+</div>
 </div>
 
 <div class="card" id="cardSymptome" style="display:none;">
@@ -244,9 +244,15 @@ font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
 </div>
 
 <div class="card" id="cardUsed" style="display:none;">
-<h3>Heutige Aktivitäten</h3>
+<div class="symptom-header" onclick="toggleUsedCard()">
+<h3>Heutige Aktivitäten <span style="font-size:11px;font-weight:400;opacity:0.6;">· Tippen: auf / erneut: zu</span></h3>
+<span class="symptom-chevron" id="usedChevron">▼</span>
+</div>
+<div id="usedPreview"></div>
+<div class="symptom-body" id="usedBody">
 <div id="dayList"></div>
-<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">↩ Rückgängig</button>
+</div>
+<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:8px">↩ Rückgängig</button>
 </div>
 
 <div style="margin-top:10px;text-align:center;">
@@ -479,7 +485,6 @@ body.className = ""
 boxRest.className = "status"
 boxLimit.className = "status"
 boxSpielraum.className = "status"
-// Farbe basiert auf Spielraum, nicht Gesamtrest
 if(spielraum > state.max * 0.5) {
 body.classList.add("mode-green"); boxRest.classList.add("bg-green"); boxLimit.classList.add("bg-green"); boxSpielraum.classList.add("bg-green");
 msgEl.textContent = "Alles gut! Aber achtsam bleiben!"
@@ -606,6 +611,17 @@ body.className = isOpen ? "symptom-body" : "symptom-body open"
 chev.className = isOpen ? "symptom-chevron" : "symptom-chevron open"
 }
 
+function toggleUsedCard() {
+var body = document.getElementById("usedBody");
+var chev = document.getElementById("usedChevron");
+var preview = document.getElementById("usedPreview");
+if(!body) return;
+var isOpen = body.classList.contains("open");
+body.className = isOpen ? "symptom-body" : "symptom-body open"
+chev.className = isOpen ? "symptom-chevron" : "symptom-chevron open"
+renderUsedPreview();
+}
+
 function pickSchwere(idx) {
 _pendingSymptom = idx;
 document.getElementById("schwereTitle").textContent = symptomIcons[idx] + " " + symptomNamen[idx];
@@ -694,7 +710,7 @@ var aufrechtSeit = null;
 for(var j=0; j<sorted.length; j++) {
 var e = sorted[j];
 if(e.ts <= letztesPause) continue;
-if(e.n === "Pause") continue; // Pause selbst nicht als Aufrechtzeit werten
+if(e.n === "Pause") continue;
 if(e.pos === "aufrecht" && aufrechtSeit === null) {
 aufrechtSeit = e.ts;
 } else if(e.pos === "liegend" && aufrechtSeit !== null) {
@@ -731,7 +747,6 @@ function getCrashScore() {
 if(state.max <= 0) return 0;
 var pct = (state.cur / state.max) * 100;
 var upright = getAufrechtMinuten();
-// Belastung der letzten 2 Stunden
 var jetzt = Date.now();
 var last2h = 0;
 for(var i=0; i<state.used.length; i++) {
@@ -753,7 +768,6 @@ var pct = (state.cur / state.max) * 100;
 var score = getCrashScore();
 var crashBar = document.getElementById("crashWarnBar");
 var notBar = document.getElementById("notbremsBar");
-// Notbremse: Rest < 15%
 if(pct < 20) {
 notBar.style.display = "block"
 crashBar.style.display = "none"
@@ -789,9 +803,7 @@ setTimeout(function(){ bar.style.display = "none" }, 5000);
 }
 }
 
-function renderUsed() {
-var div = document.getElementById("dayList");
-div.innerHTML = ""
+function buildCombined() {
 var combined = [];
 for(var j=0; j<state.used.length; j++) {
 var ts = state.used[j].ts || 0;
@@ -799,7 +811,7 @@ if(!ts && state.used[j].t) {
 var parts = state.used[j].t.split(":");
 if(parts.length === 2) ts = parseInt(parts[0])*60 + parseInt(parts[1]);
 }
-combined.push({ts: ts, t: state.used[j].t||"", type:"aktivitaet", data:state.used[j]});
+combined.push({ts:ts, t:state.used[j].t||"", type:"aktivitaet", data:state.used[j]});
 }
 var symp = state.symptome || [];
 for(var k=0; k<symp.length; k++) {
@@ -808,12 +820,13 @@ if(!sts && symp[k].t) {
 var sparts = symp[k].t.split(":");
 if(sparts.length === 2) sts = parseInt(sparts[0])*60 + parseInt(sparts[1]);
 }
-combined.push({ts: sts, t: symp[k].t||"", type:"symptom", data:symp[k], origIdx:k});
+combined.push({ts:sts, t:symp[k].t||"", type:"symptom", data:symp[k], origIdx:k});
 }
 combined.sort(function(a,b){ return b.ts - a.ts; });
+return combined;
+}
 
-for(var i=0; i<combined.length; i++) {
-var entry = combined[i];
+function makeEntryRow(entry) {
 var row = document.createElement("div");
 row.className = "item"
 if(entry.type === "aktivitaet") {
@@ -831,8 +844,35 @@ var wegLabel = s.weg ? " <span style='color:#34c759;font-weight:700;'>✓ weg</s
 var opacity = s.weg ? "opacity:0.6;" : ""
 row.innerHTML = "<span style='" + opacity + "'><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (s.t||"") + "</span>" + symptomIcons[s.s] + " " + symptomNamen[s.s] + wegLabel + "</span>"
 }
-div.appendChild(row);
+return row;
 }
+
+function renderUsedPreview() {
+var preview = document.getElementById("usedPreview");
+var isOpen = document.getElementById("usedBody").classList.contains("open");
+preview.innerHTML = ""
+if(isOpen) return;
+var combined = buildCombined();
+var count = Math.min(3, combined.length);
+for(var i=0; i<count; i++) {
+preview.appendChild(makeEntryRow(combined[i]));
+}
+if(combined.length > 3) {
+var more = document.createElement("div");
+more.style.cssText = "font-size:11px;color:#8e8e93;text-align:center;padding:4px 0;"
+more.textContent = "+" + (combined.length - 3) + " weitere – tippen zum Anzeigen"
+preview.appendChild(more);
+}
+}
+
+function renderUsed() {
+var div = document.getElementById("dayList");
+div.innerHTML = ""
+var combined = buildCombined();
+for(var i=0; i<combined.length; i++) {
+div.appendChild(makeEntryRow(combined[i]));
+}
+renderUsedPreview();
 }
 
 function doPause(minuten) {
@@ -903,6 +943,7 @@ document.getElementById("showCheckBtn").style.display = "none"
 document.getElementById("cardUsed").style.display = "none"
 document.getElementById("cardSymptome").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
+document.getElementById("usedPreview").innerHTML = ""
 document.getElementById("mainBody").className = ""
 stopPauseTimer();
 document.getElementById("crashWarnBar").style.display="none"
