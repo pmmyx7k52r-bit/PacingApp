@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.1.5</title>
+<title>PacingApp 4.2.3.1</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -244,9 +244,16 @@ font-weight:700; font-size:13px; cursor:pointer; touch-action:manipulation;
 </div>
 
 <div class="card" id="cardUsed" style="display:none;">
-<h3>Heutige Aktivitäten</h3>
+<div class="symptom-header" onclick="toggleUsedCard()">
+<h3>Heutige Aktivitäten <span style="font-size:11px;font-weight:400;opacity:0.6;">· Tippen: auf / erneut: zu</span></h3>
+<span class="symptom-chevron" id="usedChevron">▼</span>
+</div>
+<div id="dayListPreview"></div>
+<button id="undoBtnTop" onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:8px">↩ Rückgängig</button>
+<div class="symptom-body" id="usedBody">
 <div id="dayList"></div>
-<button onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:15px">↩ Rückgängig</button>
+<button id="undoBtnBottom" onclick="undoLast()" style="background:var(--orange);width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:8px;display:none;">↩ Rückgängig</button>
+</div>
 </div>
 
 <div style="margin-top:10px;text-align:center;">
@@ -589,6 +596,21 @@ checkCrashRisiko();
 
 var _pendingSymptom = null;
 
+function toggleUsedCard() {
+var body = document.getElementById("usedBody");
+var chev = document.getElementById("usedChevron");
+var preview = document.getElementById("dayListPreview");
+var btnTop = document.getElementById("undoBtnTop");
+var btnBot = document.getElementById("undoBtnBottom");
+if(!body) return;
+var isOpen = body.classList.contains("open");
+body.className = isOpen ? "symptom-body" : "symptom-body open"
+chev.className = isOpen ? "symptom-chevron" : "symptom-chevron open"
+if(preview) preview.style.display = isOpen ? "" : "none"
+if(btnTop) btnTop.style.display = isOpen ? "" : "none"
+if(btnBot) btnBot.style.display = isOpen ? "none" : ""
+}
+
 function toggleCatalogCard() {
 var body = document.getElementById("catalogBody");
 var chev = document.getElementById("catalogChevron");
@@ -792,7 +814,9 @@ setTimeout(function(){ bar.style.display = "none" }, 5000);
 
 function renderUsed() {
 var div = document.getElementById("dayList");
+var preview = document.getElementById("dayListPreview");
 div.innerHTML = ""
+if(preview) preview.innerHTML = ""
 var combined = [];
 for(var j=0; j<state.used.length; j++) {
 var ts = state.used[j].ts || 0;
@@ -835,6 +859,32 @@ var opacity = s.weg ? "opacity:0.6;" : ""
 row.innerHTML = "<span style='" + opacity + "'><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (s.t||"") + "</span>" + symptomIcons[s.s] + " " + symptomNamen[s.s] + wegLabel + "</span>"
 }
 div.appendChild(row);
+}
+// Preview: letzte 3 Einträge (neueste zuerst, bereits sortiert)
+if(preview) {
+var previewCount = Math.min(3, combined.length);
+for(var pi=0; pi<previewCount; pi++) {
+var pentry = combined[pi];
+var prow = document.createElement("div");
+prow.className = "item"
+prow.style.opacity = "0.85"
+if(pentry.type === "aktivitaet") {
+var pu = pentry.data;
+var pip = pu.v < 0;
+prow.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (pu.t||"") + "</span>" + pu.n + "</span><span>" + (pu.v === 0 ? "" : (pip?"+":"-") + Math.abs(pu.v)) + "</span>"
+} else {
+var ps = pentry.data;
+var pwegLabel = ps.weg ? " <span style='color:#34c759;font-weight:700;'>✓ weg</span>" : (ps.sw ? " (" + ps.sw + ")" : "");
+prow.innerHTML = "<span style='" + (ps.weg?"opacity:0.6;":"") + "'><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (ps.t||"") + "</span>" + symptomIcons[ps.s] + " " + symptomNamen[ps.s] + pwegLabel + "</span>"
+}
+preview.appendChild(prow);
+}
+if(combined.length > 3) {
+var more = document.createElement("div");
+more.style.cssText = "font-size:11px;color:#8e8e93;text-align:center;padding:4px 0;"
+more.textContent = "+" + (combined.length - 3) + " weitere – tippen zum Anzeigen"
+preview.appendChild(more);
+}
 }
 }
 
