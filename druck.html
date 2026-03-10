@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.2.7</title>
+<title>PacingApp 4.2.1.5</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -300,6 +300,7 @@ var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],
 var schlafWert = null;
 var lastActionTime = null;
 var pauseTimerInterval = null;
+var pauseAutoTimeout = null; // setTimeout für auto-aufrecht
 
 function startPauseTimer() {
 lastActionTime = Date.now();
@@ -823,7 +824,9 @@ var origUsedIdx = state.used.indexOf(u);
 var upAktiv = pos === "aufrecht" ? " aktiv" : ""
 var downAktiv = pos === "liegend" ? " aktiv" : ""
 var downLabel = pos === "liegend" ? "liegend" : "liegend?"
-row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + "<span class='pos-wrap'><span class='pos-tag pos-aufrecht" + upAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>aufrecht</span><span class='pos-tag pos-liegend" + downAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>" + downLabel + "</span></span></span><span>" + (ip?"+":"-") + Math.abs(u.v) + "</span>"
+var bisBtn = (u.n === "Pause") ? "<button onclick='setBisZeit(" + origUsedIdx + ")' style='background:#5856d6;color:#fff;border:none;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;width:auto;margin-left:6px;'>bis...</button>" : ""
+row.id = "pauseRow_" + origUsedIdx;
+row.innerHTML = "<span><span style='font-size:11px;opacity:0.8;margin-right:8px'>" + (u.t||"") + "</span>" + u.n + bisBtn + "<span class='pos-wrap'><span class='pos-tag pos-aufrecht" + upAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>aufrecht</span><span class='pos-tag pos-liegend" + downAktiv + "' onclick='togglePosition(" + origUsedIdx + ")'>" + downLabel + "</span></span></span><span>" + (u.v === 0 ? "" : (ip?"+":"-") + Math.abs(u.v)) + "</span>"
 } else {
 var s = entry.data;
 var swLabel = s.sw ? " (" + s.sw + ")" : ""
@@ -844,14 +847,63 @@ showToast("Pause verbucht ☕ (" + min + " Min.)");
 stopPauseTimer();
 checkBelastungsdichte();
 lastActionTime = Date.now();
-setTimeout(function() {
+if(pauseAutoTimeout) clearTimeout(pauseAutoTimeout);
+pauseAutoTimeout = setTimeout(function() {
 if(state.max > 0) {
-state.used.push({n:"Aufrecht nach Pause",v:0,t:nowTime(),ts:Date.now(),pos:"aufrecht"});
-saveAll(); updateDisplay();
-showToast("⏱️ " + min + " Min. Pause – wieder aufrecht?");
-startPauseTimer();
+setPauseEnde();
 }
 }, min * 60 * 1000);
+}
+
+function setPauseEnde() {
+if(pauseAutoTimeout) { clearTimeout(pauseAutoTimeout); pauseAutoTimeout = null; }
+state.used.push({n:"Aufrecht nach Pause",v:0,t:nowTime(),ts:Date.now(),pos:"aufrecht"});
+saveAll(); updateDisplay();
+showToast("⏱️ Pause beendet – wieder aufrecht?");
+startPauseTimer();
+}
+
+function setBisZeit(idx) {
+var row = document.getElementById("pauseRow_" + idx);
+if(!row) return;
+var existing = document.getElementById("bisInput_" + idx);
+if(existing) { existing.style.display = existing.style.display === "none" ? "flex" : "none" return; }
+var now = new Date();
+var hh = String(now.getHours()).padStart(2,"0");
+var mm = String(now.getMinutes()).padStart(2,"0");
+var wrap = document.createElement("div");
+wrap.id = "bisInput_" + idx;
+wrap.style.cssText = "display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap;"
+// Label
+var label = document.createElement("span");
+label.textContent = "aufrecht bis:"
+label.style.cssText = "font-size:12px;color:#8e8e93;white-space:nowrap;width:100%;"
+var inpRad = document.createElement("input");
+inpRad.type = "time"
+inpRad.value = hh + ":" + mm;
+inpRad.style.cssText = "padding:4px 8px;border-radius:8px;border:1px solid #ccc;font-size:13px;background:#fff;color:#000;width:auto;"
+var btn = document.createElement("button");
+btn.textContent = "Zeit bestätigen"
+btn.style.cssText = "background:#5856d6;color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:13px;font-weight:700;width:auto;"
+btn.onclick = function() {
+var val = inpRad.value;
+if(!val || !/^\d{2}:\d{2}$/.test(val)) { showToast("Bitte HH:MM eingeben"); return; }
+var parts = val.split(":");
+var ziel = new Date();
+ziel.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+var diff = ziel.getTime() - Date.now();
+if(diff <= 0) { showToast("⚠️ Zeit liegt in der Vergangenheit – wird trotzdem gesetzt."); diff = 1000; }
+if(pauseAutoTimeout) clearTimeout(pauseAutoTimeout);
+pauseAutoTimeout = setTimeout(function() {
+if(state.max > 0) setPauseEnde();
+}, diff);
+showToast("⏰ Aufrecht ab " + val);
+wrap.style.display = "none"
+};
+wrap.appendChild(label);
+wrap.appendChild(inpRad);
+wrap.appendChild(btn);
+row.appendChild(wrap);
 }
 
 function undoLast() {
