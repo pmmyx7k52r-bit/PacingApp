@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.8</title>
+<title>PacingApp 4.3.9</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -23,10 +23,7 @@ background:#fff; border-radius:14px; padding:12px 14px;
 margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,.15);
 transition:background-color 0.3s, color 0.3s;
 }
-.mode-green .card { background-color:var(--green); color:#fff; }
-.mode-yellow .card { background-color:var(--yellow); color:#000; }
-.mode-orange .card { background-color:var(--orange); color:#fff; }
-.mode-red .card { background-color:var(--red); color:#fff; }
+/* Cards bleiben immer weiß – nur Statusboxen oben färben sich ein */
 button {
 width:100%; padding:12px; border:none; border-radius:12px;
 font-weight:700; font-size:15px; color:#fff; cursor:pointer;
@@ -196,10 +193,10 @@ margin-bottom:0;
 <circle cx="80" cy="22" r="5" fill="#888"/>
 <!-- Waagebalken -->
 <line id="waageBalken" x1="15" y1="22" x2="145" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<!-- Linke Schale (Aufrecht = orange) -->
+<!-- Linke Schale (liegend = gruen) -->
 <line id="waageSeilL" x1="20" y1="22" x2="20" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleL" cx="20" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<!-- Rechte Schale (Liegend = gruen) -->
+<!-- Rechte Schale (aufrecht = orange) -->
 <line id="waageSeilR" x1="140" y1="22" x2="140" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleR" cx="140" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
 <!-- Labels -->
@@ -330,7 +327,7 @@ var schlafWert = null;
 var schlafMode = null;
 var lastActionTime = null;
 var pauseTimerInterval = null;
-var pauseBeginnTs = null;
+var pauseBeginnTs = null; // globale Variable für laufende Pause
 var _pendingSymptom = null;
 
 function saveAll() {
@@ -372,6 +369,7 @@ document.body.style.paddingTop = "80px"
 
 function checkPauseTimer() {
 if (!lastActionTime || state.max <= 0) {
+updateWaage(); // FIX 1: Waage auch ohne Aktion aktualisieren
 return;
 }
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
@@ -403,6 +401,7 @@ document.body.style.paddingTop = "120px"
 bar.style.display = "none"
 document.body.style.paddingTop = "80px"
 }
+updateWaage(); // FIX 1: Waage jede Minute automatisch aktualisieren
 }
 
 window.onload = function() {
@@ -415,6 +414,16 @@ lastActionTime = parseInt(savedTimer);
 pauseTimerInterval = setInterval(checkPauseTimer, 60000);
 checkPauseTimer();
 }
+
+// FIX 3: Globaler 60s-Timer für Waage, Aufrechtwarnung und CrashRisiko
+setInterval(function() {
+if (state.max > 0) {
+updateWaage();
+updateAufrechtWarnung();
+checkCrashRisiko();
+}
+}, 60000);
+
 var today = new Date().toDateString();
 if (state.date && state.date !== today && state.max > 0) {
 archiveDay();
@@ -1296,24 +1305,22 @@ document.getElementById("aufrechtWarnBar").style.display = "none"
 showToast("Neuer Tag!");
 }
 
-
 function getLiegendMinuten() {
-// Liegend = abgeschlossene Pausen + laufende Pause + liegend-markierte Aktivitäten
+// FIX 2: lokale Variable umbenannt zu startPause, kollidiert nicht mehr mit globaler pauseBeginnTs
 var min = 0;
-var pauseBeginnTs = null;
+var startPause = null;
 for (var i = 0; i < state.used.length; i++) {
 var e = state.used[i];
 if (e.n === "Pausenbeginn") {
-pauseBeginnTs = e.ts;
-} else if (e.n.indexOf("Pause beendet") === 0 && pauseBeginnTs) {
-min += Math.round((e.ts - pauseBeginnTs) / 60000);
-pauseBeginnTs = null;
+startPause = e.ts;
+} else if (e.n.indexOf("Pause beendet") === 0 && startPause) {
+min += Math.round((e.ts - startPause) / 60000);
+startPause = null;
 } else if (e.pos === "liegend" && e.v > 0) {
-// Liegend-markierte Aktivität: anteilig als liegend zählen
-// Wir kennen keine Dauer, schätzen grob 5 Min. pro Aktivität
 min += 5;
 }
 }
+// Laufende Pause: globale pauseBeginnTs verwenden (nicht überschrieben!)
 if (pauseBeginnTs) {
 min += Math.round((Date.now() - pauseBeginnTs) / 60000);
 }
@@ -1338,17 +1345,12 @@ return;
 var gesamt = getGesamtMinuten();
 var lieg = getLiegendMinuten();
 var auf = Math.max(0, gesamt - lieg);
-// Gleichgewicht bei 3:1: lieg * 3 == auf
-// Normalisierte Differenz: positiv = zu viel aufrecht, negativ = gut
-// Kippwinkel: max +/- 18 Grad
 var zielVerhaeltnis = 3;
 var aufNorm = auf;
 var liegNorm = lieg * zielVerhaeltnis;
 var diff = liegNorm - aufNorm;
 var maxDiff = Math.max(60, aufNorm + liegNorm);
 var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
-// Winkel positiv = links tief (viel liegend) = gut
-// Winkel negativ = rechts tief (zu viel aufrecht) = schlecht
 var rad = winkel * Math.PI / 180;
 var cx = 80;
 var cy = 22;
