@@ -23,7 +23,14 @@ background:#fff; border-radius:14px; padding:12px 14px;
 margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,.15);
 transition:background-color 0.3s, color 0.3s;
 }
-/* Cards bleiben immer weiß – nur Statusboxen oben färben sich ein */
+.mode-green { background:#d4f5de !important; }
+.mode-yellow { background:#fff8cc !important; }
+.mode-orange { background:#ffe8c0 !important; }
+.mode-red { background:#ffd6d3 !important; }
+.mode-green .card { background-color:var(--green); color:#fff; }
+.mode-yellow .card { background-color:var(--yellow); color:#000; }
+.mode-orange .card { background-color:var(--orange); color:#fff; }
+.mode-red .card { background-color:var(--red); color:#fff; }
 button {
 width:100%; padding:12px; border:none; border-radius:12px;
 font-weight:700; font-size:15px; color:#fff; cursor:pointer;
@@ -628,31 +635,35 @@ body.className = ""
 bR.className = "status"
 bL.className = "status"
 bS.className = "status"
+
+// Farben direkt per JS setzen (umgeht CSS-Spezifitätsprobleme)
+var cards = document.querySelectorAll(".card");
+var cardBg, cardColor, bodyBg, boxBg, boxColor;
 if (spielraum > state.max * 0.5) {
-body.classList.add("mode-green");
-bR.classList.add("bg-green");
-bL.classList.add("bg-green");
-bS.classList.add("bg-green");
+cardBg = "#34c759" cardColor = "#fff"
+bodyBg = "#d4f5de" boxBg = "#34c759" boxColor = "#fff"
 msg.textContent = "Alles gut! Aber achtsam bleiben!"
 } else if (spielraum > state.max * 0.25) {
-body.classList.add("mode-yellow");
-bR.classList.add("bg-yellow");
-bL.classList.add("bg-yellow");
-bS.classList.add("bg-yellow");
+cardBg = "#ffcc00" cardColor = "#000"
+bodyBg = "#fff8cc" boxBg = "#ffcc00" boxColor = "#000"
 msg.textContent = "Achtsam! Pausen einplanen!"
 } else if (spielraum > 0) {
-body.classList.add("mode-orange");
-bR.classList.add("bg-orange");
-bL.classList.add("bg-orange");
-bS.classList.add("bg-orange");
+cardBg = "#ff9500" cardColor = "#fff"
+bodyBg = "#ffe8c0" boxBg = "#ff9500" boxColor = "#fff"
 msg.textContent = "Langsam! Nur noch Reserve!"
 } else {
-body.classList.add("mode-red");
-bR.classList.add("bg-red");
-bL.classList.add("bg-red");
-bS.classList.add("bg-red");
+cardBg = "#ff3b30" cardColor = "#fff"
+bodyBg = "#ffd6d3" boxBg = "#ff3b30" boxColor = "#fff"
 msg.textContent = "STOP! Reserve aufgebraucht!"
 }
+body.style.background = bodyBg;
+for (var ci = 0; ci < cards.length; ci++) {
+cards[ci].style.backgroundColor = cardBg;
+cards[ci].style.color = cardColor;
+}
+bR.style.background = boxBg; bR.style.color = boxColor;
+bL.style.background = boxBg; bL.style.color = boxColor;
+bS.style.background = boxBg; bS.style.color = boxColor;
 var header = document.getElementById("pacingHeader");
 if (state.block >= 30) {
 header.style.display = "block"
