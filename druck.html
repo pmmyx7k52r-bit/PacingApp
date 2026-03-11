@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9</title>
+<title>PacingApp 4.3.8</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -23,10 +23,6 @@ background:#fff; border-radius:14px; padding:12px 14px;
 margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,.15);
 transition:background-color 0.3s, color 0.3s;
 }
-.mode-green { background:#d4f5de !important; }
-.mode-yellow { background:#fff8cc !important; }
-.mode-orange { background:#ffe8c0 !important; }
-.mode-red { background:#ffd6d3 !important; }
 .mode-green .card { background-color:var(--green); color:#fff; }
 .mode-yellow .card { background-color:var(--yellow); color:#000; }
 .mode-orange .card { background-color:var(--orange); color:#fff; }
@@ -200,10 +196,10 @@ margin-bottom:0;
 <circle cx="80" cy="22" r="5" fill="#888"/>
 <!-- Waagebalken -->
 <line id="waageBalken" x1="15" y1="22" x2="145" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<!-- Linke Schale (liegend = gruen) -->
+<!-- Linke Schale (Aufrecht = orange) -->
 <line id="waageSeilL" x1="20" y1="22" x2="20" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleL" cx="20" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<!-- Rechte Schale (aufrecht = orange) -->
+<!-- Rechte Schale (Liegend = gruen) -->
 <line id="waageSeilR" x1="140" y1="22" x2="140" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleR" cx="140" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
 <!-- Labels -->
@@ -334,7 +330,7 @@ var schlafWert = null;
 var schlafMode = null;
 var lastActionTime = null;
 var pauseTimerInterval = null;
-var pauseBeginnTs = null; // globale Variable für laufende Pause
+var pauseBeginnTs = null;
 var _pendingSymptom = null;
 
 function saveAll() {
@@ -376,7 +372,6 @@ document.body.style.paddingTop = "80px"
 
 function checkPauseTimer() {
 if (!lastActionTime || state.max <= 0) {
-updateWaage(); // FIX 1: Waage auch ohne Aktion aktualisieren
 return;
 }
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
@@ -408,7 +403,6 @@ document.body.style.paddingTop = "120px"
 bar.style.display = "none"
 document.body.style.paddingTop = "80px"
 }
-updateWaage(); // FIX 1: Waage jede Minute automatisch aktualisieren
 }
 
 window.onload = function() {
@@ -421,16 +415,6 @@ lastActionTime = parseInt(savedTimer);
 pauseTimerInterval = setInterval(checkPauseTimer, 60000);
 checkPauseTimer();
 }
-
-// FIX 3: Globaler 60s-Timer für Waage, Aufrechtwarnung und CrashRisiko
-setInterval(function() {
-if (state.max > 0) {
-updateWaage();
-updateAufrechtWarnung();
-checkCrashRisiko();
-}
-}, 60000);
-
 var today = new Date().toDateString();
 if (state.date && state.date !== today && state.max > 0) {
 archiveDay();
@@ -635,35 +619,31 @@ body.className = ""
 bR.className = "status"
 bL.className = "status"
 bS.className = "status"
-
-// Farben direkt per JS setzen (umgeht CSS-Spezifitätsprobleme)
-var cards = document.querySelectorAll(".card");
-var cardBg, cardColor, bodyBg, boxBg, boxColor;
 if (spielraum > state.max * 0.5) {
-cardBg = "#34c759" cardColor = "#fff"
-bodyBg = "#d4f5de" boxBg = "#34c759" boxColor = "#fff"
+body.classList.add("mode-green");
+bR.classList.add("bg-green");
+bL.classList.add("bg-green");
+bS.classList.add("bg-green");
 msg.textContent = "Alles gut! Aber achtsam bleiben!"
 } else if (spielraum > state.max * 0.25) {
-cardBg = "#ffcc00" cardColor = "#000"
-bodyBg = "#fff8cc" boxBg = "#ffcc00" boxColor = "#000"
+body.classList.add("mode-yellow");
+bR.classList.add("bg-yellow");
+bL.classList.add("bg-yellow");
+bS.classList.add("bg-yellow");
 msg.textContent = "Achtsam! Pausen einplanen!"
 } else if (spielraum > 0) {
-cardBg = "#ff9500" cardColor = "#fff"
-bodyBg = "#ffe8c0" boxBg = "#ff9500" boxColor = "#fff"
+body.classList.add("mode-orange");
+bR.classList.add("bg-orange");
+bL.classList.add("bg-orange");
+bS.classList.add("bg-orange");
 msg.textContent = "Langsam! Nur noch Reserve!"
 } else {
-cardBg = "#ff3b30" cardColor = "#fff"
-bodyBg = "#ffd6d3" boxBg = "#ff3b30" boxColor = "#fff"
+body.classList.add("mode-red");
+bR.classList.add("bg-red");
+bL.classList.add("bg-red");
+bS.classList.add("bg-red");
 msg.textContent = "STOP! Reserve aufgebraucht!"
 }
-body.style.background = bodyBg;
-for (var ci = 0; ci < cards.length; ci++) {
-cards[ci].style.backgroundColor = cardBg;
-cards[ci].style.color = cardColor;
-}
-bR.style.background = boxBg; bR.style.color = boxColor;
-bL.style.background = boxBg; bL.style.color = boxColor;
-bS.style.background = boxBg; bS.style.color = boxColor;
 var header = document.getElementById("pacingHeader");
 if (state.block >= 30) {
 header.style.display = "block"
@@ -1316,22 +1296,24 @@ document.getElementById("aufrechtWarnBar").style.display = "none"
 showToast("Neuer Tag!");
 }
 
+
 function getLiegendMinuten() {
-// FIX 2: lokale Variable umbenannt zu startPause, kollidiert nicht mehr mit globaler pauseBeginnTs
+// Liegend = abgeschlossene Pausen + laufende Pause + liegend-markierte Aktivitäten
 var min = 0;
-var startPause = null;
+var pauseBeginnTs = null;
 for (var i = 0; i < state.used.length; i++) {
 var e = state.used[i];
 if (e.n === "Pausenbeginn") {
-startPause = e.ts;
-} else if (e.n.indexOf("Pause beendet") === 0 && startPause) {
-min += Math.round((e.ts - startPause) / 60000);
-startPause = null;
+pauseBeginnTs = e.ts;
+} else if (e.n.indexOf("Pause beendet") === 0 && pauseBeginnTs) {
+min += Math.round((e.ts - pauseBeginnTs) / 60000);
+pauseBeginnTs = null;
 } else if (e.pos === "liegend" && e.v > 0) {
+// Liegend-markierte Aktivität: anteilig als liegend zählen
+// Wir kennen keine Dauer, schätzen grob 5 Min. pro Aktivität
 min += 5;
 }
 }
-// Laufende Pause: globale pauseBeginnTs verwenden (nicht überschrieben!)
 if (pauseBeginnTs) {
 min += Math.round((Date.now() - pauseBeginnTs) / 60000);
 }
@@ -1356,12 +1338,17 @@ return;
 var gesamt = getGesamtMinuten();
 var lieg = getLiegendMinuten();
 var auf = Math.max(0, gesamt - lieg);
+// Gleichgewicht bei 3:1: lieg * 3 == auf
+// Normalisierte Differenz: positiv = zu viel aufrecht, negativ = gut
+// Kippwinkel: max +/- 18 Grad
 var zielVerhaeltnis = 3;
 var aufNorm = auf;
 var liegNorm = lieg * zielVerhaeltnis;
 var diff = liegNorm - aufNorm;
 var maxDiff = Math.max(60, aufNorm + liegNorm);
 var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
+// Winkel positiv = links tief (viel liegend) = gut
+// Winkel negativ = rechts tief (zu viel aufrecht) = schlecht
 var rad = winkel * Math.PI / 180;
 var cx = 80;
 var cy = 22;
