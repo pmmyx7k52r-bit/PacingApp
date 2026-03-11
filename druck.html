@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.4</title>
+<title>PacingApp 4.3.5</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1298,8 +1298,7 @@ showToast("Neuer Tag!");
 
 
 function getLiegendMinuten() {
-// Liegend = Summe aller abgeschlossenen Pausen (Pausenbeginn bis Pause beendet)
-// plus laufende Pause falls gerade aktiv
+// Liegend = abgeschlossene Pausen + laufende Pause + liegend-markierte Aktivitäten
 var min = 0;
 var pauseBeginnTs = null;
 for (var i = 0; i < state.used.length; i++) {
@@ -1309,9 +1308,12 @@ pauseBeginnTs = e.ts;
 } else if (e.n.indexOf("Pause beendet") === 0 && pauseBeginnTs) {
 min += Math.round((e.ts - pauseBeginnTs) / 60000);
 pauseBeginnTs = null;
+} else if (e.pos === "liegend" && e.v > 0) {
+// Liegend-markierte Aktivität: anteilig als liegend zählen
+// Wir kennen keine Dauer, schätzen grob 5 Min. pro Aktivität
+min += 5;
 }
 }
-// Laufende Pause noch nicht beendet
 if (pauseBeginnTs) {
 min += Math.round((Date.now() - pauseBeginnTs) / 60000);
 }
@@ -1342,11 +1344,11 @@ var auf = Math.max(0, gesamt - lieg);
 var zielVerhaeltnis = 3;
 var aufNorm = auf;
 var liegNorm = lieg * zielVerhaeltnis;
-var diff = aufNorm - liegNorm;
+var diff = liegNorm - aufNorm;
 var maxDiff = Math.max(60, aufNorm + liegNorm);
 var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
-// Winkel positiv = links hoch (zu viel aufrecht) = schlecht
-// Winkel negativ = rechts hoch (gut gelegen) = gut
+// Winkel positiv = links tief (viel liegend) = gut
+// Winkel negativ = rechts tief (zu viel aufrecht) = schlecht
 var rad = winkel * Math.PI / 180;
 var cx = 110;
 var cy = 22;
@@ -1380,8 +1382,8 @@ document.getElementById("waageTextL").setAttribute("x", lSx);
 document.getElementById("waageTextL").setAttribute("y", lSy + 38);
 document.getElementById("waageTextR").setAttribute("x", rSx);
 document.getElementById("waageTextR").setAttribute("y", rSy + 22);
-document.getElementById("waageTextL").textContent = auf + " Min."
-document.getElementById("waageTextR").textContent = lieg + " Min."
+document.getElementById("waageTextL").textContent = lieg + " Min."
+document.getElementById("waageTextR").textContent = auf + " Min."
 
 var aufAnteil = gesamt > 0 ? auf / gesamt : 0;
 var ampelFarbe;
