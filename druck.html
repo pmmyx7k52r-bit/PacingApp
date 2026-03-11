@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.3</title>
+<title>PacingApp 4.3.4</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -198,15 +198,15 @@ margin-bottom:0;
 <line id="waageBalken" x1="30" y1="22" x2="190" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round" transform-origin="110 22"/>
 <!-- Linke Schale (Aufrecht = orange) -->
 <line id="waageSeilL" x1="40" y1="22" x2="40" y2="55" stroke="#aaa" stroke-width="1.5"/>
-<ellipse id="waageSchaleL" cx="40" cy="60" rx="28" ry="8" fill="#ff9500" opacity="0.85"/>
+<ellipse id="waageSchaleL" cx="40" cy="60" rx="28" ry="8" fill="#34c759" opacity="0.85"/>
 <!-- Rechte Schale (Liegend = gruen) -->
 <line id="waageSeilR" x1="180" y1="22" x2="180" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleR" cx="180" cy="60" rx="28" ry="8" fill="#34c759" opacity="0.85"/>
 <!-- Labels -->
 <text id="waageTextL" x="40" y="80" text-anchor="middle" font-size="10" font-weight="700" fill="#c07000">0 Min.</text>
 <text x="40" y="108" text-anchor="middle" font-size="9" fill="#c07000">aufrecht</text>
-<text id="waageTextR" x="180" y="80" text-anchor="middle" font-size="10" font-weight="700" fill="#1a7a3a">0 Min.</text>
-<text x="180" y="108" text-anchor="middle" font-size="9" fill="#1a7a3a">liegend</text>
+<text id="waageTextR" x="180" y="80" text-anchor="middle" font-size="10" font-weight="700" fill="#555">0 Min.</text>
+<text x="180" y="108" text-anchor="middle" font-size="9" fill="#555">liegend</text>
 </svg>
 </div>
 </div>
@@ -1397,8 +1397,10 @@ ampelFarbe = "#ff3b30"
 ampelTextL = "#c00000"
 }
 document.getElementById("waageSchaleL").setAttribute("fill", ampelFarbe);
+document.getElementById("waageSchaleR").setAttribute("fill", ampelFarbe);
 document.getElementById("waageBalken").setAttribute("stroke", ampelFarbe);
 document.getElementById("waageTextL").setAttribute("fill", ampelTextL);
+document.getElementById("waageTextR").setAttribute("fill", ampelTextL);
 }
 
 function showHistory() {
