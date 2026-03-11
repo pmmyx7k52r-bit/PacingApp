@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.6.9</title>
+<title>PacingApp 4.2.9.1</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -158,7 +158,13 @@ min-width:260px; text-align:center;
 .schwere-mittel { background:#ff9500; color:#fff; }
 .schwere-schwer { background:#ff3b30; color:#fff; }
 .schwere-overlay { position:fixed; inset:0; z-index:3999; background:rgba(0,0,0,0.3); }
+
+.waage-wrap {
+display:flex; flex-direction:column; align-items:center;
+margin-bottom:0;
+}
 </style>
+
 </head>
 <body id="mainBody">
 
@@ -176,9 +182,33 @@ min-width:260px; text-align:center;
 <div id="boxRest" class="status bg-green" style="flex:0.7;font-size:12px;">Rest<span id="valRest" class="big" style="font-size:1.2rem;">0</span></div>
 </div>
 
-<div id="pauseWrap" class="pause-wrap">
+<div id="pauseUndWaage" style="display:none;gap:12px;align-items:center;margin-bottom:8px;">
+<div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:0;">
 <button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn</button>
 <button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
+</div>
+<div id="waageWrap" class="waage-wrap" style="flex-shrink:0;">
+<svg id="waageSvg" viewBox="0 0 220 110" width="220" height="110" style="overflow:visible;">
+<!-- Standfuss -->
+<line x1="110" y1="20" x2="110" y2="95" stroke="#888" stroke-width="3" stroke-linecap="round"/>
+<ellipse cx="110" cy="98" rx="28" ry="6" fill="#ccc"/>
+<!-- Drehpunkt -->
+<circle cx="110" cy="22" r="5" fill="#888"/>
+<!-- Waagebalken -->
+<line id="waageBalken" x1="30" y1="22" x2="190" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round" transform-origin="110 22"/>
+<!-- Linke Schale (Aufrecht = orange) -->
+<line id="waageSeilL" x1="40" y1="22" x2="40" y2="55" stroke="#aaa" stroke-width="1.5"/>
+<ellipse id="waageSchaleL" cx="40" cy="60" rx="28" ry="8" fill="#ff9500" opacity="0.85"/>
+<!-- Rechte Schale (Liegend = gruen) -->
+<line id="waageSeilR" x1="180" y1="22" x2="180" y2="55" stroke="#aaa" stroke-width="1.5"/>
+<ellipse id="waageSchaleR" cx="180" cy="60" rx="28" ry="8" fill="#34c759" opacity="0.85"/>
+<!-- Labels -->
+<text id="waageTextL" x="40" y="80" text-anchor="middle" font-size="10" font-weight="700" fill="#c07000">0 Min.</text>
+<text x="40" y="92" text-anchor="middle" font-size="9" fill="#c07000">aufrecht</text>
+<text id="waageTextR" x="180" y="80" text-anchor="middle" font-size="10" font-weight="700" fill="#1a7a3a">0 Min.</text>
+<text x="180" y="92" text-anchor="middle" font-size="9" fill="#1a7a3a">liegend</text>
+</svg>
+</div>
 </div>
 <div id="pauseHint" class="pause-hint">Hinweis: Ruhe zur Puls-Normalisierung ist KEINE Pause!</div>
 <div id="rollingWarnBox" class="rolling-warn">Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!</div>
@@ -560,7 +590,7 @@ showToast("Tag gestartet!");
 
 function showMainUI() {
 document.getElementById("statusWrap").style.display = "flex"
-document.getElementById("pauseWrap").style.display = "flex"
+document.getElementById("pauseUndWaage").style.display = "flex"
 document.getElementById("pauseHint").style.display = "block"
 document.getElementById("cardCheck").style.display = "none"
 document.getElementById("btnToggleCheck").style.display = "inline-block"
@@ -638,6 +668,7 @@ renderUsed();
 checkRollingPene();
 checkCrashRisiko();
 updateAufrechtWarnung();
+updateWaage();
 }
 
 function addCatalogEntry() {
@@ -1134,10 +1165,12 @@ pw.appendChild(tU);
 pw.appendChild(tD);
 left.appendChild(pw);
 
+row.appendChild(left);
+if (u.v !== 0) {
 var right = document.createElement("span");
 right.textContent = (ip ? "+" : "-") + Math.abs(u.v);
-row.appendChild(left);
 row.appendChild(right);
+}
 } else {
 var s = entry.data;
 var left2 = document.createElement("span");
@@ -1170,14 +1203,14 @@ if (isOpen) {
 return;
 }
 var combined = buildCombined();
-var count = Math.min(3, combined.length);
+var count = Math.min(2, combined.length);
 for (var i = 0; i < count; i++) {
 preview.appendChild(makeEntryRow(combined[i]));
 }
-if (combined.length > 3) {
+if (combined.length > 2) {
 var more = document.createElement("div");
 more.style.cssText = "font-size:11px;color:#8e8e93;text-align:center;padding:4px 0;"
-more.textContent = "+" + (combined.length - 3) + " weitere"
+more.textContent = "+" + (combined.length - 2) + " weitere"
 preview.appendChild(more);
 }
 }
@@ -1243,7 +1276,7 @@ document.getElementById("individuellRow").classList.remove("open");
 document.getElementById("sleep").value = ""
 document.getElementById("feeling").selectedIndex = 0;
 document.getElementById("statusWrap").style.display = "none"
-document.getElementById("pauseWrap").style.display = "none"
+document.getElementById("pauseUndWaage").style.display = "none"
 document.getElementById("pauseHint").style.display = "none"
 document.getElementById("pacingHeader").style.display = "none"
 document.getElementById("cardCheck").style.display = "block"
@@ -1261,6 +1294,87 @@ document.getElementById("notbremsBar").style.display = "none"
 document.getElementById("mikroPauseBar").style.display = "none"
 document.getElementById("aufrechtWarnBar").style.display = "none"
 showToast("Neuer Tag!");
+}
+
+
+function getLiegendMinuten() {
+var jetzt = Date.now();
+var sorted = state.used.slice().map(function(e) {
+return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || "aufrecht"};
+}).filter(function(e) {
+return e.ts > 0;
+}).sort(function(a, b) {
+return a.ts - b.ts;
+});
+var min = 0;
+var ls = null;
+for (var j = 0; j < sorted.length; j++) {
+var e = sorted[j];
+if (e.pos === "liegend" && ls === null) {
+ls = e.ts;
+} else if (e.pos === "aufrecht" && ls !== null) {
+min += Math.floor((e.ts - ls) / 60000);
+ls = null;
+}
+}
+if (ls !== null) {
+min += Math.floor((jetzt - ls) / 60000);
+}
+return min;
+}
+
+function updateWaage() {
+if (state.max <= 0) {
+return;
+}
+var auf = getAufrechtMinuten();
+var lieg = getLiegendMinuten();
+// Gleichgewicht bei 3:1: lieg * 3 == auf
+// Normalisierte Differenz: positiv = zu viel aufrecht, negativ = gut
+// Kippwinkel: max +/- 18 Grad
+var zielVerhaeltnis = 3;
+var aufNorm = auf;
+var liegNorm = lieg * zielVerhaeltnis;
+var diff = aufNorm - liegNorm;
+var maxDiff = Math.max(60, aufNorm + liegNorm);
+var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
+// Winkel positiv = links hoch (zu viel aufrecht) = schlecht
+// Winkel negativ = rechts hoch (gut gelegen) = gut
+var rad = winkel * Math.PI / 180;
+var cx = 110;
+var cy = 22;
+var armLen = 80;
+var lx = Math.round(cx - armLen * Math.cos(rad));
+var ly = Math.round(cy - armLen * Math.sin(rad));
+var rx = Math.round(cx + armLen * Math.cos(rad));
+var ry = Math.round(cy + armLen * Math.sin(rad));
+var seilLen = 33;
+var lSx = lx;
+var lSy = Math.round(ly + seilLen);
+var rSx = rx;
+var rSy = Math.round(ry + seilLen);
+document.getElementById("waageBalken").setAttribute("x1", lx);
+document.getElementById("waageBalken").setAttribute("y1", ly);
+document.getElementById("waageBalken").setAttribute("x2", rx);
+document.getElementById("waageBalken").setAttribute("y2", ry);
+document.getElementById("waageSeilL").setAttribute("x1", lx);
+document.getElementById("waageSeilL").setAttribute("y1", ly);
+document.getElementById("waageSeilL").setAttribute("x2", lSx);
+document.getElementById("waageSeilL").setAttribute("y2", lSy);
+document.getElementById("waageSeilR").setAttribute("x1", rx);
+document.getElementById("waageSeilR").setAttribute("y1", ry);
+document.getElementById("waageSeilR").setAttribute("x2", rSx);
+document.getElementById("waageSeilR").setAttribute("y2", rSy);
+document.getElementById("waageSchaleL").setAttribute("cx", lSx);
+document.getElementById("waageSchaleL").setAttribute("cy", lSy + 5);
+document.getElementById("waageSchaleR").setAttribute("cx", rSx);
+document.getElementById("waageSchaleR").setAttribute("cy", rSy + 5);
+document.getElementById("waageTextL").setAttribute("x", lSx);
+document.getElementById("waageTextL").setAttribute("y", lSy + 22);
+document.getElementById("waageTextR").setAttribute("x", rSx);
+document.getElementById("waageTextR").setAttribute("y", rSy + 22);
+document.getElementById("waageTextL").textContent = auf + " Min."
+document.getElementById("waageTextR").textContent = lieg + " Min."
 }
 
 function showHistory() {
