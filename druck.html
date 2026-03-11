@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.2.9.1</title>
+<title>PacingApp 4.2.9.2</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1298,37 +1298,44 @@ showToast("Neuer Tag!");
 
 
 function getLiegendMinuten() {
-var jetzt = Date.now();
-var sorted = state.used.slice().map(function(e) {
-return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || "aufrecht"};
-}).filter(function(e) {
-return e.ts > 0;
-}).sort(function(a, b) {
-return a.ts - b.ts;
-});
+// Liegend = Summe aller abgeschlossenen Pausen (Pausenbeginn bis Pause beendet)
+// plus laufende Pause falls gerade aktiv
 var min = 0;
-var ls = null;
-for (var j = 0; j < sorted.length; j++) {
-var e = sorted[j];
-if (e.pos === "liegend" && ls === null) {
-ls = e.ts;
-} else if (e.pos === "aufrecht" && ls !== null) {
-min += Math.floor((e.ts - ls) / 60000);
-ls = null;
+var pauseBeginnTs = null;
+for (var i = 0; i < state.used.length; i++) {
+var e = state.used[i];
+if (e.n === "Pausenbeginn") {
+pauseBeginnTs = e.ts;
+} else if (e.n.indexOf("Pause beendet") === 0 && pauseBeginnTs) {
+min += Math.round((e.ts - pauseBeginnTs) / 60000);
+pauseBeginnTs = null;
 }
 }
-if (ls !== null) {
-min += Math.floor((jetzt - ls) / 60000);
+// Laufende Pause noch nicht beendet
+if (pauseBeginnTs) {
+min += Math.round((Date.now() - pauseBeginnTs) / 60000);
 }
 return min;
+}
+
+function getGesamtMinuten() {
+if (!state.used || state.used.length === 0) {
+return 0;
+}
+var start = state.used[0].ts;
+if (!start) {
+return 0;
+}
+return Math.round((Date.now() - start) / 60000);
 }
 
 function updateWaage() {
 if (state.max <= 0) {
 return;
 }
-var auf = getAufrechtMinuten();
+var gesamt = getGesamtMinuten();
 var lieg = getLiegendMinuten();
+var auf = Math.max(0, gesamt - lieg);
 // Gleichgewicht bei 3:1: lieg * 3 == auf
 // Normalisierte Differenz: positiv = zu viel aufrecht, negativ = gut
 // Kippwinkel: max +/- 18 Grad
