@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.8</title>
+<title>PacingApp 4.3.9</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -188,7 +188,7 @@ margin-bottom:0;
 <button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
 </div>
 <div id="waageWrap" class="waage-wrap" style="flex-shrink:0;"><div style="font-size:11px;font-weight:700;color:#555;margin-bottom:2px;text-align:center;">Liegewaage</div>
-<svg id="waageSvg" viewBox="0 0 160 125" width="160" height="125" style="overflow:visible;">
+<svg id="waageSvg" viewBox="0 0 160 130" width="160" height="130" style="overflow:visible;">
 <!-- Standfuss -->
 <line x1="80" y1="20" x2="80" y2="95" stroke="#888" stroke-width="3" stroke-linecap="round"/>
 <ellipse cx="80" cy="98" rx="22" ry="5" fill="#ccc"/>
@@ -1298,20 +1298,27 @@ showToast("Neuer Tag!");
 
 
 function getLiegendMinuten() {
-// Liegend = abgeschlossene Pausen + laufende Pause + liegend-markierte Aktivitäten
+// Liegend = Pausen + Tagesstart-liegend-Phase + liegend-Aktivitäten
 var min = 0;
 var pauseBeginnTs = null;
-for (var i = 0; i < state.used.length; i++) {
-var e = state.used[i];
+var sorted = state.used.slice().sort(function(a, b) { return a.ts - b.ts; });
+
+// Tagesstart: wenn liegend, Zeit bis zum nächsten Eintrag als liegend zählen
+if (sorted.length >= 2 && sorted[0].pos === "liegend") {
+min += Math.round((sorted[1].ts - sorted[0].ts) / 60000);
+}
+
+for (var i = 0; i < sorted.length; i++) {
+var e = sorted[i];
 if (e.n === "Pausenbeginn") {
 pauseBeginnTs = e.ts;
 } else if (e.n.indexOf("Pause beendet") === 0 && pauseBeginnTs) {
 min += Math.round((e.ts - pauseBeginnTs) / 60000);
 pauseBeginnTs = null;
-} else if (e.pos === "liegend" && e.v > 0) {
-// Liegend-markierte Aktivität: anteilig als liegend zählen
-// Wir kennen keine Dauer, schätzen grob 5 Min. pro Aktivität
-min += 5;
+} else if (i > 0 && e.pos === "liegend" && e.v > 0) {
+// Liegend-Aktivität: Zeit bis zum nächsten Eintrag als liegend
+var nextTs = (i + 1 < sorted.length) ? sorted[i + 1].ts : Date.now();
+min += Math.round((nextTs - e.ts) / 60000);
 }
 }
 if (pauseBeginnTs) {
