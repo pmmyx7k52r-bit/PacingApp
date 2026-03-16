@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.10</title>
+<title>PacingApp 4.3.9.11</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -314,11 +314,11 @@ var schlafMode = null;
 var lastActionTime = null;
 var pauseTimerInterval = null;
 var pauseBeginnTs = null;
+var letzteLiegeZeit = Date.now(); // Zeitpunkt der letzten Liegephase
 var _pendingSymptom = null;
 
 function saveAll() {
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
-storeSet(STORAGE_STATE, JSON.stringify(state));
 storeSet(STORAGE_STATE, JSON.stringify(state));
 // dayMinPct ist Teil von state, wird mitgespeichert;
 }
@@ -387,8 +387,7 @@ bar.style.display = "none"
 document.body.style.paddingTop = "80px"
 }
 updateWaage();
-updateWaage();
-// FIX: Waage jede Minute aktualisieren;
+// Waage jede Minute aktualisieren
 }
 
 window.onload = function() {
@@ -421,6 +420,14 @@ return;
 if (state.max > 0) {
 showMainUI();
 updateDisplay();
+// Letzte Liegezeit aus state.used wiederherstellen
+var sortedU = (state.used || []).slice().sort(function(a,b){ return a.ts - b.ts; });
+for (var li = sortedU.length - 1; li >= 0; li--) {
+if (sortedU[li].pos === "liegend") {
+letzteLiegeZeit = sortedU[li].ts;
+break;
+}
+}
 // FIX: Pausenzustand beim Start wiederherstellen (erstes unbeantwortetes Pausenbeginn)
 var pauseLaeuft = false;
 var erstePauseTs = null;
@@ -824,6 +831,7 @@ function doPauseBeginn() {
 state.block = 0;
 state.pene = false;
 pauseBeginnTs = Date.now();
+letzteLiegeZeit = Date.now(); // Pause = liegend
 state.used.push({n:"Pausenbeginn", v:0, t:nowTime(), ts:pauseBeginnTs, pos:"liegend"});
 saveAll();
 updateDisplay();
@@ -846,9 +854,7 @@ function doPauseEndeStill() {
 // So bleibt Undo konsistent: jeder Eintrag ist unabhängig rückgängig machbar
 var jetzt = Date.now();
 var minuten = 10;
-var regen = berechnePauseRegen(minuten);
-var regen = berechnePauseRegen(minuten);
-// = 1;
+var regen = berechnePauseRegen(minuten); // = 1
 if (regen > 0) { state.cur = Math.min(state.max, state.cur + regen); }
 var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
 state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
@@ -931,6 +937,9 @@ showToast(symptomNamen[idx] + " weg");
 function togglePosition(idx) {
 if (!state.used[idx]) { return; }
 state.used[idx].pos = (state.used[idx].pos === "aufrecht") ? "liegend" : "aufrecht"
+if (state.used[idx].pos === "liegend") {
+letzteLiegeZeit = state.used[idx].ts || Date.now();
+}
 saveAll();
 renderUsed();
 updateAufrechtWarnung();
@@ -981,25 +990,10 @@ return min;
 }
 
 function getAktuelleAufrechtMinuten() {
-// Nur die aktuelle ununterbrochene aufrechte Phase seit letzter Liegepause
+// Einfach: Zeit seit letzter Liegephase
+// letzteLiegeZeit wird bei Pausenbeginn und liegend-Toggle aktualisiert
 var jetzt = pauseBeginnTs ? pauseBeginnTs : Date.now();
-var sorted = state.used.slice().map(function(e) {
-return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || "aufrecht", n: e.n};
-}).filter(function(e) { return e.ts > 0; }).sort(function(a,b) { return a.ts - b.ts; });
-// Suche letzten liegend-Eintrag (Pausenbeginn oder liegend-Aktivität)
-var letzterLiegendTs = 0;
-for (var i = sorted.length - 1; i >= 0; i--) {
-if (sorted[i].pos === "liegend") {
-letzterLiegendTs = sorted[i].ts;
-break;
-}
-}
-if (letzterLiegendTs === 0) {
-// Nie gelegen: seit Tagesbeginn aufrecht
-return sorted.length > 0 ? Math.floor((jetzt - sorted[0].ts) / 60000) : 0;
-}
-// Seit letztem liegend-Eintrag aufrecht
-return Math.floor((jetzt - letzterLiegendTs) / 60000);
+return Math.floor((jetzt - letzteLiegeZeit) / 60000);
 }
 
 function updateAufrechtWarnung() {
