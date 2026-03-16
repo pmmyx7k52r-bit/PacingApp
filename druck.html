@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.9</title>
+<title>PacingApp 4.3.9.10</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -972,9 +972,10 @@ aktuellPos = neuePos;
 phaseBeginn = e.ts;
 }
 }
-// Laufende Phase
+// Laufende Phase: wenn Pause läuft, endet aufrecht beim Pausenbeginn
 if (aktuellPos === "aufrecht") {
-min += Math.floor((jetzt - phaseBeginn) / 60000);
+var endeTs = pauseBeginnTs ? pauseBeginnTs : jetzt;
+min += Math.floor((endeTs - phaseBeginn) / 60000);
 }
 return min;
 }
