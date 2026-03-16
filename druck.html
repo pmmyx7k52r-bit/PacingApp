@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.11</title>
+<title>PacingApp 4.3.9.15</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -308,13 +308,14 @@ function storeGet(k) { try { return localStorage.getItem(k); } catch(e) { return
 function storeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
 var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
-var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[],symptome:[]};
+var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[],symptome:[],kurzPausen:0};
 var schlafWert = null;
 var schlafMode = null;
 var lastActionTime = null;
 var pauseTimerInterval = null;
 var pauseBeginnTs = null;
 var letzteLiegeZeit = Date.now(); // Zeitpunkt der letzten Liegephase
+var kurzPausenZaehler = 0; // wird beim Start aus state geladen
 var _pendingSymptom = null;
 
 function saveAll() {
@@ -394,6 +395,7 @@ window.onload = function() {
 buildSchwereButtons();
 verdrahteButtons();
 checkRollingPene();
+kurzPausenZaehler = state.kurzPausen || 0;
 
 // FIX: Globaler 60s-Timer für Waage, Aufrechtwarnung, CrashRisiko
 setInterval(function() {
@@ -664,7 +666,10 @@ bS.classList.add("bg-red");
 msg.textContent = "STOP! Reserve aufgebraucht!"
 }
 var header = document.getElementById("pacingHeader");
-if (state.block >= 30) {
+// Dynamische Blockwarnung: 25% = Warnung, 33% = Zwangspause
+var blockWarnSchwelle = Math.round(state.max * 0.25);
+var blockPauseSchwelle = Math.round(state.max * 0.33);
+if (state.block >= blockPauseSchwelle) {
 header.style.display = "block"
 header.className = "warn-pene"
 header.textContent = "PEM-Gefahr! Pause erzwingen!"
@@ -674,7 +679,7 @@ state.used.push({n:"STRAFE: PENE-Warnung", v:-1, t:nowTime(), ts:Date.now(), pos
 state.pene = true;
 saveAll();
 }
-} else if (state.block >= 20) {
+} else if (state.block >= blockWarnSchwelle) {
 header.style.display = "block"
 header.className = "warn-rot"
 header.textContent = "PEM-Gefahr! Pause empfohlen!"
@@ -867,17 +872,36 @@ function doPauseEnde() {
 var jetzt = Date.now();
 var minuten = pauseBeginnTs ? Math.round((jetzt - pauseBeginnTs) / 60000) : 10;
 var regen = berechnePauseRegen(minuten);
-if (regen > 0) { state.cur = Math.min(state.max, state.cur + regen); }
+if (regen > 0) {
+state.cur = Math.min(state.max, state.cur + regen);
+}
 var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
 state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
+// Kurzpausen-Logik: erste kurze Pause OK, zweite in Folge = Warnung
+if (minuten >= 10) {
+letzteLiegeZeit = jetzt;
+kurzPausenZaehler = 0;
+state.kurzPausen = 0;
+} else {
+letzteLiegeZeit = jetzt; // erste kurze Pause setzt noch zurück
+kurzPausenZaehler++;
+}
+state.kurzPausen = kurzPausenZaehler;
 pauseBeginnTs = null;
 saveAll();
 updateDisplay();
 startPauseTimer();
 document.getElementById("btnPauseEnde").style.display = "none"
 document.getElementById("btnPauseBeginn").style.display = "block"
-if (regen > 0) { showToast("Pause: " + minuten + " Min. +" + regen + " Energie!"); }
-else { showToast("Pause: " + minuten + " Min."); }
+if (regen > 0) {
+showToast("Pause: " + minuten + " Min. +" + regen + " Energie!");
+} else if (minuten < 10 && kurzPausenZaehler === 1) {
+showToast("Kurze Pause - laengere waere sinnvoll.");
+} else if (minuten < 10 && kurzPausenZaehler > 1) {
+showToast("Pausen zu kurz! Bitte laenger liegen.");
+} else {
+showToast("Pause: " + minuten + " Min.");
+}
 }
 
 function toggleCatalogCard() {
@@ -1002,6 +1026,10 @@ var min = getAktuelleAufrechtMinuten();
 var pct = (state.cur / state.max) * 100;
 var bar = document.getElementById("aufrechtWarnBar");
 if (!bar) { return; }
+// Prüfen ob letzte Pausen zu kurz waren (letzteLiegeZeit liegt weit zurück
+// obwohl Pausen gemacht wurden)
+var minSeitLiegen = Math.floor((Date.now() - letzteLiegeZeit) / 60000);
+var kurzePausenWarnung = (minSeitLiegen > 30 && min < minSeitLiegen);
 if (pct < 40 && min > 30) {
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht + Restenergie niedrig!"
@@ -1009,6 +1037,10 @@ bar.style.background = "#ff3b30"
 } else if (min > 45) {
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
+bar.style.background = "#ff9500"
+} else if (kurzPausenZaehler > 1 && minSeitLiegen > 45) {
+bar.style.display = "block"
+bar.textContent = "Bisherige Pausen reichen nicht - laengere Pause noetig!"
 bar.style.background = "#ff9500"
 } else {
 bar.style.display = "none"
@@ -1250,6 +1282,7 @@ saveAll();
 schlafWert = null;
 schlafMode = null;
 pauseBeginnTs = null;
+kurzPausenZaehler = 0;
 var btns = document.querySelectorAll(".schlaf-btn");
 for (var i = 0; i < btns.length; i++) { btns[i].classList.remove("selected"); }
 document.getElementById("individuellRow").classList.remove("open");
