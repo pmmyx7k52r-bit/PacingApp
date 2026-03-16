@@ -980,9 +980,31 @@ min += Math.floor((endeTs - phaseBeginn) / 60000);
 return min;
 }
 
+function getAktuelleAufrechtMinuten() {
+// Nur die aktuelle ununterbrochene aufrechte Phase seit letzter Liegepause
+var jetzt = pauseBeginnTs ? pauseBeginnTs : Date.now();
+var sorted = state.used.slice().map(function(e) {
+return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || "aufrecht", n: e.n};
+}).filter(function(e) { return e.ts > 0; }).sort(function(a,b) { return a.ts - b.ts; });
+// Suche letzten liegend-Eintrag (Pausenbeginn oder liegend-Aktivität)
+var letzterLiegendTs = 0;
+for (var i = sorted.length - 1; i >= 0; i--) {
+if (sorted[i].pos === "liegend") {
+letzterLiegendTs = sorted[i].ts;
+break;
+}
+}
+if (letzterLiegendTs === 0) {
+// Nie gelegen: seit Tagesbeginn aufrecht
+return sorted.length > 0 ? Math.floor((jetzt - sorted[0].ts) / 60000) : 0;
+}
+// Seit letztem liegend-Eintrag aufrecht
+return Math.floor((jetzt - letzterLiegendTs) / 60000);
+}
+
 function updateAufrechtWarnung() {
 if (state.max <= 0) { return; }
-var min = getAufrechtMinuten();
+var min = getAktuelleAufrechtMinuten();
 var pct = (state.cur / state.max) * 100;
 var bar = document.getElementById("aufrechtWarnBar");
 if (!bar) { return; }
@@ -994,7 +1016,9 @@ bar.style.background = "#ff3b30"
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
 bar.style.background = "#ff9500"
-} else { bar.style.display = "none" }
+} else {
+bar.style.display = "none"
+}
 }
 
 function getCrashScore() {
