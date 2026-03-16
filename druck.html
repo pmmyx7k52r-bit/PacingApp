@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9</title>
+<title>PacingApp 4.3.9.9</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -36,7 +36,6 @@ button:active { opacity:0.7; }
 .btn-start { background:var(--blue); margin-top:12px; }
 .btn-reset { background:var(--gray); margin-top:8px; font-size:13px; }
 .btn-add { background:var(--blue); width:auto; padding:10px 14px; margin-top:6px; white-space:nowrap; }
-.pause-wrap { display:none; gap:8px; margin-bottom:4px; flex-direction:column; }
 .btn-pause-big { background:var(--pause); width:100%; }
 .btn-pause-end { background:#34c759; width:100%; display:none; }
 .pause-hint {
@@ -51,7 +50,6 @@ box-shadow:0 2px 10px rgba(0,0,0,0.2); box-sizing:border-box;
 }
 .warn-rot { background:var(--red); color:#fff; }
 .warn-pene { background:#000; color:var(--yellow); border-bottom:3px solid var(--red); }
-.blink { animation:blinker 0.9s linear infinite; }
 @keyframes blinker { 50% { opacity:0.3; } }
 .status-wrap { display:none; gap:8px; margin-bottom:10px; }
 .status {
@@ -158,13 +156,8 @@ min-width:260px; text-align:center;
 .schwere-mittel { background:#ff9500; color:#fff; }
 .schwere-schwer { background:#ff3b30; color:#fff; }
 .schwere-overlay { position:fixed; inset:0; z-index:3999; background:rgba(0,0,0,0.3); }
-
-.waage-wrap {
-display:flex; flex-direction:column; align-items:center;
-margin-bottom:0;
-}
+.waage-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:0; }
 </style>
-
 </head>
 <body id="mainBody">
 
@@ -187,22 +180,17 @@ margin-bottom:0;
 <button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn</button>
 <button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
 </div>
-<div id="waageWrap" class="waage-wrap" style="flex-shrink:0;"><div style="font-size:11px;font-weight:700;color:#555;margin-bottom:2px;text-align:center;">Liegewaage</div>
+<div id="waageWrap" class="waage-wrap" style="flex-shrink:0;">
+<div style="font-size:11px;font-weight:700;color:#555;margin-bottom:2px;text-align:center;">Liegewaage</div>
 <svg id="waageSvg" viewBox="0 0 160 130" width="160" height="130" style="overflow:visible;">
-<!-- Standfuss -->
 <line x1="80" y1="20" x2="80" y2="95" stroke="#888" stroke-width="3" stroke-linecap="round"/>
 <ellipse cx="80" cy="98" rx="22" ry="5" fill="#ccc"/>
-<!-- Drehpunkt -->
 <circle cx="80" cy="22" r="5" fill="#888"/>
-<!-- Waagebalken -->
 <line id="waageBalken" x1="15" y1="22" x2="145" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<!-- Linke Schale (Aufrecht = orange) -->
 <line id="waageSeilL" x1="20" y1="22" x2="20" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleL" cx="20" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<!-- Rechte Schale (Liegend = gruen) -->
 <line id="waageSeilR" x1="140" y1="22" x2="140" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleR" cx="140" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<!-- Labels -->
 <text id="waageTextL" x="20" y="80" text-anchor="middle" font-size="9" font-weight="700" fill="#555">0 Min.</text>
 <text x="20" y="105" text-anchor="middle" font-size="8" fill="#555">liegend</text>
 <text id="waageTextR" x="140" y="80" text-anchor="middle" font-size="9" font-weight="700" fill="#555">0 Min.</text>
@@ -316,16 +304,11 @@ var myLoads = [
 
 var symptomNamen = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
 
-function storeGet(k) {
-try { return localStorage.getItem(k); } catch(e) { return null; }
-}
-
-function storeSet(k, v) {
-try { localStorage.setItem(k, v); } catch(e) {}
-}
+function storeGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function storeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
 var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
-var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0, cur:0, block:0, used:[], date:"", pene:false, history:[], symptome:[]};
+var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[],symptome:[]};
 var schlafWert = null;
 var schlafMode = null;
 var lastActionTime = null;
@@ -336,6 +319,8 @@ var _pendingSymptom = null;
 function saveAll() {
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
 storeSet(STORAGE_STATE, JSON.stringify(state));
+storeSet(STORAGE_STATE, JSON.stringify(state));
+// dayMinPct ist Teil von state, wird mitgespeichert;
 }
 
 function showToast(msg) {
@@ -352,17 +337,13 @@ return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 function startPauseTimer() {
 lastActionTime = Date.now();
 storeSet("pacing_timer_start", String(lastActionTime));
-if (pauseTimerInterval) {
-clearInterval(pauseTimerInterval);
-}
+if (pauseTimerInterval) { clearInterval(pauseTimerInterval); }
 pauseTimerInterval = setInterval(checkPauseTimer, 60000);
 checkPauseTimer();
 }
 
 function stopPauseTimer() {
-if (pauseTimerInterval) {
-clearInterval(pauseTimerInterval);
-}
+if (pauseTimerInterval) { clearInterval(pauseTimerInterval); }
 pauseTimerInterval = null;
 lastActionTime = null;
 storeSet("pacing_timer_start", "");
@@ -372,19 +353,21 @@ document.body.style.paddingTop = "80px"
 
 function checkPauseTimer() {
 if (!lastActionTime || state.max <= 0) {
+updateWaage();
 return;
 }
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var pct = (state.cur / state.max) * 100;
-var empfohlen;
-var erzwingen;
+var empfohlen, erzwingen;
 if (pct >= 70) {
 empfohlen = 45;
 erzwingen = 60;
-} else if (pct >= 40) {
+}
+else if (pct >= 40) {
 empfohlen = 30;
 erzwingen = 45;
-} else {
+}
+else {
 empfohlen = 20;
 erzwingen = 30;
 }
@@ -403,12 +386,25 @@ document.body.style.paddingTop = "120px"
 bar.style.display = "none"
 document.body.style.paddingTop = "80px"
 }
+updateWaage();
+updateWaage();
+// FIX: Waage jede Minute aktualisieren;
 }
 
 window.onload = function() {
 buildSchwereButtons();
 verdrahteButtons();
 checkRollingPene();
+
+// FIX: Globaler 60s-Timer für Waage, Aufrechtwarnung, CrashRisiko
+setInterval(function() {
+if (state.max > 0) {
+updateWaage();
+updateAufrechtWarnung();
+checkCrashRisiko();
+}
+}, 60000);
+
 var savedTimer = storeGet("pacing_timer_start");
 if (savedTimer && state.max > 0) {
 lastActionTime = parseInt(savedTimer);
@@ -425,6 +421,29 @@ return;
 if (state.max > 0) {
 showMainUI();
 updateDisplay();
+// FIX: Pausenzustand beim Start wiederherstellen (erstes unbeantwortetes Pausenbeginn)
+var pauseLaeuft = false;
+var erstePauseTs = null;
+var sortedP = (state.used || []).slice().sort(function(a,b){ return a.ts - b.ts; });
+for (var pi = 0; pi < sortedP.length; pi++) {
+if (sortedP[pi].n === "Pausenbeginn") {
+if (!pauseLaeuft) {
+pauseLaeuft = true;
+erstePauseTs = sortedP[pi].ts;
+}
+} else if (sortedP[pi].n.indexOf("Pause beendet") === 0) {
+pauseLaeuft = false;
+erstePauseTs = null;
+}
+}
+pauseBeginnTs = pauseLaeuft ? erstePauseTs : null;
+if (pauseLaeuft) {
+document.getElementById("btnPauseBeginn").style.display = "none"
+document.getElementById("btnPauseEnde").style.display = "block"
+} else {
+document.getElementById("btnPauseBeginn").style.display = "block"
+document.getElementById("btnPauseEnde").style.display = "none"
+}
 }
 renderCatalog();
 };
@@ -443,12 +462,10 @@ document.getElementById("btnUndo").addEventListener("click", undoLast);
 document.getElementById("debugBtn").addEventListener("click", showHistory);
 document.getElementById("btnToggleCheck").addEventListener("click", toggleCheck);
 document.getElementById("schwereOverlay").addEventListener("click", closeSchwere);
-
 var schlafBtns = document.querySelectorAll("[data-schlaf]");
 for (var si = 0; si < schlafBtns.length; si++) {
 schlafBtns[si].addEventListener("click", machSchlafHandler(schlafBtns[si]));
 }
-
 var symptomBtns = document.querySelectorAll("[data-symptom]");
 for (var syi = 0; syi < symptomBtns.length; syi++) {
 symptomBtns[syi].addEventListener("click", machSymptomHandler(symptomBtns[syi]));
@@ -459,13 +476,10 @@ function machSchlafHandler(btn) {
 return function() {
 var w = btn.getAttribute("data-schlaf");
 selectSchlaf(w === "null" ? null : parseFloat(w), btn);
-};
 }
-
+}
 function machSymptomHandler(btn) {
-return function() {
-pickSchwere(parseInt(btn.getAttribute("data-symptom")));
-};
+return function() { pickSchwere(parseInt(btn.getAttribute("data-symptom"))); };
 }
 
 function buildSchwereButtons() {
@@ -480,31 +494,23 @@ var items = [
 for (var i = 0; i < items.length; i++) {
 var btn = document.createElement("button");
 btn.className = "schwere-btn " + (items[i].cls || "");
-if (items[i].extra) {
-btn.style.cssText = items[i].extra;
-}
+if (items[i].extra) { btn.style.cssText = items[i].extra; }
 btn.textContent = items[i].label;
 btn.addEventListener("click", machSchwereBtnHandler(items[i].label));
 container.appendChild(btn);
 }
 }
-
-function machSchwereBtnHandler(lbl) {
-return function() { logSymptomMitSchwere(lbl); };
-}
+function machSchwereBtnHandler(lbl) { return function() { logSymptomMitSchwere(lbl); }; }
 
 function archiveDay() {
-if (state.max <= 0) {
-return;
-}
-if (!state.history) {
-state.history = [];
-}
+if (state.max <= 0) { return; }
+if (!state.history) { state.history = []; }
 var pct = (state.cur / state.max) * 100;
-state.history.push(pct < 25);
-if (state.history.length > 7) {
-state.history.shift();
-}
+// Speichere Objekt mit minPct und crash-Flag
+var minPct = state.dayMinPct !== undefined ? state.dayMinPct : pct;
+state.history.push({crash: pct < 25, minPct: minPct});
+if (state.history.length > 7) { state.history.shift(); }
+state.dayMinPct = undefined;
 saveAll();
 }
 
@@ -512,23 +518,21 @@ function checkRollingPene() {
 var h = state.history || [];
 var red = 0;
 for (var i = 0; i < h.length; i++) {
-if (h[i]) {
-red++;
-}
+var crash = typeof h[i] === 'object' ? h[i].crash : h[i];
+if (crash) { red++; }
 }
 var pctH = state.max > 0 ? (state.cur / state.max) * 100 : 100;
-if (state.max > 0 && pctH < 25) {
-red++;
-}
-var last2ok = h.length >= 2 && !h[h.length - 1] && !h[h.length - 2];
+if (state.max > 0 && pctH < 25) { red++; }
+var last2crash = h.length >= 2;
+var c1 = typeof h[h.length-1] === 'object' ? h[h.length-1].crash : h[h.length-1];
+var c2 = typeof h[h.length-2] === 'object' ? h[h.length-2].crash : h[h.length-2];
+var last2ok = h.length >= 2 && !c1 && !c2;
 document.getElementById("rollingWarnBox").style.display = (red >= 3 && !last2ok) ? "block" : "none"
 }
 
 function selectSchlaf(wert, btn) {
 var btns = document.querySelectorAll(".schlaf-btn");
-for (var i = 0; i < btns.length; i++) {
-btns[i].classList.remove("selected");
-}
+for (var i = 0; i < btns.length; i++) { btns[i].classList.remove("selected"); }
 btn.classList.add("selected");
 var row = document.getElementById("individuellRow");
 if (wert === null) {
@@ -546,46 +550,49 @@ document.getElementById("sleep").value = ""
 
 function startDay() {
 var s;
-if (schlafMode === "preset") {
-s = schlafWert;
-} else if (schlafMode === "individuell") {
+if (schlafMode === "preset") { s = schlafWert; }
+else if (schlafMode === "individuell") {
 var ind = parseFloat(document.getElementById("sleep").value);
-if (isNaN(ind) || ind <= 0) {
-showToast("Bitte Schlafwert eingeben!");
-return;
-}
+if (isNaN(ind) || ind <= 0) { showToast("Bitte Schlafwert eingeben!"); return; }
 s = ind;
 } else {
 showToast("Bitte Schlafqualität auswählen!");
 return;
 }
 var f = document.getElementById("feeling").value;
-if (!f) {
-showToast("Bitte Gefühl auswählen!");
-return;
-}
+if (!f) { showToast("Bitte Gefühl auswählen!"); return; }
 var berechnetes = s + parseFloat(f);
 var h = state.history || [];
-var roteVortage = h.slice(-3).filter(function(d) { return d; }).length;
-var reduktion = (roteVortage >= 2) ? 5 : 0;
-state.max = Math.max(1, berechnetes - reduktion);
-state._reduktion = reduktion;
+// Dynamisches Limit: 3-Tage-Regel
+var last3 = h.slice(-3);
+// Crash: 2 von 3 Tagen minPct < 20%
+var crashDays = last3.filter(function(d) {
+return typeof d === 'object' ? d.minPct < 20 : d;
+}).length;
+// Stabil: alle 3 Tage minPct >= 40%
+var stableDays = last3.filter(function(d) {
+return typeof d === 'object' ? d.minPct >= 40 : !d;
+}).length;
+var faktor = 1.0;
+if (crashDays >= 2) { faktor = 0.9; }
+else if (stableDays === 3) { faktor = 1.05; }
+state.max = Math.round(Math.max(30, Math.min(120, berechnetes * faktor)));
+state._faktor = faktor;
+var reduktion = 0;
+var reduktion = 0;
+// legacy, nicht mehr verwendet;
 state.cur = state.max;
 state.used = [{n:"Tag gestartet", v:0, t:nowTime(), ts:Date.now(), pos:"liegend"}];
 state.block = 0;
 state.pene = false;
 state.date = new Date().toDateString();
-if (!state.symptome) {
-state.symptome = [];
-}
+if (!state.symptome) { state.symptome = []; }
 showMainUI();
 saveAll();
 updateDisplay();
-if (reduktion > 0) {
-showToast("Limit -" + reduktion + " wegen Vortage");
-} else {
-showToast("Tag gestartet!");
-}
+if (state._faktor < 1) { showToast("Limit -10% wegen Crash-Vortage"); }
+else if (state._faktor > 1) { showToast("Limit +5% wegen stabiler Vortage!"); }
+else { showToast("Tag gestartet!"); }
 }
 
 function showMainUI() {
@@ -610,6 +617,11 @@ var spielraum = Math.max(0, state.cur - grenze);
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
 document.getElementById("valSpielraum").textContent = spielraum;
+// Tages-Minimum tracken für dynamisches Limit
+var curPct = state.max > 0 ? (state.cur / state.max) * 100 : 100;
+if (state.dayMinPct === undefined || curPct < state.dayMinPct) {
+state.dayMinPct = curPct;
+}
 var body = document.getElementById("mainBody");
 var bR = document.getElementById("boxRest");
 var bL = document.getElementById("boxLimit");
@@ -674,9 +686,7 @@ updateWaage();
 function addCatalogEntry() {
 var n = document.getElementById("loadName").value.trim();
 var v = parseInt(document.getElementById("loadVal").value);
-if (!n || isNaN(v)) {
-return;
-}
+if (!n || isNaN(v)) { return; }
 loads.push({n:n, v:v});
 saveAll();
 renderCatalog();
@@ -685,25 +695,11 @@ document.getElementById("loadVal").value = ""
 showToast("Gespeichert");
 }
 
-function machApplyHandler(idx) {
-return function() { applyLoad(idx); };
-}
-
-function machEditHandler(idx) {
-return function() { editCatalog(idx); };
-}
-
-function machDeleteHandler(idx) {
-return function() { deleteCatalog(idx); };
-}
-
-function machMoveHandler(idx, dir) {
-return function() { moveItem(idx, dir); };
-}
-
-function machTogglePositionHandler(idx) {
-return function() { togglePosition(idx); };
-}
+function machApplyHandler(idx) { return function() { applyLoad(idx); }; }
+function machEditHandler(idx) { return function() { editCatalog(idx); }; }
+function machDeleteHandler(idx) { return function() { deleteCatalog(idx); }; }
+function machMoveHandler(idx, dir) { return function() { moveItem(idx, dir); }; }
+function machTogglePositionHandler(idx) { return function() { togglePosition(idx); }; }
 
 function renderCatalog() {
 var div = document.getElementById("catalog");
@@ -711,50 +707,42 @@ div.innerHTML = ""
 for (var i = 0; i < loads.length; i++) {
 var row = document.createElement("div");
 row.className = "item"
-
 var name = document.createElement("span");
 name.style.cssText = "flex-grow:1;cursor:pointer;padding:8px 0;"
 name.textContent = loads[i].n + " (" + loads[i].v + ")"
 name.addEventListener("click", machApplyHandler(i));
-
 var btns = document.createElement("div");
 btns.style.display = "flex"
-
 var bAdd = document.createElement("button");
 bAdd.className = "small-btn"
 bAdd.style.background = "#007aff"
 bAdd.style.color = "#fff"
 bAdd.textContent = "+"
 bAdd.addEventListener("click", machApplyHandler(i));
-
 var bEdit = document.createElement("button");
 bEdit.className = "small-btn"
 bEdit.style.background = "#8e8e93"
 bEdit.style.color = "#fff"
 bEdit.textContent = "E"
 bEdit.addEventListener("click", machEditHandler(i));
-
 var bDel = document.createElement("button");
 bDel.className = "small-btn"
 bDel.style.background = "#ff3b30"
 bDel.style.color = "#fff"
 bDel.textContent = "X"
 bDel.addEventListener("click", machDeleteHandler(i));
-
 var bUp = document.createElement("button");
 bUp.className = "small-btn"
 bUp.style.background = "rgba(0,0,0,0.2)"
 bUp.style.color = "#fff"
 bUp.textContent = "^"
 bUp.addEventListener("click", machMoveHandler(i, -1));
-
 var bDown = document.createElement("button");
 bDown.className = "small-btn"
 bDown.style.background = "rgba(0,0,0,0.2)"
 bDown.style.color = "#fff"
 bDown.textContent = "v"
 bDown.addEventListener("click", machMoveHandler(i, 1));
-
 btns.appendChild(bAdd);
 btns.appendChild(bEdit);
 btns.appendChild(bDel);
@@ -769,55 +757,37 @@ div.appendChild(row);
 function editCatalog(i) {
 var rows = document.querySelectorAll("#catalog .item");
 var row = rows[i];
-if (!row) {
-return;
-}
+if (!row) { return; };
 row.innerHTML = ""
-
 var inp1 = document.createElement("input");
 inp1.id = "en"
 inp1.value = loads[i].n;
 inp1.style.cssText = "flex:2;margin:0;font-size:13px;"
-
 var inp2 = document.createElement("input");
 inp2.id = "ev"
 inp2.type = "number"
 inp2.value = loads[i].v;
 inp2.style.cssText = "flex:0.6;margin:0;font-size:13px;"
-
 var btn = document.createElement("button");
 btn.textContent = "OK"
 btn.style.cssText = "background:#34c759;width:auto;padding:8px 12px;font-size:13px;"
 btn.addEventListener("click", machSaveEditHandler(i));
-
 row.style.display = "flex"
 row.style.gap = "6px"
 row.appendChild(inp1);
 row.appendChild(inp2);
 row.appendChild(btn);
 }
-
-function machSaveEditHandler(i) {
-return function() { saveEdit(i); };
-}
-
+function machSaveEditHandler(i) { return function() { saveEdit(i); }; }
 function saveEdit(i) {
 var n = document.getElementById("en").value.trim();
 var v = parseInt(document.getElementById("ev").value);
-if (!n || isNaN(v)) {
-return;
-}
+if (!n || isNaN(v)) { return; }
 loads[i] = {n:n, v:v};
 saveAll();
 renderCatalog();
 }
-
-function deleteCatalog(i) {
-loads.splice(i, 1);
-saveAll();
-renderCatalog();
-}
-
+function deleteCatalog(i) { loads.splice(i, 1); saveAll(); renderCatalog(); }
 function moveItem(index, dir) {
 var ni = index + dir;
 if (ni >= 0 && ni < loads.length) {
@@ -828,7 +798,6 @@ saveAll();
 renderCatalog();
 }
 }
-
 function resetKatalog() {
 loads = JSON.parse(JSON.stringify(myLoads));
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
@@ -837,10 +806,9 @@ showToast("Katalog zurückgesetzt");
 }
 
 function applyLoad(i) {
-if (state.max <= 0) {
-showToast("Bitte erst den Tag starten!");
-return;
-}
+if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
+// FIX 1: Pause automatisch beenden wenn eine Aktivität geloggt wird
+if (pauseBeginnTs) { doPauseEndeStill(); }
 state.cur = Math.max(0, state.cur - loads[i].v);
 state.block += loads[i].v;
 state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime(), ts:Date.now(), pos:"aufrecht"});
@@ -865,17 +833,45 @@ document.getElementById("btnPauseEnde").style.display = "block"
 showToast("Pausenbeginn erfasst");
 }
 
+function berechnePauseRegen(minuten) {
+// FIX 2: Regen gedeckelt auf max 120 Minuten (verhindert Über-Nacht-Regen)
+var regenMinuten = Math.min(minuten, 120);
+var regen = Math.floor(regenMinuten / 10);
+var maxRegen = Math.floor(state.max * 0.2);
+return Math.min(regen, maxRegen);
+}
+
+function doPauseEndeStill() {
+// Auto-Pause-Ende vor Aktivität: immer 10 Min. als Default (Pause lief noch)
+// So bleibt Undo konsistent: jeder Eintrag ist unabhängig rückgängig machbar
+var jetzt = Date.now();
+var minuten = 10;
+var regen = berechnePauseRegen(minuten);
+var regen = berechnePauseRegen(minuten);
+// = 1;
+if (regen > 0) { state.cur = Math.min(state.max, state.cur + regen); }
+var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
+state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
+pauseBeginnTs = null;
+document.getElementById("btnPauseEnde").style.display = "none"
+document.getElementById("btnPauseBeginn").style.display = "block"
+}
+
 function doPauseEnde() {
 var jetzt = Date.now();
-var minuten = pauseBeginnTs ? Math.round((jetzt - pauseBeginnTs) / 60000) : 0;
-state.used.push({n:"Pause beendet (" + minuten + " Min.)", v:0, t:nowTime(), ts:jetzt, pos:"aufrecht"});
+var minuten = pauseBeginnTs ? Math.round((jetzt - pauseBeginnTs) / 60000) : 10;
+var regen = berechnePauseRegen(minuten);
+if (regen > 0) { state.cur = Math.min(state.max, state.cur + regen); }
+var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
+state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
 pauseBeginnTs = null;
 saveAll();
 updateDisplay();
 startPauseTimer();
 document.getElementById("btnPauseEnde").style.display = "none"
 document.getElementById("btnPauseBeginn").style.display = "block"
-showToast("Pause: " + minuten + " Min.");
+if (regen > 0) { showToast("Pause: " + minuten + " Min. +" + regen + " Energie!"); }
+else { showToast("Pause: " + minuten + " Min."); }
 }
 
 function toggleCatalogCard() {
@@ -885,7 +881,6 @@ var o = b.classList.contains("open");
 b.className = o ? "coll-body" : "coll-body open"
 c.className = o ? "coll-chevron" : "coll-chevron open"
 }
-
 function toggleSymptomCard() {
 var b = document.getElementById("symptomBody");
 var c = document.getElementById("symptomChevron");
@@ -893,7 +888,6 @@ var o = b.classList.contains("open");
 b.className = o ? "coll-body" : "coll-body open"
 c.className = o ? "coll-chevron" : "coll-chevron open"
 }
-
 function toggleUsedCard() {
 var b = document.getElementById("usedBody");
 var c = document.getElementById("usedChevron");
@@ -909,39 +903,25 @@ document.getElementById("schwereTitle").textContent = symptomNamen[idx];
 document.getElementById("schwerePicker").style.display = "block"
 document.getElementById("schwereOverlay").style.display = "block"
 }
-
 function closeSchwere() {
 _pendingSymptom = null;
 document.getElementById("schwerePicker").style.display = "none"
 document.getElementById("schwereOverlay").style.display = "none"
 }
-
 function logSymptomMitSchwere(schwere) {
-if (_pendingSymptom === null) {
-return;
-}
-if (schwere === "weg") {
-logSymptomWeg(_pendingSymptom);
-} else {
-logSymptom(_pendingSymptom, schwere);
-}
+if (_pendingSymptom === null) { return; }
+if (schwere === "weg") { logSymptomWeg(_pendingSymptom); } else { logSymptom(_pendingSymptom, schwere); }
 closeSchwere();
 }
-
 function logSymptom(idx, schwere) {
-if (!state.symptome) {
-state.symptome = [];
-}
+if (!state.symptome) { state.symptome = []; }
 state.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere || "leicht"});
 saveAll();
 renderUsed();
 showToast(symptomNamen[idx] + " (" + (schwere || "leicht") + ")");
 }
-
 function logSymptomWeg(idx) {
-if (!state.symptome) {
-state.symptome = [];
-}
+if (!state.symptome) { state.symptome = []; }
 state.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
 saveAll();
 renderUsed();
@@ -949,9 +929,7 @@ showToast(symptomNamen[idx] + " weg");
 }
 
 function togglePosition(idx) {
-if (!state.used[idx]) {
-return;
-}
+if (!state.used[idx]) { return; }
 state.used[idx].pos = (state.used[idx].pos === "aufrecht") ? "liegend" : "aufrecht"
 saveAll();
 renderUsed();
@@ -959,64 +937,54 @@ updateAufrechtWarnung();
 }
 
 function timeStrToTs(t) {
-if (!t) {
-return 0;
-}
+if (!t) { return 0; }
 var p = t.split(":");
-if (p.length !== 2) {
-return 0;
-}
+if (p.length !== 2) { return 0; }
 var d = new Date();
 d.setHours(parseInt(p[0]), parseInt(p[1]), 0, 0);
 return d.getTime();
 }
 
 function getAufrechtMinuten() {
+// FIX: Alle aufrechten Phasen zählen (nicht nur nach letzter Liegeposition)
+// Startzustand = liegend, dann bei jedem pos-Wechsel umschalten
 var jetzt = Date.now();
 var sorted = state.used.slice().map(function(e) {
 return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || "aufrecht", n: e.n};
-}).filter(function(e) {
-return e.ts > 0;
-}).sort(function(a, b) {
-return a.ts - b.ts;
-});
-var lp = 0;
-for (var i = sorted.length - 1; i >= 0; i--) {
-if (sorted[i].pos === "liegend") {
-lp = sorted[i].ts;
-break;
-}
-}
+}).filter(function(e) { return e.ts > 0;
+}).sort(function(a,b) { return a.ts - b.ts;
+});;
+if (sorted.length === 0) { return 0; }
 var min = 0;
-var as = null;
-for (var j = 0; j < sorted.length; j++) {
-var e = sorted[j];
-if (e.ts <= lp) {
-continue;
+var aktuellPos = sorted[0].pos || "liegend"
+var aktuellPos = sorted[0].pos || "liegend"
+// Startzustand;
+var phaseBeginn = sorted[0].ts;
+for (var i = 1; i < sorted.length; i++) {
+var e = sorted[i];
+var neuePos = e.pos || aktuellPos;
+if (neuePos !== aktuellPos) {
+// Zustandswechsel
+if (aktuellPos === "aufrecht") {
+min += Math.floor((e.ts - phaseBeginn) / 60000);
 }
-if (e.pos === "aufrecht" && as === null) {
-as = e.ts;
-} else if (e.pos === "liegend" && as !== null) {
-min += Math.floor((e.ts - as) / 60000);
-as = null;
+aktuellPos = neuePos;
+phaseBeginn = e.ts;
 }
 }
-if (as !== null) {
-min += Math.floor((jetzt - as) / 60000);
+// Laufende Phase
+if (aktuellPos === "aufrecht") {
+min += Math.floor((jetzt - phaseBeginn) / 60000);
 }
 return min;
 }
 
 function updateAufrechtWarnung() {
-if (state.max <= 0) {
-return;
-}
+if (state.max <= 0) { return; }
 var min = getAufrechtMinuten();
 var pct = (state.cur / state.max) * 100;
 var bar = document.getElementById("aufrechtWarnBar");
-if (!bar) {
-return;
-}
+if (!bar) { return; }
 if (pct < 40 && min > 30) {
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht + Restenergie niedrig!"
@@ -1025,38 +993,48 @@ bar.style.background = "#ff3b30"
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
 bar.style.background = "#ff9500"
-} else {
-bar.style.display = "none"
-}
+} else { bar.style.display = "none" }
 }
 
 function getCrashScore() {
-if (state.max <= 0) {
-return 0;
-}
+// FIX: Belastungsfenster wird durch Pause >20 Min. zurückgesetzt
+if (state.max <= 0) { return 0; }
 var pct = (state.cur / state.max) * 100;
 var up = getAufrechtMinuten();
 var jetzt = Date.now();
-var l2 = 0;
-for (var i = 0; i < state.used.length; i++) {
-var u = state.used[i];
-if (u.v > 0 && u.ts && (jetzt - u.ts) < 7200000) {
-l2 += u.v;
+// Finde letzten Pausenbeginn der >20 Min. dauerte (reset-Punkt)
+var resetTs = 0;
+var sorted = state.used.slice().sort(function(a,b){ return a.ts - b.ts; });
+var pb = null;
+for (var i = 0; i < sorted.length; i++) {
+var e = sorted[i];
+if (e.n === "Pausenbeginn") { pb = e.ts; }
+else if (e.n.indexOf("Pause beendet") === 0 && pb !== null) {
+var dauer = Math.round((e.ts - pb) / 60000);
+if (dauer >= 20) { resetTs = e.ts; } // Pause war lang genug
+pb = null;
 }
+}
+// Laufende Pause >20 Min. zählt auch als Reset
+if (pauseBeginnTs && Math.round((jetzt - pauseBeginnTs) / 60000) >= 20) {
+resetTs = pauseBeginnTs;
+}
+// Belastung nur ab reset-Punkt zählen
+var fensterStart = Math.max(resetTs, jetzt - 7200000);
+var l2 = 0;
+for (var j = 0; j < state.used.length; j++) {
+var u = state.used[j];
+if (u.v > 0 && u.ts && u.ts >= fensterStart) { l2 += u.v; }
 }
 var r = 0;
-if (pct < 40) { r += 1; }
-if (pct < 25) { r += 2; }
-if (l2 > 18) { r += 2; }
-else if (l2 > 12) { r += 1; }
+if (pct < 40) { r += 1; } if (pct < 25) { r += 2; }
+if (l2 > 18) { r += 2; } else if (l2 > 12) { r += 1; }
 if (up > 90) { r += 1; }
 return r;
 }
 
 function checkCrashRisiko() {
-if (state.max <= 0) {
-return;
-}
+if (state.max <= 0) { return; }
 var pct = (state.cur / state.max) * 100;
 var sc = getCrashScore();
 var cb = document.getElementById("crashWarnBar");
@@ -1072,7 +1050,7 @@ cb.style.animation = "blinker 1.2s linear infinite"
 nb.style.display = "none"
 } else if (sc >= 2) {
 cb.style.display = "block"
-cb.textContent = "PEM-Risiko erhöht – Aktivitäten reduzieren!"
+cb.textContent = "PEM-Risiko erhoeht - Aktivitaeten reduzieren!"
 cb.style.background = "#e07800"
 cb.style.animation = "none"
 nb.style.display = "none"
@@ -1088,9 +1066,7 @@ var f = 15 * 60 * 1000;
 var p = 0;
 for (var i = 0; i < state.used.length; i++) {
 var u = state.used[i];
-if (u.v > 0 && u.ts && (jetzt - u.ts) <= f) {
-p += u.v;
-}
+if (u.v > 0 && u.ts && (jetzt - u.ts) <= f) { p += u.v; }
 }
 var bar = document.getElementById("mikroPauseBar");
 if (p > 12) {
@@ -1109,9 +1085,7 @@ for (i = 0; i < state.used.length; i++) {
 ts = state.used[i].ts || 0;
 if (!ts && state.used[i].t) {
 p = state.used[i].t.split(":");
-if (p.length === 2) {
-ts = parseInt(p[0]) * 60 + parseInt(p[1]);
-}
+if (p.length === 2) { ts = parseInt(p[0]) * 60 + parseInt(p[1]); }
 }
 combined.push({ts:ts, type:"aktivitaet", data:state.used[i]});
 }
@@ -1120,13 +1094,11 @@ for (i = 0; i < symp.length; i++) {
 ts = symp[i].ts || 0;
 if (!ts && symp[i].t) {
 p = symp[i].t.split(":");
-if (p.length === 2) {
-ts = parseInt(p[0]) * 60 + parseInt(p[1]);
-}
+if (p.length === 2) { ts = parseInt(p[0]) * 60 + parseInt(p[1]); }
 }
 combined.push({ts:ts, type:"symptom", data:symp[i]});
 }
-combined.sort(function(a, b) { return b.ts - a.ts; });
+combined.sort(function(a,b) { return b.ts - a.ts; });
 return combined;
 }
 
@@ -1138,33 +1110,26 @@ var u = entry.data;
 var ip = u.v < 0;
 var pos = u.pos || (u.v < 0 ? "liegend" : "aufrecht");
 var oi = state.used.indexOf(u);
-
 var left = document.createElement("span");
 left.style.cssText = "display:flex;align-items:center;flex-wrap:wrap;gap:2px;flex:1;"
-
 var ts = document.createElement("span");
 ts.style.cssText = "font-size:11px;opacity:0.8;margin-right:6px;"
 ts.textContent = u.t || ""
 left.appendChild(ts);
 left.appendChild(document.createTextNode(u.n));
-
 var pw = document.createElement("span");
 pw.className = "pos-wrap"
-
 var tU = document.createElement("span");
 tU.className = "pos-tag pos-aufrecht" + (pos === "aufrecht" ? " aktiv" : "");
 tU.textContent = "aufrecht"
 tU.addEventListener("click", machTogglePositionHandler(oi));
-
 var tD = document.createElement("span");
 tD.className = "pos-tag pos-liegend" + (pos === "liegend" ? " aktiv" : "");
 tD.textContent = pos === "liegend" ? "liegend" : "liegend?"
 tD.addEventListener("click", machTogglePositionHandler(oi));
-
 pw.appendChild(tU);
 pw.appendChild(tD);
 left.appendChild(pw);
-
 row.appendChild(left);
 if (u.v !== 0) {
 var right = document.createElement("span");
@@ -1174,9 +1139,7 @@ row.appendChild(right);
 } else {
 var s = entry.data;
 var left2 = document.createElement("span");
-if (s.weg) {
-left2.style.opacity = "0.6"
-}
+if (s.weg) { left2.style.opacity = "0.6" }
 var ts2 = document.createElement("span");
 ts2.style.cssText = "font-size:11px;opacity:0.8;margin-right:6px;"
 ts2.textContent = s.t || ""
@@ -1187,9 +1150,7 @@ var ws = document.createElement("span");
 ws.style.cssText = "color:#34c759;font-weight:700;margin-left:4px;"
 ws.textContent = "weg"
 left2.appendChild(ws);
-} else if (s.sw) {
-left2.appendChild(document.createTextNode(" (" + s.sw + ")"));
-}
+} else if (s.sw) { left2.appendChild(document.createTextNode(" (" + s.sw + ")")); }
 row.appendChild(left2);
 }
 return row;
@@ -1199,14 +1160,10 @@ function renderUsedPreview() {
 var preview = document.getElementById("usedPreview");
 var isOpen = document.getElementById("usedBody").classList.contains("open");
 preview.innerHTML = ""
-if (isOpen) {
-return;
-}
+if (isOpen) { return; }
 var combined = buildCombined();
 var count = Math.min(2, combined.length);
-for (var i = 0; i < count; i++) {
-preview.appendChild(makeEntryRow(combined[i]));
-}
+for (var i = 0; i < count; i++) { preview.appendChild(makeEntryRow(combined[i])); }
 if (combined.length > 2) {
 var more = document.createElement("div");
 more.style.cssText = "font-size:11px;color:#8e8e93;text-align:center;padding:4px 0;"
@@ -1219,18 +1176,14 @@ function renderUsed() {
 var div = document.getElementById("dayList");
 div.innerHTML = ""
 var combined = buildCombined();
-for (var i = 0; i < combined.length; i++) {
-div.appendChild(makeEntryRow(combined[i]));
-}
+for (var i = 0; i < combined.length; i++) { div.appendChild(makeEntryRow(combined[i])); }
 renderUsedPreview();
 }
 
 function undoLast() {
-if (!state.symptome) {
-state.symptome = [];
-}
-var lu = state.used.length ? state.used[state.used.length - 1] : null;
-var ls = state.symptome.length ? state.symptome[state.symptome.length - 1] : null;
+if (!state.symptome) { state.symptome = []; }
+var lu = state.used.length ? state.used[state.used.length-1] : null;
+var ls = state.symptome.length ? state.symptome[state.symptome.length-1] : null;
 var ut = lu ? (lu.ts || 0) : 0;
 var st = ls ? (ls.ts || 0) : 0;
 if (st > ut && ls) {
@@ -1244,6 +1197,19 @@ if (last.n.indexOf("STRAFE") >= 0) {
 state.cur = Math.min(state.max, state.cur + 1);
 state.pene = false;
 state.block = 29;
+} else if (last.n.indexOf("Pause beendet") === 0) {
+// FIX 3: Regeneration rückgängig machen
+var regen = last.regen || 0;
+if (regen > 0) { state.cur = Math.max(0, state.cur - regen); }
+// Pausenbeginn wiederherstellen falls vorhanden
+for (var pi = state.used.length - 1; pi >= 0; pi--) {
+if (state.used[pi].n === "Pausenbeginn") {
+pauseBeginnTs = state.used[pi].ts;
+document.getElementById("btnPauseBeginn").style.display = "none"
+document.getElementById("btnPauseEnde").style.display = "block"
+break;
+}
+}
 } else if (last.v < 0) {
 state.cur = Math.max(0, state.cur + last.v);
 state.block = 0;
@@ -1256,22 +1222,17 @@ updateDisplay();
 }
 }
 
-function resetDay() {
-archiveDay();
-resetDayInternal();
-}
+function resetDay() { archiveDay(); resetDayInternal(); }
 
 function resetDayInternal() {
 var sh = state.history || [];
-state = {max:0, cur:0, block:0, used:[], date:"", pene:false, history:sh, symptome:[]};
+state = {max:0,cur:0,block:0,used:[],date:"",pene:false,history:sh,symptome:[]};
 saveAll();
 schlafWert = null;
 schlafMode = null;
 pauseBeginnTs = null;
 var btns = document.querySelectorAll(".schlaf-btn");
-for (var i = 0; i < btns.length; i++) {
-btns[i].classList.remove("selected");
-}
+for (var i = 0; i < btns.length; i++) { btns[i].classList.remove("selected"); }
 document.getElementById("individuellRow").classList.remove("open");
 document.getElementById("sleep").value = ""
 document.getElementById("feeling").selectedIndex = 0;
@@ -1286,6 +1247,12 @@ document.getElementById("cardSymptome").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("usedPreview").innerHTML = ""
 document.getElementById("mainBody").className = ""
+document.getElementById("mainBody").style.background = "#f2f2f7"
+var allCards = document.querySelectorAll(".card");
+for (var ci = 0; ci < allCards.length; ci++) {
+allCards[ci].style.backgroundColor = ""
+allCards[ci].style.color = ""
+}
 document.getElementById("btnPauseBeginn").style.display = "block"
 document.getElementById("btnPauseEnde").style.display = "none"
 stopPauseTimer();
@@ -1296,66 +1263,65 @@ document.getElementById("aufrechtWarnBar").style.display = "none"
 showToast("Neuer Tag!");
 }
 
-
 function getLiegendMinuten() {
-// Liegend = Pausen + Tagesstart-liegend-Phase + liegend-Aktivitäten
+// Berechnet liegend-Zeit ohne Doppelzählung:
+// 1. Tagesstart liegend: von sorted[0].ts bis zum ersten aufrecht-Impuls
+// 2. Pausen: nur außerhalb der Tagesstart-Phase (kein Overlap)
+// 3. Doppelter Pausenbeginn: erstes Timestamp gewinnt
+var sorted = state.used.slice().sort(function(a,b) { return a.ts - b.ts; });
+var jetzt = Date.now();
 var min = 0;
-var pauseBeginnTs = null;
-var sorted = state.used.slice().sort(function(a, b) { return a.ts - b.ts; });
 
-// Tagesstart: wenn liegend, Zeit bis zum nächsten Eintrag als liegend zählen
-if (sorted.length >= 2 && sorted[0].pos === "liegend") {
-min += Math.round((sorted[1].ts - sorted[0].ts) / 60000);
+// Tagesstart liegend bis zum ersten aufrecht-Impuls
+var tagesstartEnde = null;
+if (sorted.length >= 1 && sorted[0].pos === "liegend") {
+for (var j = 1; j < sorted.length; j++) {
+if (sorted[j].pos === "aufrecht" && sorted[j].v >= 0) {
+tagesstartEnde = sorted[j].ts;
+break;
+}
+}
+if (tagesstartEnde === null) { tagesstartEnde = jetzt; }
+min += Math.round((tagesstartEnde - sorted[0].ts) / 60000);
 }
 
+// Pausen außerhalb der Tagesstart-Phase
+var startPause = null;
 for (var i = 0; i < sorted.length; i++) {
 var e = sorted[i];
 if (e.n === "Pausenbeginn") {
-pauseBeginnTs = e.ts;
-} else if (e.n.indexOf("Pause beendet") === 0 && pauseBeginnTs) {
-min += Math.round((e.ts - pauseBeginnTs) / 60000);
-pauseBeginnTs = null;
-} else if (i > 0 && e.pos === "liegend" && e.v > 0) {
-// Liegend-Aktivität: Zeit bis zum nächsten Eintrag als liegend
-var nextTs = (i + 1 < sorted.length) ? sorted[i + 1].ts : Date.now();
-min += Math.round((nextTs - e.ts) / 60000);
+if (startPause === null && (tagesstartEnde === null || e.ts >= tagesstartEnde)) {
+startPause = e.ts;
+}
+} else if (e.n.indexOf("Pause beendet") === 0) {
+if (startPause !== null) {
+min += Math.round((e.ts - startPause) / 60000);
+startPause = null;
 }
 }
-if (pauseBeginnTs) {
-min += Math.round((Date.now() - pauseBeginnTs) / 60000);
+}
+// Laufende Pause
+if (pauseBeginnTs && (tagesstartEnde === null || pauseBeginnTs >= tagesstartEnde)) {
+min += Math.round((jetzt - pauseBeginnTs) / 60000);
 }
 return min;
 }
 
 function getGesamtMinuten() {
-if (!state.used || state.used.length === 0) {
-return 0;
-}
+if (!state.used || state.used.length === 0) { return 0; }
 var start = state.used[0].ts;
-if (!start) {
-return 0;
-}
+if (!start) { return 0; }
 return Math.round((Date.now() - start) / 60000);
 }
 
 function updateWaage() {
-if (state.max <= 0) {
-return;
-}
+if (state.max <= 0) { return; }
 var gesamt = getGesamtMinuten();
 var lieg = getLiegendMinuten();
 var auf = Math.max(0, gesamt - lieg);
-// Gleichgewicht bei 3:1: lieg * 3 == auf
-// Normalisierte Differenz: positiv = zu viel aufrecht, negativ = gut
-// Kippwinkel: max +/- 18 Grad
-var zielVerhaeltnis = 3;
-var aufNorm = auf;
-var liegNorm = lieg * zielVerhaeltnis;
-var diff = liegNorm - aufNorm;
-var maxDiff = Math.max(60, aufNorm + liegNorm);
+var diff = (lieg * 3) - auf;
+var maxDiff = Math.max(60, auf + lieg);
 var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
-// Winkel positiv = links tief (viel liegend) = gut
-// Winkel negativ = rechts tief (zu viel aufrecht) = schlecht
 var rad = winkel * Math.PI / 180;
 var cx = 80;
 var cy = 22;
@@ -1391,17 +1357,17 @@ document.getElementById("waageTextR").setAttribute("x", rSx);
 document.getElementById("waageTextR").setAttribute("y", rSy + 22);
 document.getElementById("waageTextL").textContent = lieg + " Min."
 document.getElementById("waageTextR").textContent = auf + " Min."
-
 var aufAnteil = gesamt > 0 ? auf / gesamt : 0;
-var ampelFarbe;
-var ampelTextL;
+var ampelFarbe, ampelTextL;
 if (aufAnteil <= 0.65) {
 ampelFarbe = "#34c759"
 ampelTextL = "#1a7a3a"
-} else if (aufAnteil <= 0.80) {
+}
+else if (aufAnteil <= 0.80) {
 ampelFarbe = "#ff9500"
 ampelTextL = "#c07000"
-} else {
+}
+else {
 ampelFarbe = "#ff3b30"
 ampelTextL = "#c00000"
 }
@@ -1415,12 +1381,8 @@ document.getElementById("waageTextR").setAttribute("fill", ampelTextL);
 function showHistory() {
 var h = state.history || [];
 var txt = h.length + " Tage: "
-for (var i = 0; i < h.length; i++) {
-txt += (h[i] ? "R" : "o") + (i < h.length - 1 ? "," : "");
-}
-if (h.length === 0) {
-txt = "History leer"
-}
+for (var i = 0; i < h.length; i++) { txt += (h[i] ? "R" : "o") + (i < h.length-1 ? "," : ""); }
+if (h.length === 0) { txt = "History leer" }
 showToast(txt);
 }
 </script>
