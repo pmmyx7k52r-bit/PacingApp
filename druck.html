@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.15</title>
+<title>PacingApp 4.3.9.18</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -130,7 +130,7 @@ user-select:none; opacity:0.35;
 }
 .pos-tag.aktiv { opacity:1; }
 .pos-aufrecht { background:#ff9500; color:#fff; }
-.pos-liegend { background:#34c759; color:#fff; }
+.pos-liegend { background:#1a7a3a; color:#fff; }
 #mikroPauseBar {
 position:fixed; bottom:80px; left:12px; right:12px;
 background:#ff9500; color:#fff; padding:12px 16px; border-radius:14px;
@@ -859,7 +859,15 @@ function doPauseEndeStill() {
 // So bleibt Undo konsistent: jeder Eintrag ist unabhängig rückgängig machbar
 var jetzt = Date.now();
 var minuten = 10;
-var regen = berechnePauseRegen(minuten); // = 1
+// Regen nur wenn Pausenbeginn liegend war
+var pauseWarLiegend = false;
+for (var pi = state.used.length - 1; pi >= 0; pi--) {
+if (state.used[pi].n === "Pausenbeginn") {
+pauseWarLiegend = (state.used[pi].pos === "liegend");
+break;
+}
+}
+var regen = pauseWarLiegend ? berechnePauseRegen(minuten) : 0;
 if (regen > 0) { state.cur = Math.min(state.max, state.cur + regen); }
 var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
 state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
@@ -871,7 +879,15 @@ document.getElementById("btnPauseBeginn").style.display = "block"
 function doPauseEnde() {
 var jetzt = Date.now();
 var minuten = pauseBeginnTs ? Math.round((jetzt - pauseBeginnTs) / 60000) : 10;
-var regen = berechnePauseRegen(minuten);
+// Regen nur wenn Pausenbeginn-Eintrag liegend ist
+var pauseWarLiegend = false;
+for (var pi = state.used.length - 1; pi >= 0; pi--) {
+if (state.used[pi].n === "Pausenbeginn") {
+pauseWarLiegend = (state.used[pi].pos === "liegend");
+break;
+}
+}
+var regen = pauseWarLiegend ? berechnePauseRegen(minuten) : 0;
 if (regen > 0) {
 state.cur = Math.min(state.max, state.cur + regen);
 }
@@ -964,9 +980,33 @@ state.used[idx].pos = (state.used[idx].pos === "aufrecht") ? "liegend" : "aufrec
 if (state.used[idx].pos === "liegend") {
 letzteLiegeZeit = state.used[idx].ts || Date.now();
 }
+// Wenn Pausenbeginn umgeschaltet wird: Regen des zugehörigen Pause-beendet-Eintrags korrigieren
+if (state.used[idx].n === "Pausenbeginn") {
+var neuePos = state.used[idx].pos;
+// Suche den nächsten "Pause beendet"-Eintrag nach diesem Pausenbeginn
+for (var pi = idx + 1; pi < state.used.length; pi++) {
+if (state.used[pi].n.indexOf("Pause beendet") === 0) {
+var alterRegen = state.used[pi].regen || 0;
+var minuten = Math.round((state.used[pi].ts - state.used[idx].ts) / 60000);
+var neuerRegen = (neuePos === "liegend") ? berechnePauseRegen(minuten) : 0;
+var diff = neuerRegen - alterRegen;
+if (diff !== 0) {
+// state.cur anpassen
+state.cur = Math.min(state.max, Math.max(0, state.cur + diff));
+// Eintrag aktualisieren
+state.used[pi].regen = neuerRegen;
+var label = neuerRegen > 0
+? "Pause beendet (" + minuten + " Min.) +" + neuerRegen + " Regen"
+: "Pause beendet (" + minuten + " Min.)"
+state.used[pi].n = label;
+}
+break;
+}
+}
+}
 saveAll();
 renderUsed();
-updateAufrechtWarnung();
+updateDisplay();
 }
 
 function timeStrToTs(t) {
