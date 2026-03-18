@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.23</title>
+<title>PacingApp 4.3.9.24</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -428,12 +428,28 @@ updateDisplay();
 var heute = new Date().toDateString();
 var letzterEintragHeute = state.date === heute;
 if (letzterEintragHeute) {
+// letzteLiegeZeit = Zeitpunkt des letzten "Pause beendet" nach liegender Pause
+// NICHT Pausenbeginn (der wäre zu früh)
 var sortedU = (state.used || []).slice().sort(function(a,b){ return a.ts - b.ts; });
+var gefunden = false;
 for (var li = sortedU.length - 1; li >= 0; li--) {
-if (sortedU[li].pos === "liegend") {
+if (sortedU[li].n.indexOf("Pause beendet") === 0) {
+// Zugehörigen Pausenbeginn prüfen ob liegend
+for (var lj = li - 1; lj >= 0; lj--) {
+if (sortedU[lj].n === "Pausenbeginn") {
+if (sortedU[lj].pos === "liegend") {
 letzteLiegeZeit = sortedU[li].ts;
+gefunden = true;
+}
 break;
 }
+}
+if (gefunden) { break; }
+}
+}
+if (!gefunden) {
+// Kein Pause-Ende gefunden: Tag gestartet liegend
+letzteLiegeZeit = sortedU.length > 0 ? sortedU[0].ts : Date.now();
 }
 } else {
 // Neuer Tag oder App nach Nacht geöffnet: Morgenreset
