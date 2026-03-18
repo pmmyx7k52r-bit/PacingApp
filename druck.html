@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.18</title>
+<title>PacingApp 4.3.9.20</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -836,7 +836,7 @@ function doPauseBeginn() {
 state.block = 0;
 state.pene = false;
 pauseBeginnTs = Date.now();
-letzteLiegeZeit = Date.now(); // Pause = liegend
+// letzteLiegeZeit wird erst beim Pause-Ende gesetzt (wenn wirklich liegend)
 state.used.push({n:"Pausenbeginn", v:0, t:nowTime(), ts:pauseBeginnTs, pos:"liegend"});
 saveAll();
 updateDisplay();
@@ -893,13 +893,21 @@ state.cur = Math.min(state.max, state.cur + regen);
 }
 var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
 state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
-// Kurzpausen-Logik: erste kurze Pause OK, zweite in Folge = Warnung
-if (minuten >= 10) {
+// Kurzpausen-Logik: letzteLiegeZeit nur zurücksetzen wenn liegend UND >= 10 Min
+if (minuten >= 10 && pauseWarLiegend) {
 letzteLiegeZeit = jetzt;
 kurzPausenZaehler = 0;
 state.kurzPausen = 0;
+} else if (minuten >= 10 && !pauseWarLiegend) {
+// Aufrechte Pause >= 10 Min: kein Regen, Warnung bleibt
+kurzPausenZaehler = 0;
+state.kurzPausen = 0;
+} else if (pauseWarLiegend) {
+// Kurze liegend Pause: letzteLiegeZeit zurücksetzen, aber Zähler hoch
+letzteLiegeZeit = jetzt;
+kurzPausenZaehler++;
 } else {
-letzteLiegeZeit = jetzt; // erste kurze Pause setzt noch zurück
+// Kurze aufrechte Pause: nichts zurücksetzen
 kurzPausenZaehler++;
 }
 state.kurzPausen = kurzPausenZaehler;
@@ -911,10 +919,12 @@ document.getElementById("btnPauseEnde").style.display = "none"
 document.getElementById("btnPauseBeginn").style.display = "block"
 if (regen > 0) {
 showToast("Pause: " + minuten + " Min. +" + regen + " Energie!");
+} else if (!pauseWarLiegend && minuten >= 10) {
+showToast("Pause: " + minuten + " Min. - Liegepause für Erholung empfohlen.");
 } else if (minuten < 10 && kurzPausenZaehler === 1) {
-showToast("Kurze Pause - laengere waere sinnvoll.");
+showToast("Kurze Pause - längere wäre sinnvoll.");
 } else if (minuten < 10 && kurzPausenZaehler > 1) {
-showToast("Pausen zu kurz! Bitte laenger liegen.");
+showToast("Pausen zu kurz! Bitte länger liegen.");
 } else {
 showToast("Pause: " + minuten + " Min.");
 }
@@ -1080,7 +1090,7 @@ bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
 bar.style.background = "#ff9500"
 } else if (kurzPausenZaehler > 1 && minSeitLiegen > 45) {
 bar.style.display = "block"
-bar.textContent = "Bisherige Pausen reichen nicht - laengere Pause noetig!"
+bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
 bar.style.background = "#ff9500"
 } else {
 bar.style.display = "none"
@@ -1141,7 +1151,7 @@ cb.style.animation = "blinker 1.2s linear infinite"
 nb.style.display = "none"
 } else if (sc >= 2) {
 cb.style.display = "block"
-cb.textContent = "PEM-Risiko erhoeht - Aktivitaeten reduzieren!"
+cb.textContent = "PEM-Risiko erhöht - zu viel Belastung in kurzer Zeit. Aktivitäten reduzieren!"
 cb.style.background = "#e07800"
 cb.style.animation = "none"
 nb.style.display = "none"
