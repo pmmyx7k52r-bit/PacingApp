@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.20</title>
+<title>PacingApp 4.3.9.23</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -422,13 +422,22 @@ return;
 if (state.max > 0) {
 showMainUI();
 updateDisplay();
-// Letzte Liegezeit aus state.used wiederherstellen
+// Letzte Liegezeit wiederherstellen
+// Wenn letzter Eintrag von heute: aus state.used lesen
+// Wenn von gestern oder älter: Morgenreset (Annahme: man hat geschlafen = gelegen)
+var heute = new Date().toDateString();
+var letzterEintragHeute = state.date === heute;
+if (letzterEintragHeute) {
 var sortedU = (state.used || []).slice().sort(function(a,b){ return a.ts - b.ts; });
 for (var li = sortedU.length - 1; li >= 0; li--) {
 if (sortedU[li].pos === "liegend") {
 letzteLiegeZeit = sortedU[li].ts;
 break;
 }
+}
+} else {
+// Neuer Tag oder App nach Nacht geöffnet: Morgenreset
+letzteLiegeZeit = Date.now();
 }
 // FIX: Pausenzustand beim Start wiederherstellen (erstes unbeantwortetes Pausenbeginn)
 var pauseLaeuft = false;
@@ -899,9 +908,8 @@ letzteLiegeZeit = jetzt;
 kurzPausenZaehler = 0;
 state.kurzPausen = 0;
 } else if (minuten >= 10 && !pauseWarLiegend) {
-// Aufrechte Pause >= 10 Min: kein Regen, Warnung bleibt
-kurzPausenZaehler = 0;
-state.kurzPausen = 0;
+// Aufrechte Pause >= 10 Min: kein Regen, Warnung bleibt, Zähler bleibt
+// (nur liegend Pausen zählen für den Erholungs-Reset)
 } else if (pauseWarLiegend) {
 // Kurze liegend Pause: letzteLiegeZeit zurücksetzen, aber Zähler hoch
 letzteLiegeZeit = jetzt;
@@ -1065,7 +1073,7 @@ return min;
 
 function getAktuelleAufrechtMinuten() {
 // Einfach: Zeit seit letzter Liegephase
-// letzteLiegeZeit wird bei Pausenbeginn und liegend-Toggle aktualisiert
+// letzteLiegeZeit wird bei Pause-Ende (liegend) und liegend-Toggle aktualisiert
 var jetzt = pauseBeginnTs ? pauseBeginnTs : Date.now();
 return Math.floor((jetzt - letzteLiegeZeit) / 60000);
 }
@@ -1080,15 +1088,24 @@ if (!bar) { return; }
 // obwohl Pausen gemacht wurden)
 var minSeitLiegen = Math.floor((Date.now() - letzteLiegeZeit) / 60000);
 var kurzePausenWarnung = (minSeitLiegen > 30 && min < minSeitLiegen);
+// Dynamische Warnschwelle je nach Spielraum
+var schwelle;
+if (pct >= 50) {
+schwelle = 45;
+} else if (pct >= 25) {
+schwelle = 35;
+} else {
+schwelle = 25;
+}
 if (pct < 40 && min > 30) {
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht + Restenergie niedrig!"
 bar.style.background = "#ff3b30"
-} else if (min > 45) {
+} else if (min > schwelle) {
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
 bar.style.background = "#ff9500"
-} else if (kurzPausenZaehler > 1 && minSeitLiegen > 45) {
+} else if (kurzPausenZaehler > 1 && minSeitLiegen > schwelle) {
 bar.style.display = "block"
 bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
 bar.style.background = "#ff9500"
