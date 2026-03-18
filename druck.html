@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.28</title>
+<title>PacingApp 4.4</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -97,7 +97,6 @@ text-align:center; font-weight:800; z-index:1999;
 box-shadow:0 2px 10px rgba(0,0,0,0.2); box-sizing:border-box;
 display:none; font-size:14px;
 }
-.pt-yellow { background:var(--yellow); color:#000; }
 .pt-orange { background:var(--orange); color:#fff; }
 .pt-red { background:var(--red); color:#fff; animation:blinker 1.2s linear infinite; }
 #crashWarnBar {
@@ -167,7 +166,7 @@ min-width:260px; text-align:center;
 <div id="mikroPauseBar">Mikro-Pause empfohlen</div>
 <div id="aufrechtWarnBar" style="position:fixed;bottom:200px;left:12px;right:12px;color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3002;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);"></div>
 <div id="crashWarnBar">Crash-Risiko!</div>
-<div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">STOP! Energie kritisch – keine weiteren Aktivitäten!</div>
+<div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">STOP! Energie kritisch - keine weiteren Aktivitäten!</div>
 
 <div id="statusWrap" class="status-wrap">
 <div class="status bg-green" id="boxLimit" style="flex:0.7;font-size:12px;">Limit<span id="valStart" class="big" style="font-size:1.2rem;">0</span></div>
@@ -232,7 +231,7 @@ min-width:260px; text-align:center;
 </div>
 <div class="coll-body" id="catalogBody">
 <div style="display:flex;gap:6px;align-items:flex-end;">
-<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivitat">
+<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
 <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
 <button class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
 </div>
@@ -287,10 +286,53 @@ min-width:260px; text-align:center;
 </div>
 
 <script>
+// ============================================================
+// KONSTANTEN
+// ============================================================
 var STORAGE_LOADS = "pacing_catalog_data"
 var STORAGE_STATE = "pacing_daily_state"
 
-var myLoads = [
+// Energie-Schwellen (Anteil von state.max)
+var GRENZE_ROT = 0.25; // unter 25% = Spielraum aufgebraucht
+var GRENZE_ORANGE = 0.5; // unter 50% = Vorsicht
+var GRENZE_GELB = 0.75; // unter 75% = achtsam
+
+// Block-Schwellen (dynamisch: Anteil von state.max)
+var BLOCK_WARN = 0.25; // 25% = PEM-Warnung
+var BLOCK_PAUSE = 0.33; // 33% = Pause erzwingen
+
+// Aufrecht-Warnung (Minuten, dynamisch je nach Spielraum)
+var AUFRECHT_SCHWELLE_HOCH = 45; // Spielraum > 50%
+var AUFRECHT_SCHWELLE_MITTE = 35; // Spielraum 25-50%
+var AUFRECHT_SCHWELLE_NIEDRIG = 25; // Spielraum < 25%
+
+// Pause-Mindestdauer für echte Erholung
+var PAUSE_MINDEST_MIN = 10;
+
+// Regeneration pro 10 Min. liegend, max 20% des Tageslimits
+var REGEN_PRO_10_MIN = 1;
+var REGEN_MAX_MIN = 120; // Deckel bei 120 Min. (kein Über-Nacht-Regen)
+var REGEN_MAX_ANTEIL = 0.2;
+
+// Crash-Score Schwellen
+var CRASH_SCORE_HOCH = 4;
+var CRASH_SCORE_MITTEL = 2;
+var CRASH_BELASTUNG_HOCH = 18;
+var CRASH_BELASTUNG_MITTEL = 12;
+var CRASH_AUFRECHT_MAX = 90; // Min. aufrecht für Crash-Score
+
+// Pause-Timer Schwellen (Minuten ohne Pause)
+var TIMER_WARN_HOCH = 45; // empfohlen bei Spielraum > 70%
+var TIMER_ZWANG_HOCH = 60;
+var TIMER_WARN_MITTE = 30;
+var TIMER_ZWANG_MITTE = 45;
+var TIMER_WARN_NIEDRIG = 20;
+var TIMER_ZWANG_NIEDRIG = 30;
+
+// ============================================================
+// DEFAULT-KATALOG
+// ============================================================
+var STANDARD_KATALOG = [
 {n:"Puls > 88", v:1},
 {n:"3-Minuten-Arbeiten", v:2},
 {n:"Aufstehen", v:3},
@@ -302,26 +344,66 @@ var myLoads = [
 {n:"Längere starke Konzentration", v:10}
 ];
 
-var symptomNamen = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
+var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
 
-function storeGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
-function storeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+// ============================================================
+// STORAGE
+// ============================================================
+function storeGet(k) {
+try { return localStorage.getItem(k); } catch(e) { return null; }
+}
 
-var loads = JSON.parse(storeGet(STORAGE_LOADS)) || myLoads;
-var state = JSON.parse(storeGet(STORAGE_STATE)) || {max:0,cur:0,block:0,used:[],date:"",pene:false,history:[],symptome:[],kurzPausen:0};
+function storeSet(k, v) {
+try { localStorage.setItem(k, v); } catch(e) {}
+}
+
+// ============================================================
+// STATE – zentrale Datenstruktur
+// ============================================================
+var loads = JSON.parse(storeGet(STORAGE_LOADS)) || STANDARD_KATALOG.slice();
+
+var state = JSON.parse(storeGet(STORAGE_STATE)) || neuerLeerenState();
+
+function neuerLeerenState() {
+return {
+max: 0,
+cur: 0,
+block: 0,
+used: [],
+symptome: [],
+date: "",
+pene: false,
+history: [],
+dayMinPct: undefined,
+kurzPausen: 0,
+_faktor: 1
+};
+}
+
+// Zentrale State-Mutation: immer über mutateState gehen
+function mutateState(fn) {
+fn(state);
+storeSet(STORAGE_STATE, JSON.stringify(state));
+}
+
+// ============================================================
+// LAUFZEIT-VARIABLEN (nicht im State, da nicht persistent nötig)
+// ============================================================
 var schlafWert = null;
 var schlafMode = null;
 var lastActionTime = null;
 var pauseTimerInterval = null;
+var minutenTimerInterval = null;
 var pauseBeginnTs = null;
-var letzteLiegeZeit = Date.now(); // Zeitpunkt der letzten Liegephase
-var kurzPausenZaehler = 0; // wird beim Start aus state geladen
+var letzteLiegeZeit = Date.now();
+var kurzPausenZaehler = 0;
 var _pendingSymptom = null;
 
-function saveAll() {
-storeSet(STORAGE_LOADS, JSON.stringify(loads));
-storeSet(STORAGE_STATE, JSON.stringify(state));
-// dayMinPct ist Teil von state, wird mitgespeichert;
+// ============================================================
+// HILFSFUNKTIONEN
+// ============================================================
+function nowTime() {
+return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 }
 
 function showToast(msg) {
@@ -331,20 +413,28 @@ t.style.display = "block"
 setTimeout(function() { t.style.display = "none" }, 3000);
 }
 
-function nowTime() {
-return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+function saveAll() {
+storeSet(STORAGE_LOADS, JSON.stringify(loads));
+storeSet(STORAGE_STATE, JSON.stringify(state));
 }
 
+// ============================================================
+// PAUSE-TIMER
+// ============================================================
 function startPauseTimer() {
 lastActionTime = Date.now();
 storeSet("pacing_timer_start", String(lastActionTime));
-if (pauseTimerInterval) { clearInterval(pauseTimerInterval); }
+if (pauseTimerInterval) {
+clearInterval(pauseTimerInterval);
+}
 pauseTimerInterval = setInterval(checkPauseTimer, 60000);
 checkPauseTimer();
 }
 
 function stopPauseTimer() {
-if (pauseTimerInterval) { clearInterval(pauseTimerInterval); }
+if (pauseTimerInterval) {
+clearInterval(pauseTimerInterval);
+}
 pauseTimerInterval = null;
 lastActionTime = null;
 storeSet("pacing_timer_start", "");
@@ -354,23 +444,21 @@ document.body.style.paddingTop = "80px"
 
 function checkPauseTimer() {
 if (!lastActionTime || state.max <= 0) {
-updateWaage();
 return;
 }
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
-var pct = (state.cur / state.max) * 100;
-var empfohlen, erzwingen;
+var pct = state.max > 0 ? (state.cur / state.max) * 100 : 100;
+var empfohlen;
+var erzwingen;
 if (pct >= 70) {
-empfohlen = 45;
-erzwingen = 60;
-}
-else if (pct >= 40) {
-empfohlen = 30;
-erzwingen = 45;
-}
-else {
-empfohlen = 20;
-erzwingen = 30;
+empfohlen = TIMER_WARN_HOCH;
+erzwingen = TIMER_ZWANG_HOCH;
+} else if (pct >= 40) {
+empfohlen = TIMER_WARN_MITTE;
+erzwingen = TIMER_ZWANG_MITTE;
+} else {
+empfohlen = TIMER_WARN_NIEDRIG;
+erzwingen = TIMER_ZWANG_NIEDRIG;
 }
 var bar = document.getElementById("pauseTimerBar");
 if (minuten >= erzwingen) {
@@ -387,31 +475,39 @@ document.body.style.paddingTop = "120px"
 bar.style.display = "none"
 document.body.style.paddingTop = "80px"
 }
-updateWaage();
-// Waage jede Minute aktualisieren
 }
 
+// ============================================================
+// INITIALISIERUNG
+// ============================================================
 window.onload = function() {
 buildSchwereButtons();
 verdrahteButtons();
-checkRollingPene();
-kurzPausenZaehler = state.kurzPausen || 0;
 
-// FIX: Globaler 60s-Timer für Waage, Aufrechtwarnung, CrashRisiko
-setInterval(function() {
+// Einziger globaler Timer für zeitbasierte Updates
+if (minutenTimerInterval) {
+clearInterval(minutenTimerInterval);
+}
+minutenTimerInterval = setInterval(function() {
 if (state.max > 0) {
 updateWaage();
 updateAufrechtWarnung();
 checkCrashRisiko();
+checkPauseTimer();
 }
 }, 60000);
 
+// Pause-Timer aus Storage wiederherstellen
 var savedTimer = storeGet("pacing_timer_start");
-if (savedTimer && state.max > 0) {
+if (savedTimer && savedTimer !== "" && state.max > 0) {
 lastActionTime = parseInt(savedTimer);
+if (pauseTimerInterval) {
+clearInterval(pauseTimerInterval);
+}
 pauseTimerInterval = setInterval(checkPauseTimer, 60000);
 checkPauseTimer();
 }
+
 var today = new Date().toDateString();
 if (state.date && state.date !== today && state.max > 0) {
 archiveDay();
@@ -419,53 +515,32 @@ resetDayInternal();
 renderCatalog();
 return;
 }
+
 if (state.max > 0) {
+// Laufzeit-Variablen wiederherstellen
+kurzPausenZaehler = state.kurzPausen || 0;
+restorePauseState();
+restoreLetzteliege();
 showMainUI();
 updateDisplay();
-// Letzte Liegezeit wiederherstellen
-// Wenn letzter Eintrag von heute: aus state.used lesen
-// Wenn von gestern oder älter: Morgenreset (Annahme: man hat geschlafen = gelegen)
-var heute = new Date().toDateString();
-var letzterEintragHeute = state.date === heute;
-if (letzterEintragHeute) {
-// letzteLiegeZeit = Zeitpunkt des letzten "Pause beendet" nach liegender Pause
-// NICHT Pausenbeginn (der wäre zu früh)
-var sortedU = (state.used || []).slice().sort(function(a,b){ return a.ts - b.ts; });
-var gefunden = false;
-for (var li = sortedU.length - 1; li >= 0; li--) {
-if (sortedU[li].n.indexOf("Pause beendet") === 0) {
-// Zugehörigen Pausenbeginn prüfen ob liegend
-for (var lj = li - 1; lj >= 0; lj--) {
-if (sortedU[lj].n === "Pausenbeginn") {
-if (sortedU[lj].pos === "liegend") {
-letzteLiegeZeit = sortedU[li].ts;
-gefunden = true;
 }
-break;
-}
-}
-if (gefunden) { break; }
-}
-}
-if (!gefunden) {
-// Kein Pause-Ende gefunden: Tag gestartet liegend
-letzteLiegeZeit = sortedU.length > 0 ? sortedU[0].ts : Date.now();
-}
-} else {
-// Neuer Tag oder App nach Nacht geöffnet: Morgenreset
-letzteLiegeZeit = Date.now();
-}
-// FIX: Pausenzustand beim Start wiederherstellen (erstes unbeantwortetes Pausenbeginn)
+
+checkRollingPene();
+renderCatalog();
+};
+
+function restorePauseState() {
+// Pausenzustand aus state.used wiederherstellen
+var sorted = (state.used || []).slice().sort(function(a, b) { return a.ts - b.ts; });
 var pauseLaeuft = false;
 var erstePauseTs = null;
-var sortedP = (state.used || []).slice().sort(function(a,b){ return a.ts - b.ts; });
-for (var pi = 0; pi < sortedP.length; pi++) {
-if (sortedP[pi].n === "Pausenbeginn") {
+for (var i = 0; i < sorted.length; i++) {
+if (sorted[i].n === "Pausenbeginn") {
 if (!pauseLaeuft) {
 pauseLaeuft = true;
-erstePauseTs = sortedP[pi].ts;
+erstePauseTs = sorted[i].ts;
 }
-} else if (sortedP[pi].n.indexOf("Pause beendet") === 0) {
+} else if (sorted[i].n.indexOf("Pause beendet") === 0) {
 pauseLaeuft = false;
 erstePauseTs = null;
 }
@@ -479,12 +554,45 @@ document.getElementById("btnPauseBeginn").style.display = "block"
 document.getElementById("btnPauseEnde").style.display = "none"
 }
 }
-renderCatalog();
-};
 
+function restoreLetzteliege() {
+// letzteLiegeZeit aus letztem "Pause beendet" (nach liegender Pause) wiederherstellen
+// Wenn letzter Eintrag von heute: aus History lesen
+// Wenn von gestern oder neuer Tag: Morgenreset (man hat geschlafen)
+var heute = new Date().toDateString();
+if (state.date !== heute) {
+letzteLiegeZeit = Date.now();
+return;
+}
+var sorted = (state.used || []).slice().sort(function(a, b) { return a.ts - b.ts; });
+var gefunden = false;
+for (var i = sorted.length - 1; i >= 0; i--) {
+if (sorted[i].n.indexOf("Pause beendet") === 0) {
+// Prüfen ob zugehöriger Pausenbeginn liegend war
+for (var j = i - 1; j >= 0; j--) {
+if (sorted[j].n === "Pausenbeginn") {
+if (sorted[j].pos === "liegend") {
+letzteLiegeZeit = sorted[i].ts;
+gefunden = true;
+}
+break;
+}
+}
+if (gefunden) { break; }
+}
+}
+if (!gefunden) {
+// Kein abgeschlossenes Pause-Ende: Tagesstart
+letzteLiegeZeit = sorted.length > 0 ? sorted[0].ts : Date.now();
+}
+}
+
+// ============================================================
+// BUTTON-VERDRAHTUNG
+// ============================================================
 function verdrahteButtons() {
 document.getElementById("btnPauseBeginn").addEventListener("click", doPauseBeginn);
-document.getElementById("btnPauseEnde").addEventListener("click", doPauseEnde);
+document.getElementById("btnPauseEnde").addEventListener("click", function() { endePause(false); });
 document.getElementById("btnStart").addEventListener("click", startDay);
 document.getElementById("btnReset").addEventListener("click", resetDay);
 document.getElementById("btnToggleCatalog").addEventListener("click", toggleCatalogCard);
@@ -510,63 +618,23 @@ function machSchlafHandler(btn) {
 return function() {
 var w = btn.getAttribute("data-schlaf");
 selectSchlaf(w === "null" ? null : parseFloat(w), btn);
+};
 }
-}
+
 function machSymptomHandler(btn) {
-return function() { pickSchwere(parseInt(btn.getAttribute("data-symptom"))); };
+return function() {
+pickSchwere(parseInt(btn.getAttribute("data-symptom")));
+};
 }
 
-function buildSchwereButtons() {
-var container = document.getElementById("schwereBtns");
-container.innerHTML = ""
-var items = [
-{label:"leicht", cls:"schwere-leicht"},
-{label:"mittel", cls:"schwere-mittel"},
-{label:"schwer", cls:"schwere-schwer"},
-{label:"weg", extra:"background:#34c759;color:#fff;"}
-];
-for (var i = 0; i < items.length; i++) {
-var btn = document.createElement("button");
-btn.className = "schwere-btn " + (items[i].cls || "");
-if (items[i].extra) { btn.style.cssText = items[i].extra; }
-btn.textContent = items[i].label;
-btn.addEventListener("click", machSchwereBtnHandler(items[i].label));
-container.appendChild(btn);
-}
-}
-function machSchwereBtnHandler(lbl) { return function() { logSymptomMitSchwere(lbl); }; }
-
-function archiveDay() {
-if (state.max <= 0) { return; }
-if (!state.history) { state.history = []; }
-var pct = (state.cur / state.max) * 100;
-// Speichere Objekt mit minPct und crash-Flag
-var minPct = state.dayMinPct !== undefined ? state.dayMinPct : pct;
-state.history.push({crash: pct < 25, minPct: minPct});
-if (state.history.length > 7) { state.history.shift(); }
-state.dayMinPct = undefined;
-saveAll();
-}
-
-function checkRollingPene() {
-var h = state.history || [];
-var red = 0;
-for (var i = 0; i < h.length; i++) {
-var crash = typeof h[i] === 'object' ? h[i].crash : h[i];
-if (crash) { red++; }
-}
-var pctH = state.max > 0 ? (state.cur / state.max) * 100 : 100;
-if (state.max > 0 && pctH < 25) { red++; }
-var last2crash = h.length >= 2;
-var c1 = typeof h[h.length-1] === 'object' ? h[h.length-1].crash : h[h.length-1];
-var c2 = typeof h[h.length-2] === 'object' ? h[h.length-2].crash : h[h.length-2];
-var last2ok = h.length >= 2 && !c1 && !c2;
-document.getElementById("rollingWarnBox").style.display = (red >= 3 && !last2ok) ? "block" : "none"
-}
-
+// ============================================================
+// SCHLAF-AUSWAHL
+// ============================================================
 function selectSchlaf(wert, btn) {
 var btns = document.querySelectorAll(".schlaf-btn");
-for (var i = 0; i < btns.length; i++) { btns[i].classList.remove("selected"); }
+for (var i = 0; i < btns.length; i++) {
+btns[i].classList.remove("selected");
+}
 btn.classList.add("selected");
 var row = document.getElementById("individuellRow");
 if (wert === null) {
@@ -582,53 +650,74 @@ document.getElementById("sleep").value = ""
 }
 }
 
+// ============================================================
+// TAG STARTEN
+// ============================================================
 function startDay() {
 var s;
-if (schlafMode === "preset") { s = schlafWert; }
-else if (schlafMode === "individuell") {
+if (schlafMode === "preset") {
+s = schlafWert;
+} else if (schlafMode === "individuell") {
 var ind = parseFloat(document.getElementById("sleep").value);
-if (isNaN(ind) || ind <= 0) { showToast("Bitte Schlafwert eingeben!"); return; }
+if (isNaN(ind) || ind <= 0) {
+showToast("Bitte Schlafwert eingeben!");
+return;
+}
 s = ind;
 } else {
 showToast("Bitte Schlafqualität auswählen!");
 return;
 }
 var f = document.getElementById("feeling").value;
-if (!f) { showToast("Bitte Gefühl auswählen!"); return; }
+if (!f) {
+showToast("Bitte Gefühl auswählen!");
+return;
+}
 var berechnetes = s + parseFloat(f);
 var h = state.history || [];
-// Dynamisches Limit: 3-Tage-Regel
 var last3 = h.slice(-3);
-// Crash: 2 von 3 Tagen minPct < 20%
 var crashDays = last3.filter(function(d) {
-return typeof d === 'object' ? d.minPct < 20 : d;
+return typeof d === "object" ? d.minPct < 20 : d;
 }).length;
-// Stabil: alle 3 Tage minPct >= 40%
 var stableDays = last3.filter(function(d) {
-return typeof d === 'object' ? d.minPct >= 40 : !d;
+return typeof d === "object" ? d.minPct >= 40 : !d;
 }).length;
 var faktor = 1.0;
-if (crashDays >= 2) { faktor = 0.9; }
-else if (stableDays === 3) { faktor = 1.05; }
-state.max = Math.round(Math.max(30, Math.min(120, berechnetes * faktor)));
-state._faktor = faktor;
-var reduktion = 0;
-var reduktion = 0;
-// legacy, nicht mehr verwendet;
-state.cur = state.max;
-state.used = [{n:"Tag gestartet", v:0, t:nowTime(), ts:Date.now(), pos:"liegend"}];
-state.block = 0;
-state.pene = false;
-state.date = new Date().toDateString();
-if (!state.symptome) { state.symptome = []; }
+if (crashDays >= 2) {
+faktor = 0.9;
+} else if (stableDays === 3) {
+faktor = 1.05;
+}
+var neuesMax = Math.round(Math.max(30, Math.min(120, berechnetes * faktor)));
+mutateState(function(s) {
+s.max = neuesMax;
+s.cur = neuesMax;
+s.block = 0;
+s.pene = false;
+s.used = [{n:"Tag gestartet", v:0, ts:Date.now(), t:nowTime(), pos:"liegend"}];
+s.symptome = [];
+s.date = new Date().toDateString();
+s.dayMinPct = 100;
+s.kurzPausen = 0;
+s._faktor = faktor;
+});
+kurzPausenZaehler = 0;
+letzteLiegeZeit = Date.now();
 showMainUI();
 saveAll();
 updateDisplay();
-if (state._faktor < 1) { showToast("Limit -10% wegen Crash-Vortage"); }
-else if (state._faktor > 1) { showToast("Limit +5% wegen stabiler Vortage!"); }
-else { showToast("Tag gestartet!"); }
+if (faktor < 1) {
+showToast("Limit -10% wegen Crash-Vortage");
+} else if (faktor > 1) {
+showToast("Limit +5% wegen stabiler Vortage!");
+} else {
+showToast("Tag gestartet!");
+}
 }
 
+// ============================================================
+// UI UMSCHALTEN
+// ============================================================
 function showMainUI() {
 document.getElementById("statusWrap").style.display = "flex"
 document.getElementById("pauseUndWaage").style.display = "flex"
@@ -645,17 +734,34 @@ try { archiveDay(); } catch(e) {}
 resetDayInternal();
 }
 
+// ============================================================
+// DISPLAY-UPDATE (nur UI, keine State-Mutationen)
+// ============================================================
 function updateDisplay() {
-var grenze = Math.ceil(state.max * 0.25);
+if (state.max <= 0) { return; }
+var grenze = Math.ceil(state.max * GRENZE_ROT);
 var spielraum = Math.max(0, state.cur - grenze);
+var pct = (state.cur / state.max) * 100;
+
+// dayMinPct tracken
+if (state.dayMinPct === undefined || pct < state.dayMinPct) {
+mutateState(function(s) { s.dayMinPct = pct; });
+}
+
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
 document.getElementById("valSpielraum").textContent = spielraum;
-// Tages-Minimum tracken für dynamisches Limit
-var curPct = state.max > 0 ? (state.cur / state.max) * 100 : 100;
-if (state.dayMinPct === undefined || curPct < state.dayMinPct) {
-state.dayMinPct = curPct;
+
+renderStatus(spielraum);
+renderPemHeader();
+renderUsed();
+checkRollingPene();
+checkCrashRisiko();
+updateAufrechtWarnung();
+updateWaage();
 }
+
+function renderStatus(spielraum) {
 var body = document.getElementById("mainBody");
 var bR = document.getElementById("boxRest");
 var bL = document.getElementById("boxLimit");
@@ -690,35 +796,504 @@ bL.classList.add("bg-red");
 bS.classList.add("bg-red");
 msg.textContent = "STOP! Reserve aufgebraucht!"
 }
+}
+
+function renderPemHeader() {
 var header = document.getElementById("pacingHeader");
-// Dynamische Blockwarnung: 25% = Warnung, 33% = Zwangspause
-var blockWarnSchwelle = Math.round(state.max * 0.25);
-var blockPauseSchwelle = Math.round(state.max * 0.33);
+var blockWarnSchwelle = Math.round(state.max * BLOCK_WARN);
+var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
 if (state.block >= blockPauseSchwelle) {
 header.style.display = "block"
 header.className = "warn-pene"
 header.textContent = "PEM-Gefahr! Pause erzwingen!"
 if (!state.pene) {
-state.cur = Math.max(0, state.cur - 1);
-state.used.push({n:"STRAFE: PENE-Warnung", v:-1, t:nowTime(), ts:Date.now(), pos:"aufrecht"});
-state.pene = true;
+mutateState(function(s) {
+s.cur = Math.max(0, s.cur - 1);
+s.used.push({n:"STRAFE: PENE-Warnung", v:-1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+s.pene = true;
+});
 saveAll();
 }
 } else if (state.block >= blockWarnSchwelle) {
 header.style.display = "block"
 header.className = "warn-rot"
 header.textContent = "PEM-Gefahr! Pause empfohlen!"
-state.pene = false;
+mutateState(function(s) { s.pene = false; });
 } else {
 header.style.display = "none"
-state.pene = false;
+mutateState(function(s) { s.pene = false; });
 }
-renderUsed();
-checkRollingPene();
+}
+
+// ============================================================
+// AKTIVITÄT BUCHEN
+// ============================================================
+function applyLoad(i) {
+if (state.max <= 0) {
+showToast("Bitte erst den Tag starten!");
+return;
+}
+// Laufende Pause automatisch beenden (10 Min. Default)
+if (pauseBeginnTs) {
+endePause(true);
+}
+mutateState(function(s) {
+s.cur = Math.max(0, s.cur - loads[i].v);
+s.block += loads[i].v;
+s.used.push({n:loads[i].n, v:loads[i].v, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+});
+saveAll();
+updateDisplay();
+showToast();
+startPauseTimer();
+checkBelastungsdichte();
 checkCrashRisiko();
-updateAufrechtWarnung();
-updateWaage();
 }
+
+// ============================================================
+// PAUSE – eine zentrale Funktion
+// ============================================================
+function doPauseBeginn() {
+pauseBeginnTs = Date.now();
+mutateState(function(s) {
+s.block = 0;
+s.pene = false;
+s.used.push({n:"Pausenbeginn", v:0, ts:pauseBeginnTs, t:nowTime(), pos:"liegend"});
+});
+saveAll();
+// Warnbalken sofort ausblenden
+var bar = document.getElementById("aufrechtWarnBar");
+if (bar) { bar.style.display = "none" }
+stopPauseTimer();
+document.getElementById("btnPauseBeginn").style.display = "none"
+document.getElementById("btnPauseEnde").style.display = "block"
+showToast("Pausenbeginn erfasst");
+updateDisplay();
+}
+
+function endePause(auto) {
+// auto = true: automatisch beim Buchen einer Aktivität (10 Min. Default)
+// auto = false: manuell durch "Pause beendet" Button
+var jetzt = Date.now();
+var minuten = pauseBeginnTs ? Math.round((jetzt - pauseBeginnTs) / 60000) : PAUSE_MINDEST_MIN;
+if (auto) {
+minuten = PAUSE_MINDEST_MIN;
+}
+
+// War die Pause liegend?
+var pauseWarLiegend = false;
+var usedSorted = state.used.slice();
+for (var pi = usedSorted.length - 1; pi >= 0; pi--) {
+if (usedSorted[pi].n === "Pausenbeginn") {
+pauseWarLiegend = (usedSorted[pi].pos === "liegend");
+break;
+}
+}
+
+// Regen berechnen (nur liegend)
+var regen = 0;
+if (pauseWarLiegend) {
+var regenMin = Math.min(minuten, REGEN_MAX_MIN);
+regen = Math.floor(regenMin / 10) * REGEN_PRO_10_MIN;
+regen = Math.min(regen, Math.floor(state.max * REGEN_MAX_ANTEIL));
+}
+
+// Hinweis-Text
+var hinweis;
+if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) {
+hinweis = "Prima!"
+} else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) {
+hinweis = "Liegepause wäre besser."
+} else {
+hinweis = "Auf längere Pausen achten."
+}
+
+var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
+
+mutateState(function(s) {
+if (regen > 0) {
+s.cur = Math.min(s.max, s.cur + regen);
+}
+s.used.push({n:label, v:0, ts:jetzt, t:nowTime(), pos:"aufrecht", regen:regen});
+});
+
+// letzteLiegeZeit und kurzPausenZaehler aktualisieren
+if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) {
+letzteLiegeZeit = jetzt;
+kurzPausenZaehler = 0;
+mutateState(function(s) { s.kurzPausen = 0; });
+} else if (pauseWarLiegend) {
+// Kurze liegend Pause: Zeit reset, Zähler hoch
+letzteLiegeZeit = jetzt;
+kurzPausenZaehler++;
+mutateState(function(s) { s.kurzPausen = kurzPausenZaehler; });
+} else {
+// Aufrechte Pause: weder Zeit noch Zähler reset
+kurzPausenZaehler++;
+mutateState(function(s) { s.kurzPausen = kurzPausenZaehler; });
+}
+
+pauseBeginnTs = null;
+saveAll();
+
+document.getElementById("btnPauseEnde").style.display = "none"
+document.getElementById("btnPauseBeginn").style.display = "block"
+
+if (!auto) {
+updateDisplay();
+startPauseTimer();
+showToast("Pause: " + minuten + " Min. - " + hinweis);
+}
+}
+
+// ============================================================
+// TAGES-ARCHIV & ROLLING PENE
+// ============================================================
+function archiveDay() {
+if (state.max <= 0) { return; }
+var pct = (state.cur / state.max) * 100;
+var minPct = state.dayMinPct !== undefined ? state.dayMinPct : pct;
+mutateState(function(s) {
+if (!s.history) { s.history = []; }
+s.history.push({crash: pct < 25, minPct: minPct});
+if (s.history.length > 7) { s.history.shift(); }
+s.dayMinPct = undefined;
+});
+saveAll();
+}
+
+function checkRollingPene() {
+var h = state.history || [];
+var red = 0;
+for (var i = 0; i < h.length; i++) {
+var crash = typeof h[i] === "object" ? h[i].crash : h[i];
+if (crash) { red++; }
+}
+var pctH = state.max > 0 ? (state.cur / state.max) * 100 : 100;
+if (state.max > 0 && pctH < 25) { red++; }
+var c1 = h.length >= 1 ? (typeof h[h.length-1] === "object" ? h[h.length-1].crash : h[h.length-1]) : false;
+var c2 = h.length >= 2 ? (typeof h[h.length-2] === "object" ? h[h.length-2].crash : h[h.length-2]) : false;
+var last2ok = h.length >= 2 && !c1 && !c2;
+document.getElementById("rollingWarnBox").style.display = (red >= 3 && !last2ok) ? "block" : "none"
+}
+
+// ============================================================
+// POSITIONS-TOGGLE
+// ============================================================
+function togglePosition(idx) {
+if (!state.used[idx]) { return; }
+var neuePos = state.used[idx].pos === "aufrecht" ? "liegend" : "aufrecht"
+mutateState(function(s) {
+s.used[idx].pos = neuePos;
+});
+// Wenn Pausenbeginn umgeschaltet: Regen des zugehörigen Pause-beendet korrigieren
+if (state.used[idx].n === "Pausenbeginn") {
+for (var pi = idx + 1; pi < state.used.length; pi++) {
+if (state.used[pi].n.indexOf("Pause beendet") === 0) {
+var minuten = Math.round((state.used[pi].ts - state.used[idx].ts) / 60000);
+var alterRegen = state.used[pi].regen || 0;
+var neuerRegen = 0;
+if (neuePos === "liegend") {
+var regenMin = Math.min(minuten, REGEN_MAX_MIN);
+neuerRegen = Math.floor(regenMin / 10) * REGEN_PRO_10_MIN;
+neuerRegen = Math.min(neuerRegen, Math.floor(state.max * REGEN_MAX_ANTEIL));
+}
+var diff = neuerRegen - alterRegen;
+if (diff !== 0) {
+mutateState(function(s) {
+s.cur = Math.min(s.max, Math.max(0, s.cur + diff));
+s.used[pi].regen = neuerRegen;
+});
+}
+break;
+}
+}
+}
+if (neuePos === "liegend") {
+letzteLiegeZeit = state.used[idx].ts || Date.now();
+}
+saveAll();
+renderUsed();
+updateDisplay();
+}
+
+// ============================================================
+// ZEITBERECHNUNGEN
+// ============================================================
+function getGesamtMinuten() {
+if (!state.used || state.used.length === 0) { return 0; }
+var start = state.used[0].ts;
+if (!start) { return 0; }
+return Math.round((Date.now() - start) / 60000);
+}
+
+function getLiegendMinuten() {
+var sorted = state.used.slice().sort(function(a, b) { return a.ts - b.ts; });
+var jetzt = Date.now();
+var min = 0;
+
+// Tagesstart liegend bis zum ersten aufrecht-Impuls
+var tagesstartEnde = null;
+if (sorted.length >= 1 && sorted[0].pos === "liegend") {
+for (var j = 1; j < sorted.length; j++) {
+if (sorted[j].pos === "aufrecht" && sorted[j].v >= 0) {
+tagesstartEnde = sorted[j].ts;
+break;
+}
+}
+if (tagesstartEnde === null) { tagesstartEnde = jetzt; }
+min += Math.round((tagesstartEnde - sorted[0].ts) / 60000);
+}
+
+// Pausen außerhalb der Tagesstart-Phase
+var startPause = null;
+for (var i = 0; i < sorted.length; i++) {
+var e = sorted[i];
+if (e.n === "Pausenbeginn") {
+if (startPause === null && (tagesstartEnde === null || e.ts >= tagesstartEnde)) {
+startPause = e.ts;
+}
+} else if (e.n.indexOf("Pause beendet") === 0) {
+if (startPause !== null) {
+min += Math.round((e.ts - startPause) / 60000);
+startPause = null;
+}
+}
+}
+// Laufende Pause
+if (pauseBeginnTs && (tagesstartEnde === null || pauseBeginnTs >= tagesstartEnde)) {
+min += Math.round((jetzt - pauseBeginnTs) / 60000);
+}
+return min;
+}
+
+function getAktuelleAufrechtMinuten() {
+// Zeit seit letzter echter Liegephase
+var jetzt = pauseBeginnTs ? pauseBeginnTs : Date.now();
+return Math.floor((jetzt - letzteLiegeZeit) / 60000);
+}
+
+function getAufrechtMinutenGesamt() {
+// Alle aufrechten Phasen des Tages für Crash-Score
+var jetzt = Date.now();
+var sorted = state.used.slice().map(function(e) {
+return {ts: e.ts, pos: e.pos || "aufrecht", n: e.n};
+}).filter(function(e) { return e.ts > 0; }).sort(function(a, b) { return a.ts - b.ts; });
+if (sorted.length === 0) { return 0; }
+var min = 0;
+var aktuellPos = sorted[0].pos || "liegend"
+var phaseBeginn = sorted[0].ts;
+for (var i = 1; i < sorted.length; i++) {
+var e = sorted[i];
+var neuePos = e.pos || aktuellPos;
+if (neuePos !== aktuellPos) {
+if (aktuellPos === "aufrecht") {
+min += Math.floor((e.ts - phaseBeginn) / 60000);
+}
+aktuellPos = neuePos;
+phaseBeginn = e.ts;
+}
+}
+if (aktuellPos === "aufrecht") {
+var endeTs = pauseBeginnTs ? pauseBeginnTs : jetzt;
+min += Math.floor((endeTs - phaseBeginn) / 60000);
+}
+return min;
+}
+
+// ============================================================
+// WARNUNGEN
+// ============================================================
+function updateAufrechtWarnung() {
+if (state.max <= 0) { return; }
+var min = getAktuelleAufrechtMinuten();
+var pct = (state.cur / state.max) * 100;
+var bar = document.getElementById("aufrechtWarnBar");
+if (!bar) { return; }
+
+// Dynamische Warnschwelle je nach Spielraum
+var schwelle;
+if (pct >= 50) {
+schwelle = AUFRECHT_SCHWELLE_HOCH;
+} else if (pct >= 25) {
+schwelle = AUFRECHT_SCHWELLE_MITTE;
+} else {
+schwelle = AUFRECHT_SCHWELLE_NIEDRIG;
+}
+
+var minSeitLiegen = Math.floor((Date.now() - letzteLiegeZeit) / 60000);
+
+if (pct < 40 && min > 30) {
+bar.style.display = "block"
+bar.textContent = min + " Min. aufrecht + Restenergie niedrig!"
+bar.style.background = "#ff3b30"
+} else if (min > schwelle) {
+bar.style.display = "block"
+bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
+bar.style.background = "#ff9500"
+} else if (kurzPausenZaehler > 1 && minSeitLiegen > schwelle) {
+bar.style.display = "block"
+bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
+bar.style.background = "#ff9500"
+} else {
+bar.style.display = "none"
+}
+}
+
+function getCrashScore() {
+if (state.max <= 0) { return 0; }
+var pct = (state.cur / state.max) * 100;
+var up = getAufrechtMinutenGesamt();
+var jetzt = Date.now();
+// Belastungsfenster: ab letzter Pause >20 Min. oder 2h
+var resetTs = 0;
+var sortedU = state.used.slice().sort(function(a, b) { return a.ts - b.ts; });
+var pb = null;
+for (var i = 0; i < sortedU.length; i++) {
+if (sortedU[i].n === "Pausenbeginn") {
+pb = sortedU[i].ts;
+} else if (sortedU[i].n.indexOf("Pause beendet") === 0 && pb !== null) {
+if (Math.round((sortedU[i].ts - pb) / 60000) >= 20) {
+resetTs = sortedU[i].ts;
+}
+pb = null;
+}
+}
+if (pauseBeginnTs && Math.round((jetzt - pauseBeginnTs) / 60000) >= 20) {
+resetTs = pauseBeginnTs;
+}
+var fensterStart = Math.max(resetTs, jetzt - 7200000);
+var l2 = 0;
+for (var j = 0; j < state.used.length; j++) {
+var u = state.used[j];
+if (u.v > 0 && u.ts && u.ts >= fensterStart) { l2 += u.v; }
+}
+var r = 0;
+if (pct < 40) { r += 1; }
+if (pct < 25) { r += 2; }
+if (l2 > CRASH_BELASTUNG_HOCH) { r += 2; }
+else if (l2 > CRASH_BELASTUNG_MITTEL) { r += 1; }
+if (up > CRASH_AUFRECHT_MAX) { r += 1; }
+return r;
+}
+
+function checkCrashRisiko() {
+if (state.max <= 0) { return; }
+var pct = (state.cur / state.max) * 100;
+var sc = getCrashScore();
+var cb = document.getElementById("crashWarnBar");
+var nb = document.getElementById("notbremsBar");
+if (pct < 20) {
+nb.style.display = "block"
+cb.style.display = "none"
+} else if (sc >= CRASH_SCORE_HOCH) {
+cb.style.display = "block"
+cb.textContent = "PEM-Risiko hoch! Jetzt Ruhepause einlegen!"
+cb.style.background = "#ff3b30"
+cb.style.animation = "blinker 1.2s linear infinite"
+nb.style.display = "none"
+} else if (sc >= CRASH_SCORE_MITTEL) {
+cb.style.display = "block"
+cb.textContent = "PEM-Risiko erhöht - zu viel Belastung in kurzer Zeit. Aktivitäten reduzieren!"
+cb.style.background = "#e07800"
+cb.style.animation = "none"
+nb.style.display = "none"
+} else {
+cb.style.display = "none"
+nb.style.display = "none"
+}
+}
+
+function checkBelastungsdichte() {
+var jetzt = Date.now();
+var f = 15 * 60 * 1000;
+var p = 0;
+for (var i = 0; i < state.used.length; i++) {
+var u = state.used[i];
+if (u.v > 0 && u.ts && (jetzt - u.ts) <= f) { p += u.v; }
+}
+var bar = document.getElementById("mikroPauseBar");
+if (p > 12) {
+bar.style.display = "block"
+bar.textContent = "Mikro-Pause empfohlen - " + p + " Punkte in 15 Min.!"
+setTimeout(function() { bar.style.display = "none" }, 5000);
+}
+}
+
+// ============================================================
+// LIEGEWAAGE
+// ============================================================
+function updateWaage() {
+if (state.max <= 0) { return; }
+var gesamt = getGesamtMinuten();
+var lieg = getLiegendMinuten();
+var auf = Math.max(0, gesamt - lieg);
+var diff = (lieg * 3) - auf;
+var maxDiff = Math.max(60, auf + lieg);
+var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
+var rad = winkel * Math.PI / 180;
+var cx = 80;
+var cy = 22;
+var armLen = 60;
+var lx = Math.round(cx - armLen * Math.cos(rad));
+var ly = Math.round(cy - armLen * Math.sin(rad));
+var rx = Math.round(cx + armLen * Math.cos(rad));
+var ry = Math.round(cy + armLen * Math.sin(rad));
+var seilLen = 33;
+var lSx = lx;
+var lSy = Math.round(ly + seilLen);
+var rSx = rx;
+var rSy = Math.round(ry + seilLen);
+document.getElementById("waageBalken").setAttribute("x1", lx);
+document.getElementById("waageBalken").setAttribute("y1", ly);
+document.getElementById("waageBalken").setAttribute("x2", rx);
+document.getElementById("waageBalken").setAttribute("y2", ry);
+document.getElementById("waageSeilL").setAttribute("x1", lx);
+document.getElementById("waageSeilL").setAttribute("y1", ly);
+document.getElementById("waageSeilL").setAttribute("x2", lSx);
+document.getElementById("waageSeilL").setAttribute("y2", lSy);
+document.getElementById("waageSeilR").setAttribute("x1", rx);
+document.getElementById("waageSeilR").setAttribute("y1", ry);
+document.getElementById("waageSeilR").setAttribute("x2", rSx);
+document.getElementById("waageSeilR").setAttribute("y2", rSy);
+document.getElementById("waageSchaleL").setAttribute("cx", lSx);
+document.getElementById("waageSchaleL").setAttribute("cy", lSy + 5);
+document.getElementById("waageSchaleR").setAttribute("cx", rSx);
+document.getElementById("waageSchaleR").setAttribute("cy", rSy + 5);
+document.getElementById("waageTextL").setAttribute("x", lSx);
+document.getElementById("waageTextL").setAttribute("y", lSy + 42);
+document.getElementById("waageTextR").setAttribute("x", rSx);
+document.getElementById("waageTextR").setAttribute("y", rSy + 22);
+document.getElementById("waageTextL").textContent = lieg + " Min."
+document.getElementById("waageTextR").textContent = auf + " Min."
+var aufAnteil = gesamt > 0 ? auf / gesamt : 0;
+var ampelFarbe;
+var ampelTextL;
+if (aufAnteil <= 0.65) {
+ampelFarbe = "#34c759"
+ampelTextL = "#1a7a3a"
+} else if (aufAnteil <= 0.80) {
+ampelFarbe = "#ff9500"
+ampelTextL = "#c07000"
+} else {
+ampelFarbe = "#ff3b30"
+ampelTextL = "#c00000"
+}
+document.getElementById("waageSchaleL").setAttribute("fill", ampelFarbe);
+document.getElementById("waageSchaleR").setAttribute("fill", ampelFarbe);
+document.getElementById("waageBalken").setAttribute("stroke", ampelFarbe);
+document.getElementById("waageTextL").setAttribute("fill", ampelTextL);
+document.getElementById("waageTextR").setAttribute("fill", ampelTextL);
+}
+
+// ============================================================
+// KATALOG
+// ============================================================
+function machApplyHandler(idx) { return function() { applyLoad(idx); }; }
+function machEditHandler(idx) { return function() { editCatalog(idx); }; }
+function machDeleteHandler(idx) { return function() { deleteCatalog(idx); }; }
+function machMoveHandler(idx, dir) { return function() { moveItem(idx, dir); }; }
+function machTogglePositionHandler(idx) { return function() { togglePosition(idx); }; }
 
 function addCatalogEntry() {
 var n = document.getElementById("loadName").value.trim();
@@ -731,12 +1306,6 @@ document.getElementById("loadName").value = ""
 document.getElementById("loadVal").value = ""
 showToast("Gespeichert");
 }
-
-function machApplyHandler(idx) { return function() { applyLoad(idx); }; }
-function machEditHandler(idx) { return function() { editCatalog(idx); }; }
-function machDeleteHandler(idx) { return function() { deleteCatalog(idx); }; }
-function machMoveHandler(idx, dir) { return function() { moveItem(idx, dir); }; }
-function machTogglePositionHandler(idx) { return function() { togglePosition(idx); }; }
 
 function renderCatalog() {
 var div = document.getElementById("catalog");
@@ -794,7 +1363,7 @@ div.appendChild(row);
 function editCatalog(i) {
 var rows = document.querySelectorAll("#catalog .item");
 var row = rows[i];
-if (!row) { return; };
+if (!row) { return; }
 row.innerHTML = ""
 var inp1 = document.createElement("input");
 inp1.id = "en"
@@ -815,7 +1384,11 @@ row.appendChild(inp1);
 row.appendChild(inp2);
 row.appendChild(btn);
 }
-function machSaveEditHandler(i) { return function() { saveEdit(i); }; }
+
+function machSaveEditHandler(i) {
+return function() { saveEdit(i); };
+}
+
 function saveEdit(i) {
 var n = document.getElementById("en").value.trim();
 var v = parseInt(document.getElementById("ev").value);
@@ -824,7 +1397,13 @@ loads[i] = {n:n, v:v};
 saveAll();
 renderCatalog();
 }
-function deleteCatalog(i) { loads.splice(i, 1); saveAll(); renderCatalog(); }
+
+function deleteCatalog(i) {
+loads.splice(i, 1);
+saveAll();
+renderCatalog();
+}
+
 function moveItem(index, dir) {
 var ni = index + dir;
 if (ni >= 0 && ni < loads.length) {
@@ -835,405 +1414,28 @@ saveAll();
 renderCatalog();
 }
 }
+
 function resetKatalog() {
-loads = JSON.parse(JSON.stringify(myLoads));
+loads = STANDARD_KATALOG.slice();
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
 renderCatalog();
 showToast("Katalog zurückgesetzt");
 }
 
-function applyLoad(i) {
-if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
-// FIX 1: Pause automatisch beenden wenn eine Aktivität geloggt wird
-if (pauseBeginnTs) { doPauseEndeStill(); }
-state.cur = Math.max(0, state.cur - loads[i].v);
-state.block += loads[i].v;
-state.used.push({n:loads[i].n, v:loads[i].v, t:nowTime(), ts:Date.now(), pos:"aufrecht"});
-saveAll();
-updateDisplay();
-showToast();
-startPauseTimer();
-checkBelastungsdichte();
-checkCrashRisiko();
-}
-
-function doPauseBeginn() {
-state.block = 0;
-state.pene = false;
-pauseBeginnTs = Date.now();
-// Warnbalken sofort ausblenden - man liegt bereits
-var bar = document.getElementById("aufrechtWarnBar");
-if (bar) { bar.style.display = "none" }
-// letzteLiegeZeit wird erst beim Pause-Ende gesetzt (wenn wirklich liegend)
-state.used.push({n:"Pausenbeginn", v:0, t:nowTime(), ts:pauseBeginnTs, pos:"liegend"});
-saveAll();
-updateDisplay();
-stopPauseTimer();
-document.getElementById("btnPauseBeginn").style.display = "none"
-document.getElementById("btnPauseEnde").style.display = "block"
-showToast("Pausenbeginn erfasst");
-}
-
-function berechnePauseRegen(minuten) {
-// FIX 2: Regen gedeckelt auf max 120 Minuten (verhindert Über-Nacht-Regen)
-var regenMinuten = Math.min(minuten, 120);
-var regen = Math.floor(regenMinuten / 10);
-var maxRegen = Math.floor(state.max * 0.2);
-return Math.min(regen, maxRegen);
-}
-
-function doPauseEndeStill() {
-// Auto-Pause-Ende vor Aktivität: immer 10 Min. als Default (Pause lief noch)
-// So bleibt Undo konsistent: jeder Eintrag ist unabhängig rückgängig machbar
-var jetzt = Date.now();
-var minuten = 10;
-// Regen nur wenn Pausenbeginn liegend war
-var pauseWarLiegend = false;
-for (var pi = state.used.length - 1; pi >= 0; pi--) {
-if (state.used[pi].n === "Pausenbeginn") {
-pauseWarLiegend = (state.used[pi].pos === "liegend");
-break;
-}
-}
-var regen = pauseWarLiegend ? berechnePauseRegen(minuten) : 0;
-if (regen > 0) { state.cur = Math.min(state.max, state.cur + regen); }
-var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
-state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
-pauseBeginnTs = null;
-document.getElementById("btnPauseEnde").style.display = "none"
-document.getElementById("btnPauseBeginn").style.display = "block"
-}
-
-function doPauseEnde() {
-var jetzt = Date.now();
-var minuten = pauseBeginnTs ? Math.round((jetzt - pauseBeginnTs) / 60000) : 10;
-// Regen nur wenn Pausenbeginn-Eintrag liegend ist
-var pauseWarLiegend = false;
-for (var pi = state.used.length - 1; pi >= 0; pi--) {
-if (state.used[pi].n === "Pausenbeginn") {
-pauseWarLiegend = (state.used[pi].pos === "liegend");
-break;
-}
-}
-var regen = pauseWarLiegend ? berechnePauseRegen(minuten) : 0;
-if (regen > 0) {
-state.cur = Math.min(state.max, state.cur + regen);
-}
-// Hinweis berechnen BEVOR label und toast
-var hinweis;
-if (minuten >= 10 && pauseWarLiegend) {
-hinweis = "Prima!"
-} else if (minuten >= 10 && !pauseWarLiegend) {
-hinweis = "Liegepause wäre besser."
-} else {
-hinweis = "Auf längere Pausen achten."
-}
-var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
-state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
-// Kurzpausen-Logik: letzteLiegeZeit nur zurücksetzen wenn liegend UND >= 10 Min
-if (minuten >= 10 && pauseWarLiegend) {
-letzteLiegeZeit = jetzt;
-kurzPausenZaehler = 0;
-state.kurzPausen = 0;
-} else if (minuten >= 10 && !pauseWarLiegend) {
-// Aufrechte Pause >= 10 Min: kein Regen, Warnung bleibt, Zähler bleibt
-} else if (pauseWarLiegend) {
-// Kurze liegend Pause: letzteLiegeZeit zurücksetzen, aber Zähler hoch
-letzteLiegeZeit = jetzt;
-kurzPausenZaehler++;
-} else {
-// Kurze aufrechte Pause: nichts zurücksetzen
-kurzPausenZaehler++;
-}
-state.kurzPausen = kurzPausenZaehler;
-pauseBeginnTs = null;
-saveAll();
-updateDisplay();
-startPauseTimer();
-document.getElementById("btnPauseEnde").style.display = "none"
-document.getElementById("btnPauseBeginn").style.display = "block"
-showToast("Pause: " + minuten + " Min. - " + hinweis);
-}
-
-function toggleCatalogCard() {
-var b = document.getElementById("catalogBody");
-var c = document.getElementById("catalogChevron");
-var o = b.classList.contains("open");
-b.className = o ? "coll-body" : "coll-body open"
-c.className = o ? "coll-chevron" : "coll-chevron open"
-}
-function toggleSymptomCard() {
-var b = document.getElementById("symptomBody");
-var c = document.getElementById("symptomChevron");
-var o = b.classList.contains("open");
-b.className = o ? "coll-body" : "coll-body open"
-c.className = o ? "coll-chevron" : "coll-chevron open"
-}
-function toggleUsedCard() {
-var b = document.getElementById("usedBody");
-var c = document.getElementById("usedChevron");
-var o = b.classList.contains("open");
-b.className = o ? "coll-body" : "coll-body open"
-c.className = o ? "coll-chevron" : "coll-chevron open"
-renderUsedPreview();
-}
-
-function pickSchwere(idx) {
-_pendingSymptom = idx;
-document.getElementById("schwereTitle").textContent = symptomNamen[idx];
-document.getElementById("schwerePicker").style.display = "block"
-document.getElementById("schwereOverlay").style.display = "block"
-}
-function closeSchwere() {
-_pendingSymptom = null;
-document.getElementById("schwerePicker").style.display = "none"
-document.getElementById("schwereOverlay").style.display = "none"
-}
-function logSymptomMitSchwere(schwere) {
-if (_pendingSymptom === null) { return; }
-if (schwere === "weg") { logSymptomWeg(_pendingSymptom); } else { logSymptom(_pendingSymptom, schwere); }
-closeSchwere();
-}
-function logSymptom(idx, schwere) {
-if (!state.symptome) { state.symptome = []; }
-state.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere || "leicht"});
-saveAll();
-renderUsed();
-showToast(symptomNamen[idx] + " (" + (schwere || "leicht") + ")");
-}
-function logSymptomWeg(idx) {
-if (!state.symptome) { state.symptome = []; }
-state.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
-saveAll();
-renderUsed();
-showToast(symptomNamen[idx] + " weg");
-}
-
-function togglePosition(idx) {
-if (!state.used[idx]) { return; }
-state.used[idx].pos = (state.used[idx].pos === "aufrecht") ? "liegend" : "aufrecht"
-if (state.used[idx].pos === "liegend") {
-letzteLiegeZeit = state.used[idx].ts || Date.now();
-}
-// Wenn Pausenbeginn umgeschaltet wird: Regen des zugehörigen Pause-beendet-Eintrags korrigieren
-if (state.used[idx].n === "Pausenbeginn") {
-var neuePos = state.used[idx].pos;
-// Suche den nächsten "Pause beendet"-Eintrag nach diesem Pausenbeginn
-for (var pi = idx + 1; pi < state.used.length; pi++) {
-if (state.used[pi].n.indexOf("Pause beendet") === 0) {
-var alterRegen = state.used[pi].regen || 0;
-var minuten = Math.round((state.used[pi].ts - state.used[idx].ts) / 60000);
-var neuerRegen = (neuePos === "liegend") ? berechnePauseRegen(minuten) : 0;
-var diff = neuerRegen - alterRegen;
-if (diff !== 0) {
-// state.cur anpassen
-state.cur = Math.min(state.max, Math.max(0, state.cur + diff));
-// Eintrag aktualisieren
-state.used[pi].regen = neuerRegen;
-var label = neuerRegen > 0
-? "Pause beendet (" + minuten + " Min.) +" + neuerRegen + " Regen"
-: "Pause beendet (" + minuten + " Min.)"
-state.used[pi].n = label;
-}
-break;
-}
-}
-}
-saveAll();
-renderUsed();
-updateDisplay();
-}
-
-function timeStrToTs(t) {
-if (!t) { return 0; }
-var p = t.split(":");
-if (p.length !== 2) { return 0; }
-var d = new Date();
-d.setHours(parseInt(p[0]), parseInt(p[1]), 0, 0);
-return d.getTime();
-}
-
-function getAufrechtMinuten() {
-// FIX: Alle aufrechten Phasen zählen (nicht nur nach letzter Liegeposition)
-// Startzustand = liegend, dann bei jedem pos-Wechsel umschalten
-var jetzt = Date.now();
-var sorted = state.used.slice().map(function(e) {
-return {ts: e.ts || timeStrToTs(e.t), pos: e.pos || "aufrecht", n: e.n};
-}).filter(function(e) { return e.ts > 0;
-}).sort(function(a,b) { return a.ts - b.ts;
-});;
-if (sorted.length === 0) { return 0; }
-var min = 0;
-var aktuellPos = sorted[0].pos || "liegend"
-var aktuellPos = sorted[0].pos || "liegend"
-// Startzustand;
-var phaseBeginn = sorted[0].ts;
-for (var i = 1; i < sorted.length; i++) {
-var e = sorted[i];
-var neuePos = e.pos || aktuellPos;
-if (neuePos !== aktuellPos) {
-// Zustandswechsel
-if (aktuellPos === "aufrecht") {
-min += Math.floor((e.ts - phaseBeginn) / 60000);
-}
-aktuellPos = neuePos;
-phaseBeginn = e.ts;
-}
-}
-// Laufende Phase: wenn Pause läuft, endet aufrecht beim Pausenbeginn
-if (aktuellPos === "aufrecht") {
-var endeTs = pauseBeginnTs ? pauseBeginnTs : jetzt;
-min += Math.floor((endeTs - phaseBeginn) / 60000);
-}
-return min;
-}
-
-function getAktuelleAufrechtMinuten() {
-// Einfach: Zeit seit letzter Liegephase
-// letzteLiegeZeit wird bei Pause-Ende (liegend) und liegend-Toggle aktualisiert
-var jetzt = pauseBeginnTs ? pauseBeginnTs : Date.now();
-return Math.floor((jetzt - letzteLiegeZeit) / 60000);
-}
-
-function updateAufrechtWarnung() {
-if (state.max <= 0) { return; }
-var min = getAktuelleAufrechtMinuten();
-var pct = (state.cur / state.max) * 100;
-var bar = document.getElementById("aufrechtWarnBar");
-if (!bar) { return; }
-// Prüfen ob letzte Pausen zu kurz waren (letzteLiegeZeit liegt weit zurück
-// obwohl Pausen gemacht wurden)
-var minSeitLiegen = Math.floor((Date.now() - letzteLiegeZeit) / 60000);
-var kurzePausenWarnung = (minSeitLiegen > 30 && min < minSeitLiegen);
-// Dynamische Warnschwelle je nach Spielraum
-var schwelle;
-if (pct >= 50) {
-schwelle = 45;
-} else if (pct >= 25) {
-schwelle = 35;
-} else {
-schwelle = 25;
-}
-if (pct < 40 && min > 30) {
-bar.style.display = "block"
-bar.textContent = min + " Min. aufrecht + Restenergie niedrig!"
-bar.style.background = "#ff3b30"
-} else if (min > schwelle) {
-bar.style.display = "block"
-bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
-bar.style.background = "#ff9500"
-} else if (kurzPausenZaehler > 1 && minSeitLiegen > schwelle) {
-bar.style.display = "block"
-bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
-bar.style.background = "#ff9500"
-} else {
-bar.style.display = "none"
-}
-}
-
-function getCrashScore() {
-// FIX: Belastungsfenster wird durch Pause >20 Min. zurückgesetzt
-if (state.max <= 0) { return 0; }
-var pct = (state.cur / state.max) * 100;
-var up = getAufrechtMinuten();
-var jetzt = Date.now();
-// Finde letzten Pausenbeginn der >20 Min. dauerte (reset-Punkt)
-var resetTs = 0;
-var sorted = state.used.slice().sort(function(a,b){ return a.ts - b.ts; });
-var pb = null;
-for (var i = 0; i < sorted.length; i++) {
-var e = sorted[i];
-if (e.n === "Pausenbeginn") { pb = e.ts; }
-else if (e.n.indexOf("Pause beendet") === 0 && pb !== null) {
-var dauer = Math.round((e.ts - pb) / 60000);
-if (dauer >= 20) { resetTs = e.ts; } // Pause war lang genug
-pb = null;
-}
-}
-// Laufende Pause >20 Min. zählt auch als Reset
-if (pauseBeginnTs && Math.round((jetzt - pauseBeginnTs) / 60000) >= 20) {
-resetTs = pauseBeginnTs;
-}
-// Belastung nur ab reset-Punkt zählen
-var fensterStart = Math.max(resetTs, jetzt - 7200000);
-var l2 = 0;
-for (var j = 0; j < state.used.length; j++) {
-var u = state.used[j];
-if (u.v > 0 && u.ts && u.ts >= fensterStart) { l2 += u.v; }
-}
-var r = 0;
-if (pct < 40) { r += 1; } if (pct < 25) { r += 2; }
-if (l2 > 18) { r += 2; } else if (l2 > 12) { r += 1; }
-if (up > 90) { r += 1; }
-return r;
-}
-
-function checkCrashRisiko() {
-if (state.max <= 0) { return; }
-var pct = (state.cur / state.max) * 100;
-var sc = getCrashScore();
-var cb = document.getElementById("crashWarnBar");
-var nb = document.getElementById("notbremsBar");
-if (pct < 20) {
-nb.style.display = "block"
-cb.style.display = "none"
-} else if (sc >= 4) {
-cb.style.display = "block"
-cb.textContent = "PEM-Risiko hoch! Jetzt Ruhepause einlegen!"
-cb.style.background = "#ff3b30"
-cb.style.animation = "blinker 1.2s linear infinite"
-nb.style.display = "none"
-} else if (sc >= 2) {
-cb.style.display = "block"
-cb.textContent = "PEM-Risiko erhöht - zu viel Belastung in kurzer Zeit. Aktivitäten reduzieren!"
-cb.style.background = "#e07800"
-cb.style.animation = "none"
-nb.style.display = "none"
-} else {
-cb.style.display = "none"
-nb.style.display = "none"
-}
-}
-
-function checkBelastungsdichte() {
-var jetzt = Date.now();
-var f = 15 * 60 * 1000;
-var p = 0;
-for (var i = 0; i < state.used.length; i++) {
-var u = state.used[i];
-if (u.v > 0 && u.ts && (jetzt - u.ts) <= f) { p += u.v; }
-}
-var bar = document.getElementById("mikroPauseBar");
-if (p > 12) {
-bar.style.display = "block"
-bar.textContent = "Mikro-Pause empfohlen - " + p + " Punkte in 15 Min.!"
-setTimeout(function() { bar.style.display = "none" }, 5000);
-}
-}
-
+// ============================================================
+// AKTIVITÄTENLISTE
+// ============================================================
 function buildCombined() {
 var combined = [];
 var i;
-var ts;
-var p;
 for (i = 0; i < state.used.length; i++) {
-ts = state.used[i].ts || 0;
-if (!ts && state.used[i].t) {
-p = state.used[i].t.split(":");
-if (p.length === 2) { ts = parseInt(p[0]) * 60 + parseInt(p[1]); }
-}
-combined.push({ts:ts, type:"aktivitaet", data:state.used[i]});
+combined.push({ts: state.used[i].ts || 0, type:"aktivitaet", data:state.used[i]});
 }
 var symp = state.symptome || [];
 for (i = 0; i < symp.length; i++) {
-ts = symp[i].ts || 0;
-if (!ts && symp[i].t) {
-p = symp[i].t.split(":");
-if (p.length === 2) { ts = parseInt(p[0]) * 60 + parseInt(p[1]); }
+combined.push({ts: symp[i].ts || 0, type:"symptom", data:symp[i]});
 }
-combined.push({ts:ts, type:"symptom", data:symp[i]});
-}
-combined.sort(function(a,b) { return b.ts - a.ts; });
+combined.sort(function(a, b) { return b.ts - a.ts; });
 return combined;
 }
 
@@ -1247,10 +1449,10 @@ var pos = u.pos || (u.v < 0 ? "liegend" : "aufrecht");
 var oi = state.used.indexOf(u);
 var left = document.createElement("span");
 left.style.cssText = "display:flex;align-items:center;flex-wrap:wrap;gap:2px;flex:1;"
-var ts = document.createElement("span");
-ts.style.cssText = "font-size:11px;opacity:0.8;margin-right:6px;"
-ts.textContent = u.t || ""
-left.appendChild(ts);
+var tspan = document.createElement("span");
+tspan.style.cssText = "font-size:11px;opacity:0.8;margin-right:6px;"
+tspan.textContent = u.t || ""
+left.appendChild(tspan);
 left.appendChild(document.createTextNode(u.n));
 var pw = document.createElement("span");
 pw.className = "pos-wrap"
@@ -1279,13 +1481,15 @@ var ts2 = document.createElement("span");
 ts2.style.cssText = "font-size:11px;opacity:0.8;margin-right:6px;"
 ts2.textContent = s.t || ""
 left2.appendChild(ts2);
-left2.appendChild(document.createTextNode(symptomNamen[s.s]));
+left2.appendChild(document.createTextNode(SYMPTOM_NAMEN[s.s]));
 if (s.weg) {
 var ws = document.createElement("span");
 ws.style.cssText = "color:#34c759;font-weight:700;margin-left:4px;"
 ws.textContent = "weg"
 left2.appendChild(ws);
-} else if (s.sw) { left2.appendChild(document.createTextNode(" (" + s.sw + ")")); }
+} else if (s.sw) {
+left2.appendChild(document.createTextNode(" (" + s.sw + ")"));
+}
 row.appendChild(left2);
 }
 return row;
@@ -1298,7 +1502,9 @@ preview.innerHTML = ""
 if (isOpen) { return; }
 var combined = buildCombined();
 var count = Math.min(2, combined.length);
-for (var i = 0; i < count; i++) { preview.appendChild(makeEntryRow(combined[i])); }
+for (var i = 0; i < count; i++) {
+preview.appendChild(makeEntryRow(combined[i]));
+}
 if (combined.length > 2) {
 var more = document.createElement("div");
 more.style.cssText = "font-size:11px;color:#8e8e93;text-align:center;padding:4px 0;"
@@ -1311,10 +1517,15 @@ function renderUsed() {
 var div = document.getElementById("dayList");
 div.innerHTML = ""
 var combined = buildCombined();
-for (var i = 0; i < combined.length; i++) { div.appendChild(makeEntryRow(combined[i])); }
+for (var i = 0; i < combined.length; i++) {
+div.appendChild(makeEntryRow(combined[i]));
+}
 renderUsedPreview();
 }
 
+// ============================================================
+// UNDO
+// ============================================================
 function undoLast() {
 if (!state.symptome) { state.symptome = []; }
 var lu = state.used.length ? state.used[state.used.length-1] : null;
@@ -1322,21 +1533,25 @@ var ls = state.symptome.length ? state.symptome[state.symptome.length-1] : null;
 var ut = lu ? (lu.ts || 0) : 0;
 var st = ls ? (ls.ts || 0) : 0;
 if (st > ut && ls) {
-state.symptome.pop();
+mutateState(function(s) { s.symptome.pop(); });
 saveAll();
 updateDisplay();
 showToast("Symptom rückgängig");
 } else if (lu) {
-var last = state.used.pop();
+var last = state.used[state.used.length-1];
+mutateState(function(s) { s.used.pop(); });
 if (last.n.indexOf("STRAFE") >= 0) {
-state.cur = Math.min(state.max, state.cur + 1);
-state.pene = false;
-state.block = 29;
+mutateState(function(s) {
+s.cur = Math.min(s.max, s.cur + 1);
+s.pene = false;
+s.block = Math.round(s.max * BLOCK_PAUSE) - 1;
+});
 } else if (last.n.indexOf("Pause beendet") === 0) {
-// FIX 3: Regeneration rückgängig machen
 var regen = last.regen || 0;
-if (regen > 0) { state.cur = Math.max(0, state.cur - regen); }
-// Pausenbeginn wiederherstellen falls vorhanden
+if (regen > 0) {
+mutateState(function(s) { s.cur = Math.max(0, s.cur - regen); });
+}
+// Pausenbeginn wiederherstellen
 for (var pi = state.used.length - 1; pi >= 0; pi--) {
 if (state.used[pi].n === "Pausenbeginn") {
 pauseBeginnTs = state.used[pi].ts;
@@ -1346,29 +1561,43 @@ break;
 }
 }
 } else if (last.v < 0) {
-state.cur = Math.max(0, state.cur + last.v);
-state.block = 0;
+mutateState(function(s) {
+s.cur = Math.max(0, s.cur + last.v);
+s.block = 0;
+});
 } else {
-state.cur = Math.min(state.max, state.cur + last.v);
-state.block = Math.max(0, state.block - last.v);
+mutateState(function(s) {
+s.cur = Math.min(s.max, s.cur + last.v);
+s.block = Math.max(0, s.block - last.v);
+});
 }
 saveAll();
 updateDisplay();
 }
 }
 
-function resetDay() { archiveDay(); resetDayInternal(); }
+// ============================================================
+// RESET
+// ============================================================
+function resetDay() {
+archiveDay();
+resetDayInternal();
+}
 
 function resetDayInternal() {
 var sh = state.history || [];
-state = {max:0,cur:0,block:0,used:[],date:"",pene:false,history:sh,symptome:[]};
+state = neuerLeerenState();
+state.history = sh;
 saveAll();
 schlafWert = null;
 schlafMode = null;
 pauseBeginnTs = null;
 kurzPausenZaehler = 0;
+letzteLiegeZeit = Date.now();
 var btns = document.querySelectorAll(".schlaf-btn");
-for (var i = 0; i < btns.length; i++) { btns[i].classList.remove("selected"); }
+for (var i = 0; i < btns.length; i++) {
+btns[i].classList.remove("selected");
+}
 document.getElementById("individuellRow").classList.remove("open");
 document.getElementById("sleep").value = ""
 document.getElementById("feeling").selectedIndex = 0;
@@ -1399,125 +1628,113 @@ document.getElementById("aufrechtWarnBar").style.display = "none"
 showToast("Neuer Tag!");
 }
 
-function getLiegendMinuten() {
-// Berechnet liegend-Zeit ohne Doppelzählung:
-// 1. Tagesstart liegend: von sorted[0].ts bis zum ersten aufrecht-Impuls
-// 2. Pausen: nur außerhalb der Tagesstart-Phase (kein Overlap)
-// 3. Doppelter Pausenbeginn: erstes Timestamp gewinnt
-var sorted = state.used.slice().sort(function(a,b) { return a.ts - b.ts; });
-var jetzt = Date.now();
-var min = 0;
-
-// Tagesstart liegend bis zum ersten aufrecht-Impuls
-var tagesstartEnde = null;
-if (sorted.length >= 1 && sorted[0].pos === "liegend") {
-for (var j = 1; j < sorted.length; j++) {
-if (sorted[j].pos === "aufrecht" && sorted[j].v >= 0) {
-tagesstartEnde = sorted[j].ts;
-break;
+// ============================================================
+// SYMPTOME
+// ============================================================
+function buildSchwereButtons() {
+var container = document.getElementById("schwereBtns");
+container.innerHTML = ""
+var items = [
+{label:"leicht", cls:"schwere-leicht"},
+{label:"mittel", cls:"schwere-mittel"},
+{label:"schwer", cls:"schwere-schwer"},
+{label:"weg", extra:"background:#34c759;color:#fff;"}
+];
+for (var i = 0; i < items.length; i++) {
+var btn = document.createElement("button");
+btn.className = "schwere-btn " + (items[i].cls || "");
+if (items[i].extra) { btn.style.cssText = items[i].extra; }
+btn.textContent = items[i].label;
+btn.addEventListener("click", machSchwereBtnHandler(items[i].label));
+container.appendChild(btn);
 }
-}
-if (tagesstartEnde === null) { tagesstartEnde = jetzt; }
-min += Math.round((tagesstartEnde - sorted[0].ts) / 60000);
-}
-
-// Pausen außerhalb der Tagesstart-Phase
-var startPause = null;
-for (var i = 0; i < sorted.length; i++) {
-var e = sorted[i];
-if (e.n === "Pausenbeginn") {
-if (startPause === null && (tagesstartEnde === null || e.ts >= tagesstartEnde)) {
-startPause = e.ts;
-}
-} else if (e.n.indexOf("Pause beendet") === 0) {
-if (startPause !== null) {
-min += Math.round((e.ts - startPause) / 60000);
-startPause = null;
-}
-}
-}
-// Laufende Pause
-if (pauseBeginnTs && (tagesstartEnde === null || pauseBeginnTs >= tagesstartEnde)) {
-min += Math.round((jetzt - pauseBeginnTs) / 60000);
-}
-return min;
 }
 
-function getGesamtMinuten() {
-if (!state.used || state.used.length === 0) { return 0; }
-var start = state.used[0].ts;
-if (!start) { return 0; }
-return Math.round((Date.now() - start) / 60000);
+function machSchwereBtnHandler(lbl) {
+return function() { logSymptomMitSchwere(lbl); };
 }
 
-function updateWaage() {
-if (state.max <= 0) { return; }
-var gesamt = getGesamtMinuten();
-var lieg = getLiegendMinuten();
-var auf = Math.max(0, gesamt - lieg);
-var diff = (lieg * 3) - auf;
-var maxDiff = Math.max(60, auf + lieg);
-var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
-var rad = winkel * Math.PI / 180;
-var cx = 80;
-var cy = 22;
-var armLen = 60;
-var lx = Math.round(cx - armLen * Math.cos(rad));
-var ly = Math.round(cy - armLen * Math.sin(rad));
-var rx = Math.round(cx + armLen * Math.cos(rad));
-var ry = Math.round(cy + armLen * Math.sin(rad));
-var seilLen = 33;
-var lSx = lx;
-var lSy = Math.round(ly + seilLen);
-var rSx = rx;
-var rSy = Math.round(ry + seilLen);
-document.getElementById("waageBalken").setAttribute("x1", lx);
-document.getElementById("waageBalken").setAttribute("y1", ly);
-document.getElementById("waageBalken").setAttribute("x2", rx);
-document.getElementById("waageBalken").setAttribute("y2", ry);
-document.getElementById("waageSeilL").setAttribute("x1", lx);
-document.getElementById("waageSeilL").setAttribute("y1", ly);
-document.getElementById("waageSeilL").setAttribute("x2", lSx);
-document.getElementById("waageSeilL").setAttribute("y2", lSy);
-document.getElementById("waageSeilR").setAttribute("x1", rx);
-document.getElementById("waageSeilR").setAttribute("y1", ry);
-document.getElementById("waageSeilR").setAttribute("x2", rSx);
-document.getElementById("waageSeilR").setAttribute("y2", rSy);
-document.getElementById("waageSchaleL").setAttribute("cx", lSx);
-document.getElementById("waageSchaleL").setAttribute("cy", lSy + 5);
-document.getElementById("waageSchaleR").setAttribute("cx", rSx);
-document.getElementById("waageSchaleR").setAttribute("cy", rSy + 5);
-document.getElementById("waageTextL").setAttribute("x", lSx);
-document.getElementById("waageTextL").setAttribute("y", lSy + 42);
-document.getElementById("waageTextR").setAttribute("x", rSx);
-document.getElementById("waageTextR").setAttribute("y", rSy + 22);
-document.getElementById("waageTextL").textContent = lieg + " Min."
-document.getElementById("waageTextR").textContent = auf + " Min."
-var aufAnteil = gesamt > 0 ? auf / gesamt : 0;
-var ampelFarbe, ampelTextL;
-if (aufAnteil <= 0.65) {
-ampelFarbe = "#34c759"
-ampelTextL = "#1a7a3a"
-}
-else if (aufAnteil <= 0.80) {
-ampelFarbe = "#ff9500"
-ampelTextL = "#c07000"
-}
-else {
-ampelFarbe = "#ff3b30"
-ampelTextL = "#c00000"
-}
-document.getElementById("waageSchaleL").setAttribute("fill", ampelFarbe);
-document.getElementById("waageSchaleR").setAttribute("fill", ampelFarbe);
-document.getElementById("waageBalken").setAttribute("stroke", ampelFarbe);
-document.getElementById("waageTextL").setAttribute("fill", ampelTextL);
-document.getElementById("waageTextR").setAttribute("fill", ampelTextL);
+function pickSchwere(idx) {
+_pendingSymptom = idx;
+document.getElementById("schwereTitle").textContent = SYMPTOM_NAMEN[idx];
+document.getElementById("schwerePicker").style.display = "block"
+document.getElementById("schwereOverlay").style.display = "block"
 }
 
+function closeSchwere() {
+_pendingSymptom = null;
+document.getElementById("schwerePicker").style.display = "none"
+document.getElementById("schwereOverlay").style.display = "none"
+}
+
+function logSymptomMitSchwere(schwere) {
+if (_pendingSymptom === null) { return; }
+if (schwere === "weg") {
+logSymptomWeg(_pendingSymptom);
+} else {
+logSymptom(_pendingSymptom, schwere);
+}
+closeSchwere();
+}
+
+function logSymptom(idx, schwere) {
+mutateState(function(s) {
+if (!s.symptome) { s.symptome = []; }
+s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere || "leicht"});
+});
+saveAll();
+renderUsed();
+showToast(SYMPTOM_NAMEN[idx] + " (" + (schwere || "leicht") + ")");
+}
+
+function logSymptomWeg(idx) {
+mutateState(function(s) {
+if (!s.symptome) { s.symptome = []; }
+s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
+});
+saveAll();
+renderUsed();
+showToast(SYMPTOM_NAMEN[idx] + " weg");
+}
+
+// ============================================================
+// COLLAPSIBLE CARDS
+// ============================================================
+function toggleCatalogCard() {
+var b = document.getElementById("catalogBody");
+var c = document.getElementById("catalogChevron");
+var o = b.classList.contains("open");
+b.className = o ? "coll-body" : "coll-body open"
+c.className = o ? "coll-chevron" : "coll-chevron open"
+}
+
+function toggleSymptomCard() {
+var b = document.getElementById("symptomBody");
+var c = document.getElementById("symptomChevron");
+var o = b.classList.contains("open");
+b.className = o ? "coll-body" : "coll-body open"
+c.className = o ? "coll-chevron" : "coll-chevron open"
+}
+
+function toggleUsedCard() {
+var b = document.getElementById("usedBody");
+var c = document.getElementById("usedChevron");
+var o = b.classList.contains("open");
+b.className = o ? "coll-body" : "coll-body open"
+c.className = o ? "coll-chevron" : "coll-chevron open"
+renderUsedPreview();
+}
+
+// ============================================================
+// HISTORY / DEBUG
+// ============================================================
 function showHistory() {
 var h = state.history || [];
 var txt = h.length + " Tage: "
-for (var i = 0; i < h.length; i++) { txt += (h[i] ? "R" : "o") + (i < h.length-1 ? "," : ""); }
+for (var i = 0; i < h.length; i++) {
+var crash = typeof h[i] === "object" ? h[i].crash : h[i];
+txt += (crash ? "R" : "o") + (i < h.length-1 ? "," : "");
+}
 if (h.length === 0) { txt = "History leer" }
 showToast(txt);
 }
