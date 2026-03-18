@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.24</title>
+<title>PacingApp 4.3.9.27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -328,7 +328,7 @@ function showToast(msg) {
 var t = document.getElementById("toast");
 t.textContent = msg || "Erfasst"
 t.style.display = "block"
-setTimeout(function() { t.style.display = "none" }, 1500);
+setTimeout(function() { t.style.display = "none" }, 3000);
 }
 
 function nowTime() {
@@ -861,6 +861,9 @@ function doPauseBeginn() {
 state.block = 0;
 state.pene = false;
 pauseBeginnTs = Date.now();
+// Warnbalken sofort ausblenden - man liegt bereits
+var bar = document.getElementById("aufrechtWarnBar");
+if (bar) { bar.style.display = "none" }
 // letzteLiegeZeit wird erst beim Pause-Ende gesetzt (wenn wirklich liegend)
 state.used.push({n:"Pausenbeginn", v:0, t:nowTime(), ts:pauseBeginnTs, pos:"liegend"});
 saveAll();
@@ -916,7 +919,7 @@ var regen = pauseWarLiegend ? berechnePauseRegen(minuten) : 0;
 if (regen > 0) {
 state.cur = Math.min(state.max, state.cur + regen);
 }
-var label = regen > 0 ? "Pause beendet (" + minuten + " Min.) +" + regen + " Regen" : "Pause beendet (" + minuten + " Min.)"
+var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
 state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
 // Kurzpausen-Logik: letzteLiegeZeit nur zurücksetzen wenn liegend UND >= 10 Min
 if (minuten >= 10 && pauseWarLiegend) {
@@ -941,17 +944,15 @@ updateDisplay();
 startPauseTimer();
 document.getElementById("btnPauseEnde").style.display = "none"
 document.getElementById("btnPauseBeginn").style.display = "block"
-if (regen > 0) {
-showToast("Pause: " + minuten + " Min. +" + regen + " Energie!");
-} else if (!pauseWarLiegend && minuten >= 10) {
-showToast("Pause: " + minuten + " Min. - Liegepause für Erholung empfohlen.");
-} else if (minuten < 10 && kurzPausenZaehler === 1) {
-showToast("Kurze Pause - längere wäre sinnvoll.");
-} else if (minuten < 10 && kurzPausenZaehler > 1) {
-showToast("Pausen zu kurz! Bitte länger liegen.");
+var hinweis;
+if (minuten >= 10 && pauseWarLiegend) {
+hinweis = "Prima!"
+} else if (minuten >= 10 && !pauseWarLiegend) {
+hinweis = "Liegepause wäre besser."
 } else {
-showToast("Pause: " + minuten + " Min.");
+hinweis = "Auf längere Pausen achten."
 }
+showToast("Pause: " + minuten + " Min. - " + hinweis);
 }
 
 function toggleCatalogCard() {
