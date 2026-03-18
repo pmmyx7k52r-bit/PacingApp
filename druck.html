@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.3.9.27</title>
+<title>PacingApp 4.3.9.28</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -919,6 +919,15 @@ var regen = pauseWarLiegend ? berechnePauseRegen(minuten) : 0;
 if (regen > 0) {
 state.cur = Math.min(state.max, state.cur + regen);
 }
+// Hinweis berechnen BEVOR label und toast
+var hinweis;
+if (minuten >= 10 && pauseWarLiegend) {
+hinweis = "Prima!"
+} else if (minuten >= 10 && !pauseWarLiegend) {
+hinweis = "Liegepause wäre besser."
+} else {
+hinweis = "Auf längere Pausen achten."
+}
 var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
 state.used.push({n:label, v:0, t:nowTime(), ts:jetzt, pos:"aufrecht", regen:regen});
 // Kurzpausen-Logik: letzteLiegeZeit nur zurücksetzen wenn liegend UND >= 10 Min
@@ -928,7 +937,6 @@ kurzPausenZaehler = 0;
 state.kurzPausen = 0;
 } else if (minuten >= 10 && !pauseWarLiegend) {
 // Aufrechte Pause >= 10 Min: kein Regen, Warnung bleibt, Zähler bleibt
-// (nur liegend Pausen zählen für den Erholungs-Reset)
 } else if (pauseWarLiegend) {
 // Kurze liegend Pause: letzteLiegeZeit zurücksetzen, aber Zähler hoch
 letzteLiegeZeit = jetzt;
@@ -944,14 +952,6 @@ updateDisplay();
 startPauseTimer();
 document.getElementById("btnPauseEnde").style.display = "none"
 document.getElementById("btnPauseBeginn").style.display = "block"
-var hinweis;
-if (minuten >= 10 && pauseWarLiegend) {
-hinweis = "Prima!"
-} else if (minuten >= 10 && !pauseWarLiegend) {
-hinweis = "Liegepause wäre besser."
-} else {
-hinweis = "Auf längere Pausen achten."
-}
 showToast("Pause: " + minuten + " Min. - " + hinweis);
 }
 
