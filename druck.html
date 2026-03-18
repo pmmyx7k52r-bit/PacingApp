@@ -321,7 +321,10 @@ var CRASH_BELASTUNG_HOCH = 18;
 var CRASH_BELASTUNG_MITTEL = 12;
 var CRASH_AUFRECHT_MAX = 90; // Min. aufrecht für Crash-Score
 
-// Pause-Timer Schwellen (Minuten ohne Pause)
+// Belastungsdichte (Zeitfenster-Warnung)
+var DICHTE_FENSTER_MS = 30 * 60 * 1000; // 30 Minuten
+var DICHTE_WARN = 10; // Punkte in 30 Min. → leichte Warnung
+var DICHTE_STARK = 15; // Punkte in 30 Min. → starke Warnung
 var TIMER_WARN_HOCH = 45; // empfohlen bei Spielraum > 70%
 var TIMER_ZWANG_HOCH = 60;
 var TIMER_WARN_MITTE = 30;
@@ -814,6 +817,7 @@ s.used.push({n:"Pausenbeginn", v:0, ts:jetzt, t:nowTime(), pos:"liegend"});
 // Warnbalken sofort ausblenden
 var bar = document.getElementById("aufrechtWarnBar");
 if (bar) { bar.style.display = "none" }
+document.getElementById("mikroPauseBar").style.display = "none"
 stopPauseTimer();
 document.getElementById("btnPauseBeginn").style.display = "none"
 document.getElementById("btnPauseEnde").style.display = "block"
@@ -1117,17 +1121,22 @@ nb.style.display = "none"
 
 function checkBelastungsdichte() {
 var jetzt = Date.now();
-var f = 15 * 60 * 1000;
 var p = 0;
 for (var i = 0; i < state.used.length; i++) {
 var u = state.used[i];
-if (u.v > 0 && u.ts && (jetzt - u.ts) <= f) { p += u.v; }
+if (u.v > 0 && u.ts && (jetzt - u.ts) <= DICHTE_FENSTER_MS) { p += u.v; }
 }
 var bar = document.getElementById("mikroPauseBar");
-if (p > 12) {
+if (p >= DICHTE_STARK) {
 bar.style.display = "block"
-bar.textContent = "Mikro-Pause empfohlen - " + p + " Punkte in 15 Min.!"
-setTimeout(function() { bar.style.display = "none" }, 5000);
+bar.style.background = "#ff3b30"
+bar.textContent = p + " Punkte in 30 Min. - jetzt pausieren!"
+} else if (p >= DICHTE_WARN) {
+bar.style.display = "block"
+bar.style.background = "#ff9500"
+bar.textContent = p + " Punkte in 30 Min. - Pause einplanen!"
+} else {
+bar.style.display = "none"
 }
 }
 
