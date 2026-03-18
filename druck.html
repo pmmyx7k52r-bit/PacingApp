@@ -376,6 +376,9 @@ pene: false,
 history: [],
 dayMinPct: undefined,
 kurzPausen: 0,
+letzteLiegeZeit: Date.now(),
+pauseBeginnTs: null,
+aufrechtSeitTs: null,
 _faktor: 1
 };
 }
@@ -392,12 +395,9 @@ storeSet(STORAGE_STATE, JSON.stringify(state));
 var schlafWert = null;
 var schlafMode = null;
 var lastActionTime = null;
-var pauseTimerInterval = null;
 var minutenTimerInterval = null;
-var pauseBeginnTs = null;
-var letzteLiegeZeit = Date.now();
-var kurzPausenZaehler = 0;
 var _pendingSymptom = null;
+// state.pauseBeginnTs, state.kurzPausen, state.letzteLiegeZeit sind persistent im State
 
 // ============================================================
 // HILFSFUNKTIONEN
@@ -413,9 +413,8 @@ t.style.display = "block"
 setTimeout(function() { t.style.display = "none" }, 3000);
 }
 
-function saveAll() {
+function saveLoads() {
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
-storeSet(STORAGE_STATE, JSON.stringify(state));
 }
 
 // ============================================================
@@ -424,18 +423,10 @@ storeSet(STORAGE_STATE, JSON.stringify(state));
 function startPauseTimer() {
 lastActionTime = Date.now();
 storeSet("pacing_timer_start", String(lastActionTime));
-if (pauseTimerInterval) {
-clearInterval(pauseTimerInterval);
-}
-pauseTimerInterval = setInterval(checkPauseTimer, 60000);
 checkPauseTimer();
 }
 
 function stopPauseTimer() {
-if (pauseTimerInterval) {
-clearInterval(pauseTimerInterval);
-}
-pauseTimerInterval = null;
 lastActionTime = null;
 storeSet("pacing_timer_start", "");
 document.getElementById("pauseTimerBar").style.display = "none"
@@ -484,7 +475,7 @@ window.onload = function() {
 buildSchwereButtons();
 verdrahteButtons();
 
-// Einziger globaler Timer für zeitbasierte Updates
+// Einziger globaler Timer – alle zeitbasierten Checks hier
 if (minutenTimerInterval) {
 clearInterval(minutenTimerInterval);
 }
@@ -497,14 +488,10 @@ checkPauseTimer();
 }
 }, 60000);
 
-// Pause-Timer aus Storage wiederherstellen
+// lastActionTime aus Storage wiederherstellen (für Pause-Timer-Anzeige)
 var savedTimer = storeGet("pacing_timer_start");
 if (savedTimer && savedTimer !== "" && state.max > 0) {
 lastActionTime = parseInt(savedTimer);
-if (pauseTimerInterval) {
-clearInterval(pauseTimerInterval);
-}
-pauseTimerInterval = setInterval(checkPauseTimer, 60000);
 checkPauseTimer();
 }
 
@@ -517,10 +504,7 @@ return;
 }
 
 if (state.max > 0) {
-// Laufzeit-Variablen wiederherstellen
-kurzPausenZaehler = state.kurzPausen || 0;
 restorePauseState();
-restoreLetzteliege();
 showMainUI();
 updateDisplay();
 }
@@ -530,23 +514,8 @@ renderCatalog();
 };
 
 function restorePauseState() {
-// Pausenzustand aus state.used wiederherstellen
-var sorted = (state.used || []).slice().sort(function(a, b) { return a.ts - b.ts; });
-var pauseLaeuft = false;
-var erstePauseTs = null;
-for (var i = 0; i < sorted.length; i++) {
-if (sorted[i].n === "Pausenbeginn") {
-if (!pauseLaeuft) {
-pauseLaeuft = true;
-erstePauseTs = sorted[i].ts;
-}
-} else if (sorted[i].n.indexOf("Pause beendet") === 0) {
-pauseLaeuft = false;
-erstePauseTs = null;
-}
-}
-pauseBeginnTs = pauseLaeuft ? erstePauseTs : null;
-if (pauseLaeuft) {
+// pauseBeginnTs direkt aus State lesen - kein Rekonstruieren mehr
+if (state.pauseBeginnTs) {
 document.getElementById("btnPauseBeginn").style.display = "none"
 document.getElementById("btnPauseEnde").style.display = "block"
 } else {
@@ -555,37 +524,7 @@ document.getElementById("btnPauseEnde").style.display = "none"
 }
 }
 
-function restoreLetzteliege() {
-// letzteLiegeZeit aus letztem "Pause beendet" (nach liegender Pause) wiederherstellen
-// Wenn letzter Eintrag von heute: aus History lesen
-// Wenn von gestern oder neuer Tag: Morgenreset (man hat geschlafen)
-var heute = new Date().toDateString();
-if (state.date !== heute) {
-letzteLiegeZeit = Date.now();
-return;
-}
-var sorted = (state.used || []).slice().sort(function(a, b) { return a.ts - b.ts; });
-var gefunden = false;
-for (var i = sorted.length - 1; i >= 0; i--) {
-if (sorted[i].n.indexOf("Pause beendet") === 0) {
-// Prüfen ob zugehöriger Pausenbeginn liegend war
-for (var j = i - 1; j >= 0; j--) {
-if (sorted[j].n === "Pausenbeginn") {
-if (sorted[j].pos === "liegend") {
-letzteLiegeZeit = sorted[i].ts;
-gefunden = true;
-}
-break;
-}
-}
-if (gefunden) { break; }
-}
-}
-if (!gefunden) {
-// Kein abgeschlossenes Pause-Ende: Tagesstart
-letzteLiegeZeit = sorted.length > 0 ? sorted[0].ts : Date.now();
-}
-}
+// letzteLiegeZeit ist jetzt persistent im State – kein Restore nötig
 
 // ============================================================
 // BUTTON-VERDRAHTUNG
@@ -699,12 +638,12 @@ s.symptome = [];
 s.date = new Date().toDateString();
 s.dayMinPct = 100;
 s.kurzPausen = 0;
+s.pauseBeginnTs = null;
+s.letzteLiegeZeit = Date.now();
+s.aufrechtSeitTs = Date.now();
 s._faktor = faktor;
 });
-kurzPausenZaehler = 0;
-letzteLiegeZeit = Date.now();
 showMainUI();
-saveAll();
 updateDisplay();
 if (faktor < 1) {
 showToast("Limit -10% wegen Crash-Vortage");
@@ -737,16 +676,18 @@ resetDayInternal();
 // ============================================================
 // DISPLAY-UPDATE (nur UI, keine State-Mutationen)
 // ============================================================
+function trackDayMinPct() {
+if (state.max <= 0) { return; }
+var pct = (state.cur / state.max) * 100;
+if (state.dayMinPct === undefined || pct < state.dayMinPct - 0.5) {
+mutateState(function(s) { s.dayMinPct = pct; });
+}
+}
+
 function updateDisplay() {
 if (state.max <= 0) { return; }
 var grenze = Math.ceil(state.max * GRENZE_ROT);
 var spielraum = Math.max(0, state.cur - grenze);
-var pct = (state.cur / state.max) * 100;
-
-// dayMinPct tracken
-if (state.dayMinPct === undefined || pct < state.dayMinPct) {
-mutateState(function(s) { s.dayMinPct = pct; });
-}
 
 document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
@@ -756,7 +697,6 @@ renderStatus(spielraum);
 renderPemHeader();
 renderUsed();
 checkRollingPene();
-checkCrashRisiko();
 updateAufrechtWarnung();
 updateWaage();
 }
@@ -798,7 +738,25 @@ msg.textContent = "STOP! Reserve aufgebraucht!"
 }
 }
 
+function checkPemPenalty() {
+// Einmalig Strafe anwenden wenn block >= Pause-Schwelle und noch nicht bestraft
+if (state.max <= 0) { return; }
+var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
+if (state.block >= blockPauseSchwelle && !state.pene) {
+mutateState(function(s) {
+s.cur = Math.max(0, s.cur - 1);
+s.used.push({n:"STRAFE: PENE-Warnung", v:-1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+s.pene = true;
+});
+} else if (state.block < blockPauseSchwelle) {
+if (state.pene) {
+mutateState(function(s) { s.pene = false; });
+}
+}
+}
+
 function renderPemHeader() {
+// Nur UI – kein State
 var header = document.getElementById("pacingHeader");
 var blockWarnSchwelle = Math.round(state.max * BLOCK_WARN);
 var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
@@ -806,22 +764,12 @@ if (state.block >= blockPauseSchwelle) {
 header.style.display = "block"
 header.className = "warn-pene"
 header.textContent = "PEM-Gefahr! Pause erzwingen!"
-if (!state.pene) {
-mutateState(function(s) {
-s.cur = Math.max(0, s.cur - 1);
-s.used.push({n:"STRAFE: PENE-Warnung", v:-1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
-s.pene = true;
-});
-saveAll();
-}
 } else if (state.block >= blockWarnSchwelle) {
 header.style.display = "block"
 header.className = "warn-rot"
 header.textContent = "PEM-Gefahr! Pause empfohlen!"
-mutateState(function(s) { s.pene = false; });
 } else {
 header.style.display = "none"
-mutateState(function(s) { s.pene = false; });
 }
 }
 
@@ -834,7 +782,7 @@ showToast("Bitte erst den Tag starten!");
 return;
 }
 // Laufende Pause automatisch beenden (10 Min. Default)
-if (pauseBeginnTs) {
+if (state.pauseBeginnTs) {
 endePause(true);
 }
 mutateState(function(s) {
@@ -842,7 +790,8 @@ s.cur = Math.max(0, s.cur - loads[i].v);
 s.block += loads[i].v;
 s.used.push({n:loads[i].n, v:loads[i].v, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
 });
-saveAll();
+checkPemPenalty();
+trackDayMinPct();
 updateDisplay();
 showToast();
 startPauseTimer();
@@ -854,13 +803,14 @@ checkCrashRisiko();
 // PAUSE – eine zentrale Funktion
 // ============================================================
 function doPauseBeginn() {
-pauseBeginnTs = Date.now();
+var jetzt = Date.now();
 mutateState(function(s) {
 s.block = 0;
 s.pene = false;
-s.used.push({n:"Pausenbeginn", v:0, ts:pauseBeginnTs, t:nowTime(), pos:"liegend"});
+s.pauseBeginnTs = jetzt;
+s.aufrechtSeitTs = null;
+s.used.push({n:"Pausenbeginn", v:0, ts:jetzt, t:nowTime(), pos:"liegend"});
 });
-saveAll();
 // Warnbalken sofort ausblenden
 var bar = document.getElementById("aufrechtWarnBar");
 if (bar) { bar.style.display = "none" }
@@ -872,33 +822,32 @@ updateDisplay();
 }
 
 function endePause(auto) {
-// auto = true: automatisch beim Buchen einer Aktivität (10 Min. Default)
-// auto = false: manuell durch "Pause beendet" Button
 var jetzt = Date.now();
-var minuten = pauseBeginnTs ? Math.round((jetzt - pauseBeginnTs) / 60000) : PAUSE_MINDEST_MIN;
-if (auto) {
-minuten = PAUSE_MINDEST_MIN;
-}
+// Echte Dauer immer verwenden – kein Fake-Wert mehr
+var minuten = state.pauseBeginnTs ? Math.round((jetzt - state.pauseBeginnTs) / 60000) : 0;
 
 // War die Pause liegend?
 var pauseWarLiegend = false;
-var usedSorted = state.used.slice();
-for (var pi = usedSorted.length - 1; pi >= 0; pi--) {
-if (usedSorted[pi].n === "Pausenbeginn") {
-pauseWarLiegend = (usedSorted[pi].pos === "liegend");
+for (var pi = state.used.length - 1; pi >= 0; pi--) {
+if (state.used[pi].n === "Pausenbeginn") {
+pauseWarLiegend = (state.used[pi].pos === "liegend");
 break;
 }
 }
 
 // Regen berechnen (nur liegend)
+// Bei auto-Ende (Aktivität gebucht während Pause): Regen auf echte Dauer begrenzt,
+// aber maximal PAUSE_MINDEST_MIN – verhindert versehentlich hohen Regen
 var regen = 0;
-if (pauseWarLiegend) {
-var regenMin = Math.min(minuten, REGEN_MAX_MIN);
+if (pauseWarLiegend && minuten > 0) {
+var regenMin = auto
+? Math.min(minuten, PAUSE_MINDEST_MIN)
+: Math.min(minuten, REGEN_MAX_MIN);
 regen = Math.floor(regenMin / 10) * REGEN_PRO_10_MIN;
 regen = Math.min(regen, Math.floor(state.max * REGEN_MAX_ANTEIL));
 }
 
-// Hinweis-Text
+// Hinweis-Text (basiert auf echter Dauer)
 var hinweis;
 if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) {
 hinweis = "Prima!"
@@ -915,31 +864,24 @@ if (regen > 0) {
 s.cur = Math.min(s.max, s.cur + regen);
 }
 s.used.push({n:label, v:0, ts:jetzt, t:nowTime(), pos:"aufrecht", regen:regen});
-});
-
-// letzteLiegeZeit und kurzPausenZaehler aktualisieren
+s.pauseBeginnTs = null;
+s.aufrechtSeitTs = jetzt;
 if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) {
-letzteLiegeZeit = jetzt;
-kurzPausenZaehler = 0;
-mutateState(function(s) { s.kurzPausen = 0; });
+s.kurzPausen = 0;
+s.letzteLiegeZeit = jetzt;
 } else if (pauseWarLiegend) {
-// Kurze liegend Pause: Zeit reset, Zähler hoch
-letzteLiegeZeit = jetzt;
-kurzPausenZaehler++;
-mutateState(function(s) { s.kurzPausen = kurzPausenZaehler; });
+s.kurzPausen = (s.kurzPausen || 0) + 1;
+s.letzteLiegeZeit = jetzt;
 } else {
-// Aufrechte Pause: weder Zeit noch Zähler reset
-kurzPausenZaehler++;
-mutateState(function(s) { s.kurzPausen = kurzPausenZaehler; });
+s.kurzPausen = (s.kurzPausen || 0) + 1;
 }
-
-pauseBeginnTs = null;
-saveAll();
+});
 
 document.getElementById("btnPauseEnde").style.display = "none"
 document.getElementById("btnPauseBeginn").style.display = "block"
 
 if (!auto) {
+trackDayMinPct();
 updateDisplay();
 startPauseTimer();
 showToast("Pause: " + minuten + " Min. - " + hinweis);
@@ -959,7 +901,6 @@ s.history.push({crash: pct < 25, minPct: minPct});
 if (s.history.length > 7) { s.history.shift(); }
 s.dayMinPct = undefined;
 });
-saveAll();
 }
 
 function checkRollingPene() {
@@ -983,36 +924,35 @@ document.getElementById("rollingWarnBox").style.display = (red >= 3 && !last2ok)
 function togglePosition(idx) {
 if (!state.used[idx]) { return; }
 var neuePos = state.used[idx].pos === "aufrecht" ? "liegend" : "aufrecht"
-mutateState(function(s) {
-s.used[idx].pos = neuePos;
-});
-// Wenn Pausenbeginn umgeschaltet: Regen des zugehörigen Pause-beendet korrigieren
+// Regen-Korrektur berechnen (vor mutateState)
+var diff = 0;
+var neuerRegen = 0;
 if (state.used[idx].n === "Pausenbeginn") {
 for (var pi = idx + 1; pi < state.used.length; pi++) {
 if (state.used[pi].n.indexOf("Pause beendet") === 0) {
 var minuten = Math.round((state.used[pi].ts - state.used[idx].ts) / 60000);
 var alterRegen = state.used[pi].regen || 0;
-var neuerRegen = 0;
 if (neuePos === "liegend") {
 var regenMin = Math.min(minuten, REGEN_MAX_MIN);
 neuerRegen = Math.floor(regenMin / 10) * REGEN_PRO_10_MIN;
 neuerRegen = Math.min(neuerRegen, Math.floor(state.max * REGEN_MAX_ANTEIL));
 }
-var diff = neuerRegen - alterRegen;
-if (diff !== 0) {
-mutateState(function(s) {
-s.cur = Math.min(s.max, Math.max(0, s.cur + diff));
-s.used[pi].regen = neuerRegen;
-});
-}
+diff = neuerRegen - alterRegen;
+var pIdx = pi;
 break;
 }
 }
 }
-if (neuePos === "liegend") {
-letzteLiegeZeit = state.used[idx].ts || Date.now();
+mutateState(function(s) {
+s.used[idx].pos = neuePos;
+if (diff !== 0) {
+s.cur = Math.min(s.max, Math.max(0, s.cur + diff));
+s.used[pIdx].regen = neuerRegen;
 }
-saveAll();
+if (neuePos === "liegend") {
+s.letzteLiegeZeit = s.used[idx].ts || Date.now();
+}
+});
 renderUsed();
 updateDisplay();
 }
@@ -1061,44 +1001,17 @@ startPause = null;
 }
 }
 // Laufende Pause
-if (pauseBeginnTs && (tagesstartEnde === null || pauseBeginnTs >= tagesstartEnde)) {
-min += Math.round((jetzt - pauseBeginnTs) / 60000);
+if (state.pauseBeginnTs && (tagesstartEnde === null || state.pauseBeginnTs >= tagesstartEnde)) {
+min += Math.round((jetzt - state.pauseBeginnTs) / 60000);
 }
 return min;
 }
 
-function getAktuelleAufrechtMinuten() {
-// Zeit seit letzter echter Liegephase
-var jetzt = pauseBeginnTs ? pauseBeginnTs : Date.now();
-return Math.floor((jetzt - letzteLiegeZeit) / 60000);
-}
-
-function getAufrechtMinutenGesamt() {
-// Alle aufrechten Phasen des Tages für Crash-Score
-var jetzt = Date.now();
-var sorted = state.used.slice().map(function(e) {
-return {ts: e.ts, pos: e.pos || "aufrecht", n: e.n};
-}).filter(function(e) { return e.ts > 0; }).sort(function(a, b) { return a.ts - b.ts; });
-if (sorted.length === 0) { return 0; }
-var min = 0;
-var aktuellPos = sorted[0].pos || "liegend"
-var phaseBeginn = sorted[0].ts;
-for (var i = 1; i < sorted.length; i++) {
-var e = sorted[i];
-var neuePos = e.pos || aktuellPos;
-if (neuePos !== aktuellPos) {
-if (aktuellPos === "aufrecht") {
-min += Math.floor((e.ts - phaseBeginn) / 60000);
-}
-aktuellPos = neuePos;
-phaseBeginn = e.ts;
-}
-}
-if (aktuellPos === "aufrecht") {
-var endeTs = pauseBeginnTs ? pauseBeginnTs : jetzt;
-min += Math.floor((endeTs - phaseBeginn) / 60000);
-}
-return min;
+function getAufrechtMinuten() {
+// Einfach: Zeit seit aufrechtSeitTs
+// null = gerade in Pause oder noch kein Tag gestartet
+if (!state.aufrechtSeitTs) { return 0; }
+return Math.floor((Date.now() - state.aufrechtSeitTs) / 60000);
 }
 
 // ============================================================
@@ -1106,7 +1019,7 @@ return min;
 // ============================================================
 function updateAufrechtWarnung() {
 if (state.max <= 0) { return; }
-var min = getAktuelleAufrechtMinuten();
+var min = getAufrechtMinuten();
 var pct = (state.cur / state.max) * 100;
 var bar = document.getElementById("aufrechtWarnBar");
 if (!bar) { return; }
@@ -1121,8 +1034,6 @@ schwelle = AUFRECHT_SCHWELLE_MITTE;
 schwelle = AUFRECHT_SCHWELLE_NIEDRIG;
 }
 
-var minSeitLiegen = Math.floor((Date.now() - letzteLiegeZeit) / 60000);
-
 if (pct < 40 && min > 30) {
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht + Restenergie niedrig!"
@@ -1131,7 +1042,7 @@ bar.style.background = "#ff3b30"
 bar.style.display = "block"
 bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
 bar.style.background = "#ff9500"
-} else if (kurzPausenZaehler > 1 && minSeitLiegen > schwelle) {
+} else if (state.kurzPausen > 1 && min > schwelle * 0.7) {
 bar.style.display = "block"
 bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
 bar.style.background = "#ff9500"
@@ -1143,7 +1054,7 @@ bar.style.display = "none"
 function getCrashScore() {
 if (state.max <= 0) { return 0; }
 var pct = (state.cur / state.max) * 100;
-var up = getAufrechtMinutenGesamt();
+var up = getAufrechtMinuten();
 var jetzt = Date.now();
 // Belastungsfenster: ab letzter Pause >20 Min. oder 2h
 var resetTs = 0;
@@ -1159,8 +1070,8 @@ resetTs = sortedU[i].ts;
 pb = null;
 }
 }
-if (pauseBeginnTs && Math.round((jetzt - pauseBeginnTs) / 60000) >= 20) {
-resetTs = pauseBeginnTs;
+if (state.pauseBeginnTs && Math.round((jetzt - state.pauseBeginnTs) / 60000) >= 20) {
+resetTs = state.pauseBeginnTs;
 }
 var fensterStart = Math.max(resetTs, jetzt - 7200000);
 var l2 = 0;
@@ -1300,7 +1211,7 @@ var n = document.getElementById("loadName").value.trim();
 var v = parseInt(document.getElementById("loadVal").value);
 if (!n || isNaN(v)) { return; }
 loads.push({n:n, v:v});
-saveAll();
+saveLoads();
 renderCatalog();
 document.getElementById("loadName").value = ""
 document.getElementById("loadVal").value = ""
@@ -1394,13 +1305,13 @@ var n = document.getElementById("en").value.trim();
 var v = parseInt(document.getElementById("ev").value);
 if (!n || isNaN(v)) { return; }
 loads[i] = {n:n, v:v};
-saveAll();
+saveLoads();
 renderCatalog();
 }
 
 function deleteCatalog(i) {
 loads.splice(i, 1);
-saveAll();
+saveLoads();
 renderCatalog();
 }
 
@@ -1410,7 +1321,7 @@ if (ni >= 0 && ni < loads.length) {
 var tmp = loads[index];
 loads[index] = loads[ni];
 loads[ni] = tmp;
-saveAll();
+saveLoads();
 renderCatalog();
 }
 }
@@ -1534,44 +1445,49 @@ var ut = lu ? (lu.ts || 0) : 0;
 var st = ls ? (ls.ts || 0) : 0;
 if (st > ut && ls) {
 mutateState(function(s) { s.symptome.pop(); });
-saveAll();
 updateDisplay();
 showToast("Symptom rückgängig");
 } else if (lu) {
 var last = state.used[state.used.length-1];
-mutateState(function(s) { s.used.pop(); });
 if (last.n.indexOf("STRAFE") >= 0) {
 mutateState(function(s) {
+s.used.pop();
 s.cur = Math.min(s.max, s.cur + 1);
 s.pene = false;
 s.block = Math.round(s.max * BLOCK_PAUSE) - 1;
 });
 } else if (last.n.indexOf("Pause beendet") === 0) {
 var regen = last.regen || 0;
-if (regen > 0) {
-mutateState(function(s) { s.cur = Math.max(0, s.cur - regen); });
-}
-// Pausenbeginn wiederherstellen
-for (var pi = state.used.length - 1; pi >= 0; pi--) {
+// Pausenbeginn-Ts wiederherstellen
+var vorherigerPauseBeginnTs = null;
+for (var pi = state.used.length - 2; pi >= 0; pi--) {
 if (state.used[pi].n === "Pausenbeginn") {
-pauseBeginnTs = state.used[pi].ts;
-document.getElementById("btnPauseBeginn").style.display = "none"
-document.getElementById("btnPauseEnde").style.display = "block"
+vorherigerPauseBeginnTs = state.used[pi].ts;
 break;
 }
 }
+mutateState(function(s) {
+s.used.pop();
+if (regen > 0) { s.cur = Math.max(0, s.cur - regen); }
+s.pauseBeginnTs = vorherigerPauseBeginnTs;
+});
+if (vorherigerPauseBeginnTs) {
+document.getElementById("btnPauseBeginn").style.display = "none"
+document.getElementById("btnPauseEnde").style.display = "block"
+}
 } else if (last.v < 0) {
 mutateState(function(s) {
+s.used.pop();
 s.cur = Math.max(0, s.cur + last.v);
 s.block = 0;
 });
 } else {
 mutateState(function(s) {
+s.used.pop();
 s.cur = Math.min(s.max, s.cur + last.v);
 s.block = Math.max(0, s.block - last.v);
 });
 }
-saveAll();
 updateDisplay();
 }
 }
@@ -1588,12 +1504,10 @@ function resetDayInternal() {
 var sh = state.history || [];
 state = neuerLeerenState();
 state.history = sh;
-saveAll();
+storeSet(STORAGE_STATE, JSON.stringify(state));
+storeSet(STORAGE_LOADS, JSON.stringify(loads));
 schlafWert = null;
 schlafMode = null;
-pauseBeginnTs = null;
-kurzPausenZaehler = 0;
-letzteLiegeZeit = Date.now();
 var btns = document.querySelectorAll(".schlaf-btn");
 for (var i = 0; i < btns.length; i++) {
 btns[i].classList.remove("selected");
@@ -1682,7 +1596,6 @@ mutateState(function(s) {
 if (!s.symptome) { s.symptome = []; }
 s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere || "leicht"});
 });
-saveAll();
 renderUsed();
 showToast(SYMPTOM_NAMEN[idx] + " (" + (schwere || "leicht") + ")");
 }
@@ -1692,7 +1605,6 @@ mutateState(function(s) {
 if (!s.symptome) { s.symptome = []; }
 s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
 });
-saveAll();
 renderUsed();
 showToast(SYMPTOM_NAMEN[idx] + " weg");
 }
