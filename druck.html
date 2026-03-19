@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.5.11</title>
+<title>PacingApp 4.5.15</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -156,6 +156,11 @@ min-width:260px; text-align:center;
 .schwere-schwer { background:#ff3b30; color:#fff; }
 .schwere-overlay { position:fixed; inset:0; z-index:3999; background:rgba(0,0,0,0.3); }
 .waage-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:0; }
+.topf-bodensatz {
+position:absolute; bottom:0; left:0; width:100%;
+background: rgba(255, 100, 100, 0.5);
+border-top: 1px solid rgba(200,0,0,0.3);
+}
 </style>
 </head>
 <body id="mainBody">
@@ -176,22 +181,23 @@ min-width:260px; text-align:center;
 <div style="display:flex;gap:5px;align-items:flex-end;">
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
 <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 10:30</div>
-<div style="width:26px;height:56px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
+<div style="width:26px;height:46px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
 <div id="topf1Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
 </div>
 <div id="topf1Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Morgen</div>
 </div>
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
 <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 14:00</div>
-<div style="width:26px;height:56px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
+<div style="width:26px;height:46px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
 <div id="topf2Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
 </div>
 <div id="topf2Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Mittag</div>
 </div>
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
 <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">ab 14:00</div>
-<div style="width:26px;height:40px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
+<div style="width:26px;height:60px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
 <div id="topf3Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
+<div id="topf3Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
 </div>
 <div id="topf3Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Abend</div>
 </div>
@@ -354,9 +360,10 @@ var TIMER_WARN_NIEDRIG = 20;
 var TIMER_ZWANG_NIEDRIG = 30;
 
 // NEU 4.4.2: Tages-Toepfe
-var TOPF_ANTEIL = [0.37, 0.37, 0.26]; // Budgetanteile T1/T2/T3
+var TOPF_ANTEIL = [0.30, 0.30, 0.40]; // Budgetanteile T1/T2/T3
 var TOPF_ENDE_H = [10.5, 14.0, 24.0]; // Endzeiten: 10:30 / 14:00 / Tagesende
 var TOPF_START_H = 5.0; // Tagesbeginn fuer Berechnung (ab 05:00)
+var TOPF_ABEND_PUFFER = 15; // Feste Reserve Abend (tabu)
 
 // ============================================================
 // DEFAULT-KATALOG
@@ -1122,7 +1129,7 @@ carry = Math.max(0, zugewiesen - budgets[t]);
 }
 
 var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
-var hoehen = [56, 56, 40]; // proportional zu 37/37/26%
+var hoehen = [46, 46, 60]; // proportional zu 30/30/40%
 for (var t = 0; t < 3; t++) {
 var fill = document.getElementById("topf" + (t+1) + "Fill");
 var label = document.getElementById("topf" + (t+1) + "Label");
@@ -1157,6 +1164,15 @@ fill.style.background = "#aaa"
 label.textContent = verbrauch[t] + "/" + budgets[t];
 label.style.color = istAktiv ? "#000" : "#555"
 label.style.fontWeight = istAktiv ? "800" : "600"
+
+// Bodensatz nur im 3. Topf - feste Reserve
+if (t === 2) {
+var bodensatz = document.getElementById("topf3Bodensatz");
+if (bodensatz && budgets[2] > 0) {
+var bodensatzPct = Math.min(100, Math.round(TOPF_ABEND_PUFFER / budgets[2] * 100));
+bodensatz.style.height = bodensatzPct + "%"
+}
+}
 }
 
 // Topf-Warnung
