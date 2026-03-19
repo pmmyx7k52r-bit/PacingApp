@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.5.17</title>
+<title>PacingApp 4.5.18d</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -168,11 +168,7 @@ border-top: 1px solid rgba(200,0,0,0.3);
 <div id="pacingHeader"></div>
 <div id="pauseTimerBar" class="pause-timer-bar"></div>
 <div id="toast">Erfasst</div>
-<div id="mikroPauseBar">Mikro-Pause empfohlen</div>
-<div id="aufrechtWarnBar" style="position:fixed;bottom:200px;left:12px;right:12px;color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3002;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);"></div>
-<div id="crashWarnBar">Crash-Risiko!</div>
-<div id="topfWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;background:#ff3b30;color:#fff;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3004;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'">Du bist zu aktiv! Vorsicht! 🚨<br><span style="font-size:11px;font-weight:400;opacity:0.85;">Tippen zum Schließen</span></div>
-<div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">STOP! Energie kritisch - keine weiteren Aktivitäten!</div>
+<div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
 <div class="status bg-green" id="boxSpielraum" style="flex:2;">Spielraum<span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span><span id="restAnzeige" style="font-size:0.7rem;font-weight:600;margin-top:3px;display:block;opacity:0.85;">Rest: 0</span></div>
@@ -374,13 +370,13 @@ var STANDARD_KATALOG = [
 {n:"Aufstehen", v:3},
 {n:"Leichte Arbeiten", v:2},
 {n:"30 Min. achtsame Bewegung", v:5},
-{n:"Längere leichte Arbeiten", v:10},
-{n:"Ärgern", v:10},
-{n:"Problem wälzen", v:10},
-{n:"Längere starke Konzentration", v:10}
+{n:"L\u00e4ngere leichte Arbeiten", v:10},
+{n:"\u00c4rgern", v:10},
+{n:"Problem w\u00e4lzen", v:10},
+{n:"L\u00e4ngere starke Konzentration", v:10}
 ];
 
-var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
+var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Ersch\u00f6pfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
 
 // ============================================================
 // STORAGE
@@ -622,11 +618,11 @@ var ind = parseFloat(document.getElementById("sleep").value);
 if (isNaN(ind) || ind <= 0) { showToast("Bitte Schlafwert eingeben!"); return; }
 schlafPunkte = ind;
 } else {
-showToast("Bitte Schlafqualität auswählen!");
+showToast("Bitte Schlafqualit\u00e4t ausw\u00e4hlen!");
 return;
 }
 var f = document.getElementById("feeling").value;
-if (!f) { showToast("Bitte Gefühl auswählen!"); return; }
+if (!f) { showToast("Bitte Gef\u00fchl ausw\u00e4hlen!"); return; }
 var berechnetes = schlafPunkte + parseFloat(f);
 var h = state.history || [];
 var last3 = h.slice(-3);
@@ -783,9 +779,8 @@ showToast();
 startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
-// Topf-Warnung bei neuer Aktivitaet wieder erlauben
-var twb = document.getElementById("topfWarnBar");
-if (twb) { twb._dismissed = false; }
+var mwb2 = document.getElementById("mainWarnBar");
+if (mwb2) { mwb2._dismissed = false; }
 }
 
 // ============================================================
@@ -800,9 +795,12 @@ s.pauseBeginnTs = jetzt;
 s.aufrechtSeitTs = null;
 s.used.push({n:"Pausenbeginn", v:0, ts:jetzt, t:nowTime(), pos:"liegend"});
 });
-var bar = document.getElementById("aufrechtWarnBar");
-if (bar) { bar.style.display = "none" }
-document.getElementById("mikroPauseBar").style.display = "none"
+// mainWarnBar beim Pausenbeginn ausblenden
+var mwb = document.getElementById("mainWarnBar");
+if (mwb) {
+mwb.style.display = "none"
+mwb._dismissed = false;
+}
 stopPauseTimer();
 document.getElementById("btnPauseBeginn").style.display = "none"
 document.getElementById("btnPauseEnde").style.display = "block"
@@ -828,8 +826,8 @@ regen = Math.min(regen, Math.floor(state.max * REGEN_MAX_ANTEIL));
 }
 var hinweis;
 if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) { hinweis = "Prima!" }
-else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = "Liegepause wäre besser." }
-else { hinweis = "Auf längere Pausen achten." }
+else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = "Liegepause w\u00e4re besser." }
+else { hinweis = "Auf l\u00e4ngere Pausen achten." }
 var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
 mutateState(function(s) {
 if (regen > 0) { s.cur = Math.min(s.max, s.cur + regen); }
@@ -979,30 +977,156 @@ return Math.floor((Date.now() - state.aufrechtSeitTs) / 60000);
 // WARNUNGEN
 // ============================================================
 function updateAufrechtWarnung() {
-if (state.max <= 0) { return; }
-var min = getAufrechtMinuten();
-var pct = (state.cur / state.max) * 100;
-var bar = document.getElementById("aufrechtWarnBar");
-if (!bar) { return; }
-var schwelle;
-if (pct >= 50) { schwelle = AUFRECHT_SCHWELLE_HOCH; }
-else if (pct >= 25) { schwelle = AUFRECHT_SCHWELLE_MITTE; }
-else { schwelle = AUFRECHT_SCHWELLE_NIEDRIG; }
-if (pct < 40 && min > 30) {
-bar.style.display = "block"
-bar.textContent = min + " Min. aufrecht + Restenergie niedrig!"
-bar.style.background = "#ff3b30"
-} else if (min > schwelle) {
-bar.style.display = "block"
-bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
-bar.style.background = "#ff9500"
-} else if (state.kurzPausen > 1 && min > schwelle * 0.7) {
-bar.style.display = "block"
-bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
-bar.style.background = "#ff9500"
-} else {
-bar.style.display = "none"
+renderMainWarning();
 }
+
+function checkCrashRisiko() {
+renderMainWarning();
+}
+
+function checkBelastungsdichte() {
+renderMainWarning();
+}
+
+function getDichteScore() {
+var jetzt = Date.now();
+var p = 0;
+for (var i = 0; i < state.used.length; i++) {
+var u = state.used[i];
+if (u.v > 0 && u.ts && (jetzt - u.ts) <= DICHTE_FENSTER_MS) { p += u.v; }
+}
+return p;
+}
+
+function isTopfKritisch() {
+if (state.max <= 0) { return false; }
+var jetzt = new Date();
+var stundeJetzt = jetzt.getHours() + jetzt.getMinutes() / 60;
+var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
+var budgets = [
+Math.round(state.max * TOPF_ANTEIL[0]),
+Math.round(state.max * TOPF_ANTEIL[1]),
+Math.round(state.max * TOPF_ANTEIL[2])
+];
+var heute = new Date(); heute.setHours(0,0,0,0);
+var grenzen = [
+heute.getTime() + TOPF_ENDE_H[0] * 3600000,
+heute.getTime() + TOPF_ENDE_H[1] * 3600000,
+heute.getTime() + TOPF_ENDE_H[2] * 3600000
+];
+var startTs = heute.getTime() + TOPF_START_H * 3600000;
+var verbrauchRaw = [0, 0, 0];
+for (var i = 0; i < state.used.length; i++) {
+var u = state.used[i];
+if (u.v <= 0 || !u.ts || u.ts < startTs) { continue; }
+if (u.ts < grenzen[0]) { verbrauchRaw[0] += u.v; }
+else if (u.ts < grenzen[1]) { verbrauchRaw[1] += u.v; }
+else { verbrauchRaw[2] += u.v; }
+}
+if (verbrauchRaw[aktiverTopf] > budgets[aktiverTopf]) { return true; }
+if (aktiverTopf === 0 && verbrauchRaw[1] > 0) { return true; }
+if (aktiverTopf <= 1 && verbrauchRaw[2] > 0) { return true; }
+return false;
+}
+
+// Hysterese
+var _lastWarnType = null;
+var _lastWarnTs = 0;
+var WARN_HYSTERESE_MS = 8000;
+
+function getMainWarning() {
+if (state.max <= 0) { return null; }
+var pct = (state.cur / state.max) * 100;
+var sc = getCrashScore();
+var auf = getAufrechtMinuten();
+var schwelle = pct >= 50 ? AUFRECHT_SCHWELLE_HOCH : pct >= 25 ? AUFRECHT_SCHWELLE_MITTE : AUFRECHT_SCHWELLE_NIEDRIG;
+var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
+var blockWarnSchwelle = Math.round(state.max * BLOCK_WARN);
+var dichte = getDichteScore();
+
+// 1. Notbremse
+if (pct < 20) {
+return {type:"NOTBREMSE", text:"STOP! Energie kritisch - sofort hinlegen!", bg:"#000", color:"#ff3b30", blink:true};
+}
+// 2. Crash hoch
+if (sc >= CRASH_SCORE_HOCH) {
+return {type:"CRASH_HIGH", text:"PEM-Risiko hoch! Sofort pausieren!", bg:"#ff3b30", color:"#fff", blink:true};
+}
+// 3. PEM Zwang
+if (state.block >= blockPauseSchwelle) {
+return {type:"PEM_ZWANG", text:"PEM-Gefahr! Pause erzwingen!", bg:"#000", color:"#ffcc00", blink:true};
+}
+// 4. Crash mittel
+if (sc >= CRASH_SCORE_MITTEL) {
+return {type:"CRASH_MED", text:"PEM-Risiko steigt - Belastung reduzieren!", bg:"#e07800", color:"#fff", blink:false};
+}
+// 5. PEM Warnung
+if (state.block >= blockWarnSchwelle) {
+return {type:"PEM_WARN", text:"PEM-Gefahr - Pause einplanen!", bg:"#ff3b30", color:"#fff", blink:false};
+}
+// 6. Aufrecht kritisch
+if (pct < 40 && auf > 30) {
+return {type:"AUFRECHT_KRIT", text:auf + " Min. aufrecht + wenig Energie - hinlegen!", bg:"#ff3b30", color:"#fff", blink:false};
+}
+// 7. Aufrecht
+if (auf > schwelle) {
+return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause sinnvoll", bg:"#ff9500", color:"#fff", blink:false};
+}
+// 8. Kurzpausen
+if (state.kurzPausen > 1 && auf > schwelle * 0.7) {
+return {type:"KURZ", text:"Bisherige Pausen reichen nicht - l\u00e4ngere Pause n\u00f6tig!", bg:"#ff9500", color:"#fff", blink:false};
+}
+// 9. Timer
+if (lastActionTime) {
+var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
+var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
+var empfohlen = pct >= 70 ? TIMER_WARN_HOCH : pct >= 40 ? TIMER_WARN_MITTE : TIMER_WARN_NIEDRIG;
+if (minuten >= erzwingen) {
+return {type:"TIMER_ZWANG", text:minuten + " Min. ohne Pause - jetzt pausieren!", bg:"#ff3b30", color:"#fff", blink:true};
+}
+if (minuten >= empfohlen) {
+return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
+}
+}
+// 10. Dichte
+if (dichte >= DICHTE_STARK) {
+return {type:"DICHTE_STARK", text:dichte + " Punkte in 30 Min. - jetzt pausieren!", bg:"#ff3b30", color:"#fff", blink:false};
+}
+if (dichte >= DICHTE_WARN) {
+return {type:"DICHTE_WARN", text:dichte + " Punkte in 30 Min. - Pause einplanen!", bg:"#ff9500", color:"#fff", blink:false};
+}
+// 11. Topf
+if (isTopfKritisch()) {
+return {type:"TOPF", text:"Du bist zu aktiv! Vorsicht! \uD83D\uDEA8", bg:"#ff9500", color:"#fff", blink:false};
+}
+return null;
+}
+
+function renderMainWarning() {
+var bar = document.getElementById("mainWarnBar");
+if (!bar) { return; }
+if (bar._dismissed) { return; }
+var warn = getMainWarning();
+var typ = warn ? warn.type : null;
+// Hysterese
+if (typ !== _lastWarnType) {
+if (Date.now() - _lastWarnTs < WARN_HYSTERESE_MS) {
+// kurz stabil bleiben - nicht neu rendern
+return;
+}
+_lastWarnType = typ;
+_lastWarnTs = Date.now();
+bar._dismissed = false;
+}
+if (!warn) {
+bar.style.display = "none"
+return;
+}
+bar.style.display = "block"
+bar.style.background = warn.bg;
+bar.style.color = warn.color;
+bar.style.animation = warn.blink ? "blinker 1.2s linear infinite" : "none"
+bar.innerHTML = warn.text + "<br><span style=\"font-size:11px;font-weight:400;opacity:0.8;\">Tippen zum Schliessen</span>"
 }
 
 function getCrashScore() {
@@ -1036,54 +1160,6 @@ if (l2 > CRASH_BELASTUNG_HOCH) { r += 2; }
 else if (l2 > CRASH_BELASTUNG_MITTEL) { r += 1; }
 if (up > CRASH_AUFRECHT_MAX) { r += 1; }
 return r;
-}
-
-function checkCrashRisiko() {
-if (state.max <= 0) { return; }
-var pct = (state.cur / state.max) * 100;
-var sc = getCrashScore();
-var cb = document.getElementById("crashWarnBar");
-var nb = document.getElementById("notbremsBar");
-if (pct < 20) {
-nb.style.display = "block"
-cb.style.display = "none"
-} else if (sc >= CRASH_SCORE_HOCH) {
-cb.style.display = "block"
-cb.textContent = "PEM-Risiko hoch! Jetzt Ruhepause einlegen!"
-cb.style.background = "#ff3b30"
-cb.style.animation = "blinker 1.2s linear infinite"
-nb.style.display = "none"
-} else if (sc >= CRASH_SCORE_MITTEL) {
-cb.style.display = "block"
-cb.textContent = "PEM-Risiko erhöht - Aktivitäten reduzieren!"
-cb.style.background = "#e07800"
-cb.style.animation = "none"
-nb.style.display = "none"
-} else {
-cb.style.display = "none"
-nb.style.display = "none"
-}
-}
-
-function checkBelastungsdichte() {
-var jetzt = Date.now();
-var p = 0;
-for (var i = 0; i < state.used.length; i++) {
-var u = state.used[i];
-if (u.v > 0 && u.ts && (jetzt - u.ts) <= DICHTE_FENSTER_MS) { p += u.v; }
-}
-var bar = document.getElementById("mikroPauseBar");
-if (p >= DICHTE_STARK) {
-bar.style.display = "block"
-bar.style.background = "#ff3b30"
-bar.textContent = p + " Punkte in 30 Min. - jetzt pausieren!"
-} else if (p >= DICHTE_WARN) {
-bar.style.display = "block"
-bar.style.background = "#ff9500"
-bar.textContent = p + " Punkte in 30 Min. - Pause einplanen!"
-} else {
-bar.style.display = "none"
-}
 }
 
 // ============================================================
@@ -1168,15 +1244,7 @@ bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0"
 }
 
 // Topf-Warnung
-var warnBar = document.getElementById("topfWarnBar");
-if (warnBar && !warnBar._dismissed) {
-var zuAktiv = false;
-if (verbrauchRaw[aktiverTopf] > budgets[aktiverTopf]) { zuAktiv = true; }
-if (aktiverTopf === 0 && verbrauchRaw[1] > 0) { zuAktiv = true; }
-if (aktiverTopf <= 1 && verbrauchRaw[2] > 0) { zuAktiv = true; }
-warnBar.style.display = zuAktiv ? "block" : "none"
-if (!zuAktiv) { warnBar._dismissed = false; }
-}
+
 }
 
 // ============================================================
@@ -1372,7 +1440,7 @@ function resetKatalog() {
 loads = STANDARD_KATALOG.slice();
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
 renderCatalog();
-showToast("Katalog zurückgesetzt");
+showToast("Katalog zur\u00fcckgesetzt");
 }
 
 // ============================================================
@@ -1484,7 +1552,7 @@ var st = ls ? (ls.ts || 0) : 0;
 if (st > ut && ls) {
 mutateState(function(s) { s.symptome.pop(); });
 updateDisplay();
-showToast("Symptom rückgängig");
+showToast("Symptom r\u00fcckg\u00e4ngig");
 } else if (lu) {
 var last = state.used[state.used.length-1];
 if (last.n.indexOf("STRAFE") >= 0) {
@@ -1566,15 +1634,13 @@ allCards[ci].style.color = ""
 document.getElementById("btnPauseBeginn").style.display = "block"
 document.getElementById("btnPauseEnde").style.display = "none"
 stopPauseTimer();
-document.getElementById("crashWarnBar").style.display = "none"
-document.getElementById("notbremsBar").style.display = "none"
-document.getElementById("mikroPauseBar").style.display = "none"
-document.getElementById("aufrechtWarnBar").style.display = "none"
-var twb = document.getElementById("topfWarnBar");
-if (twb) {
-twb.style.display = "none"
-twb._dismissed = false;
+var mwb3 = document.getElementById("mainWarnBar");
+if (mwb3) {
+mwb3.style.display = "none"
+mwb3._dismissed = false;
 }
+_lastWarnType = null;
+_lastWarnTs = 0;
 showToast("Neuer Tag!");
 }
 
