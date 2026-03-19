@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.4.2</title>
+<title>PacingApp 4.5.2</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -166,6 +166,7 @@ min-width:260px; text-align:center;
 <div id="mikroPauseBar">Mikro-Pause empfohlen</div>
 <div id="aufrechtWarnBar" style="position:fixed;bottom:200px;left:12px;right:12px;color:#fff;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3002;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);"></div>
 <div id="crashWarnBar">Crash-Risiko!</div>
+<div id="topfWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;background:#ff3b30;color:#fff;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3004;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'">Du bist zu aktiv! Vorsicht! 🚨<br><span style="font-size:11px;font-weight:400;opacity:0.85;">Tippen zum Schließen</span></div>
 <div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">STOP! Energie kritisch - keine weiteren Aktivitäten!</div>
 
 <div id="statusWrap" class="status-wrap">
@@ -182,22 +183,22 @@ min-width:260px; text-align:center;
 <div id="topfWrap" style="display:flex;gap:5px;flex:1;">
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
 <div style="font-size:9px;font-weight:700;color:#555;text-align:center;">bis 10:30</div>
-<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column-reverse;">
-<div id="topf1Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:0%;"></div>
+<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;">
+<div id="topf1Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;"></div>
 </div>
 <div id="topf1Label" style="font-size:9px;font-weight:700;color:#8e8e93;">T1</div>
 </div>
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
 <div style="font-size:9px;font-weight:700;color:#555;text-align:center;">bis 14:00</div>
-<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column-reverse;">
-<div id="topf2Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:0%;"></div>
+<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;">
+<div id="topf2Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;"></div>
 </div>
 <div id="topf2Label" style="font-size:9px;font-weight:700;color:#8e8e93;">T2</div>
 </div>
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
 <div style="font-size:9px;font-weight:700;color:#555;text-align:center;">ab 14:00</div>
-<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column-reverse;">
-<div id="topf3Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:0%;"></div>
+<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;">
+<div id="topf3Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;"></div>
 </div>
 <div id="topf3Label" style="font-size:9px;font-weight:700;color:#8e8e93;">T3</div>
 </div>
@@ -358,7 +359,7 @@ var TIMER_ZWANG_NIEDRIG = 30;
 // NEU 4.4.2: Tages-Toepfe
 var TOPF_ANTEIL = [0.37, 0.37, 0.26]; // Budgetanteile T1/T2/T3
 var TOPF_ENDE_H = [10.5, 14.0, 24.0]; // Endzeiten: 10:30 / 14:00 / Tagesende
-var TOPF_START_H = 7.0; // Tagesbeginn für Berechnung
+var TOPF_START_H = 5.0; // Tagesbeginn fuer Berechnung (ab 05:00)
 
 // ============================================================
 // DEFAULT-KATALOG
@@ -369,13 +370,13 @@ var STANDARD_KATALOG = [
 {n:"Aufstehen", v:3},
 {n:"Leichte Arbeiten", v:2},
 {n:"30 Min. achtsame Bewegung", v:5},
-{n:"Längere leichte Arbeiten", v:10},
-{n:"Ärgern", v:10},
-{n:"Problem wälzen", v:10},
-{n:"Längere starke Konzentration", v:10}
+{n:"Laengere leichte Arbeiten", v:10},
+{n:"Aergern", v:10},
+{n:"Problem waelzen", v:10},
+{n:"Laengere starke Konzentration", v:10}
 ];
 
-var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
+var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschoepfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
 
 // ============================================================
 // STORAGE
@@ -617,11 +618,11 @@ var ind = parseFloat(document.getElementById("sleep").value);
 if (isNaN(ind) || ind <= 0) { showToast("Bitte Schlafwert eingeben!"); return; }
 schlafPunkte = ind;
 } else {
-showToast("Bitte Schlafqualität auswählen!");
+showToast("Bitte Schlafqualitaet auswaehlen!");
 return;
 }
 var f = document.getElementById("feeling").value;
-if (!f) { showToast("Bitte Gefühl auswählen!"); return; }
+if (!f) { showToast("Bitte Gefuehl auswaehlen!"); return; }
 var berechnetes = schlafPunkte + parseFloat(f);
 var h = state.history || [];
 var last3 = h.slice(-3);
@@ -764,7 +765,7 @@ header.style.display = "none"
 }
 
 // ============================================================
-// AKTIVITÄT BUCHEN
+// AKTIVITAeT BUCHEN
 // ============================================================
 function applyLoad(i) {
 if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
@@ -781,6 +782,9 @@ showToast();
 startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
+// Topf-Warnung bei neuer Aktivitaet wieder erlauben
+var twb = document.getElementById("topfWarnBar");
+if (twb) { twb._dismissed = false; }
 }
 
 // ============================================================
@@ -823,8 +827,8 @@ regen = Math.min(regen, Math.floor(state.max * REGEN_MAX_ANTEIL));
 }
 var hinweis;
 if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) { hinweis = "Prima!" }
-else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = "Liegepause wäre besser." }
-else { hinweis = "Auf längere Pausen achten." }
+else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = "Liegepause waere besser." }
+else { hinweis = "Auf laengere Pausen achten." }
 var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
 mutateState(function(s) {
 if (regen > 0) { s.cur = Math.min(s.max, s.cur + regen); }
@@ -993,7 +997,7 @@ bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
 bar.style.background = "#ff9500"
 } else if (state.kurzPausen > 1 && min > schwelle * 0.7) {
 bar.style.display = "block"
-bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
+bar.textContent = "Bisherige Pausen reichen nicht - laengere Pause noetig!"
 bar.style.background = "#ff9500"
 } else {
 bar.style.display = "none"
@@ -1050,7 +1054,7 @@ cb.style.animation = "blinker 1.2s linear infinite"
 nb.style.display = "none"
 } else if (sc >= CRASH_SCORE_MITTEL) {
 cb.style.display = "block"
-cb.textContent = "PEM-Risiko erhöht - Aktivitäten reduzieren!"
+cb.textContent = "PEM-Risiko erhoeht - Aktivitaeten reduzieren!"
 cb.style.background = "#e07800"
 cb.style.animation = "none"
 nb.style.display = "none"
@@ -1082,7 +1086,7 @@ bar.style.display = "none"
 }
 
 // ============================================================
-// NEU 4.4.2: TAGES-TÖPFE
+// NEU 4.4.2: TAGES-TOePFE
 // ============================================================
 function updateToepfe() {
 if (state.max <= 0) { return; }
@@ -1115,13 +1119,14 @@ var fill = document.getElementById("topf" + (t+1) + "Fill");
 var label = document.getElementById("topf" + (t+1) + "Label");
 if (!fill || !label) { continue; }
 var pct = budgets[t] > 0 ? Math.min(100, Math.round(verbrauch[t] / budgets[t] * 100)) : 0;
+var rest = 100 - pct; // verbleibende Energie
 var istAktiv = (t === aktiverTopf);
 var istVergangen = (t < aktiverTopf);
 var farbe;
 if (pct >= 100) { farbe = "#ff3b30" }
 else if (pct >= 70) { farbe = "#ff9500" }
 else { farbe = "#34c759" }
-fill.style.height = pct + "%"
+fill.style.height = rest + "%"
 fill.style.background = farbe;
 var container = fill.parentElement;
 container.style.opacity = istVergangen ? "0.55" : "1"
@@ -1130,6 +1135,19 @@ container.style.borderRadius = "8px"
 label.textContent = verbrauch[t] + "/" + budgets[t];
 label.style.color = istAktiv ? "#007aff" : "#8e8e93"
 label.style.fontWeight = istAktiv ? "800" : "600"
+}
+
+// Topf-Warnung
+var warnBar = document.getElementById("topfWarnBar");
+if (warnBar && !warnBar._dismissed) {
+var zuAktiv = false;
+// Aktueller Topf ueberschritten
+if (verbrauch[aktiverTopf] > budgets[aktiverTopf]) { zuAktiv = true; }
+// Punkte bereits im naechsten Topf obwohl Zeit noch nicht da
+if (aktiverTopf === 0 && verbrauch[1] > 0) { zuAktiv = true; }
+if (aktiverTopf <= 1 && verbrauch[2] > 0) { zuAktiv = true; }
+warnBar.style.display = zuAktiv ? "block" : "none"
+if (!zuAktiv) { warnBar._dismissed = false; }
 }
 }
 
@@ -1326,11 +1344,11 @@ function resetKatalog() {
 loads = STANDARD_KATALOG.slice();
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
 renderCatalog();
-showToast("Katalog zurückgesetzt");
+showToast("Katalog zurueckgesetzt");
 }
 
 // ============================================================
-// AKTIVITÄTENLISTE
+// AKTIVITAeTENLISTE
 // ============================================================
 function buildCombined() {
 var combined = [];
@@ -1438,7 +1456,7 @@ var st = ls ? (ls.ts || 0) : 0;
 if (st > ut && ls) {
 mutateState(function(s) { s.symptome.pop(); });
 updateDisplay();
-showToast("Symptom rückgängig");
+showToast("Symptom rueckgaengig");
 } else if (lu) {
 var last = state.used[state.used.length-1];
 if (last.n.indexOf("STRAFE") >= 0) {
@@ -1525,6 +1543,11 @@ document.getElementById("crashWarnBar").style.display = "none"
 document.getElementById("notbremsBar").style.display = "none"
 document.getElementById("mikroPauseBar").style.display = "none"
 document.getElementById("aufrechtWarnBar").style.display = "none"
+var twb = document.getElementById("topfWarnBar");
+if (twb) {
+twb.style.display = "none"
+twb._dismissed = false;
+}
 showToast("Neuer Tag!");
 }
 
