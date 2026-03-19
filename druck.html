@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.5.5</title>
+<title>PacingApp 4.5.7</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -172,25 +172,28 @@ min-width:260px; text-align:center;
 <div id="statusWrap" class="status-wrap">
 <div class="status bg-green" id="boxSpielraum" style="flex:2;">Spielraum<span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span></div>
 <div id="topfWrap" style="display:flex;flex-direction:column;align-items:center;padding:4px 4px;">
-<div style="font-size:8px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:0.5px;">Energieplan</div>
+<div style="font-size:8px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:0.5px;">Energiebudget</div>
 <div style="display:flex;gap:5px;align-items:flex-end;">
 <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+<div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 10:30</div>
 <div style="width:26px;height:56px;background:#aaa;border-radius:6px;overflow:hidden;position:relative;">
-<div id="topf1Fill" style="width:100%;background:#a8d8ff;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
+<div id="topf1Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
 </div>
-<div id="topf1Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Morgen<br><span style="font-weight:400;opacity:0.7;">bis 10:30</span></div>
+<div id="topf1Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Morgen</div>
 </div>
 <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+<div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 14:00</div>
 <div style="width:26px;height:56px;background:#aaa;border-radius:6px;overflow:hidden;position:relative;">
-<div id="topf2Fill" style="width:100%;background:#a8d8ff;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
+<div id="topf2Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
 </div>
-<div id="topf2Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Mittag<br><span style="font-weight:400;opacity:0.7;">bis 14:00</span></div>
+<div id="topf2Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Mittag</div>
 </div>
 <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+<div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">ab 14:00</div>
 <div style="width:26px;height:56px;background:#aaa;border-radius:6px;overflow:hidden;position:relative;">
-<div id="topf3Fill" style="width:100%;background:#a8d8ff;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
+<div id="topf3Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
 </div>
-<div id="topf3Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Abend<br><span style="font-weight:400;opacity:0.7;">ab 14:00</span></div>
+<div id="topf3Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Abend</div>
 </div>
 </div>
 </div>
@@ -365,13 +368,13 @@ var STANDARD_KATALOG = [
 {n:"Aufstehen", v:3},
 {n:"Leichte Arbeiten", v:2},
 {n:"30 Min. achtsame Bewegung", v:5},
-{n:"Laengere leichte Arbeiten", v:10},
-{n:"Aergern", v:10},
-{n:"Problem waelzen", v:10},
-{n:"Laengere starke Konzentration", v:10}
+{n:"Längere leichte Arbeiten", v:10},
+{n:"Ärgern", v:10},
+{n:"Problem wälzen", v:10},
+{n:"Längere starke Konzentration", v:10}
 ];
 
-var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschoepfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
+var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Erschöpfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
 
 // ============================================================
 // STORAGE
@@ -1097,28 +1100,44 @@ heute.getTime() + TOPF_ENDE_H[1] * 3600000,
 heute.getTime() + TOPF_ENDE_H[2] * 3600000
 ];
 var startTs = heute.getTime() + TOPF_START_H * 3600000;
-var verbrauch = [0, 0, 0];
+
+// Verbrauch pro Zeitfenster sammeln
+var verbrauchRaw = [0, 0, 0];
 for (var i = 0; i < state.used.length; i++) {
 var u = state.used[i];
 if (u.v <= 0 || !u.ts || u.ts < startTs) { continue; }
-if (u.ts < grenzen[0]) { verbrauch[0] += u.v; }
-else if (u.ts < grenzen[1]) { verbrauch[1] += u.v; }
-else { verbrauch[2] += u.v; }
+if (u.ts < grenzen[0]) { verbrauchRaw[0] += u.v; }
+else if (u.ts < grenzen[1]) { verbrauchRaw[1] += u.v; }
+else { verbrauchRaw[2] += u.v; }
 }
+
+// Overflow-Logik: was ueber Budget T1 hinausgeht, zaehlt fuer T2 usw.
+var verbrauch = [0, 0, 0];
+var ueberlauf = 0;
+for (var t = 0; t < 3; t++) {
+var zugewiesen = verbrauchRaw[t] + ueberlauf;
+verbrauch[t] = Math.min(zugewiesen, budgets[t]);
+ueberlauf = Math.max(0, zugewiesen - budgets[t]);
+}
+
 var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
 for (var t = 0; t < 3; t++) {
 var fill = document.getElementById("topf" + (t+1) + "Fill");
 var label = document.getElementById("topf" + (t+1) + "Label");
 if (!fill || !label) { continue; }
 var pct = budgets[t] > 0 ? Math.min(100, Math.round(verbrauch[t] / budgets[t] * 100)) : 0;
-var rest = 100 - pct; // verbleibende Energie
+// Eimer: Fill = verbleibende Energie, sitzt oben, schrumpft nach unten
+// rest% bleibt oben, verbrauchter Teil (grauer Hintergrund) erscheint unten
+var rest = 100 - pct;
 var istAktiv = (t === aktiverTopf);
 var istVergangen = (t < aktiverTopf);
 var farbe;
-if (pct >= 100) { farbe = "rgba(255,50,50,0.9)" }
-else if (pct >= 70) { farbe = "rgba(255,200,0,0.9)" }
-else { farbe = "#a8d8ff" }
+if (pct >= 90) { farbe = "#ff3b30" }
+else if (pct >= 70) { farbe = "#ffcc00" }
+else { farbe = "#34c759" }
+// Eimer-Richtung: fill haengt oben, wird kleiner
 fill.style.height = rest + "%"
+fill.style.top = "0"
 fill.style.background = farbe;
 var container = fill.parentElement;
 container.style.opacity = istVergangen ? "0.55" : "1"
@@ -1133,11 +1152,9 @@ label.style.fontWeight = istAktiv ? "800" : "600"
 var warnBar = document.getElementById("topfWarnBar");
 if (warnBar && !warnBar._dismissed) {
 var zuAktiv = false;
-// Aktueller Topf ueberschritten
-if (verbrauch[aktiverTopf] > budgets[aktiverTopf]) { zuAktiv = true; }
-// Punkte bereits im naechsten Topf obwohl Zeit noch nicht da
-if (aktiverTopf === 0 && verbrauch[1] > 0) { zuAktiv = true; }
-if (aktiverTopf <= 1 && verbrauch[2] > 0) { zuAktiv = true; }
+if (verbrauchRaw[aktiverTopf] > budgets[aktiverTopf]) { zuAktiv = true; }
+if (aktiverTopf === 0 && verbrauchRaw[1] > 0) { zuAktiv = true; }
+if (aktiverTopf <= 1 && verbrauchRaw[2] > 0) { zuAktiv = true; }
 warnBar.style.display = zuAktiv ? "block" : "none"
 if (!zuAktiv) { warnBar._dismissed = false; }
 }
