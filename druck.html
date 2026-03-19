@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.5.2</title>
+<title>PacingApp 4.5.5</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -170,64 +170,59 @@ min-width:260px; text-align:center;
 <div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">STOP! Energie kritisch - keine weiteren Aktivitäten!</div>
 
 <div id="statusWrap" class="status-wrap">
-<div class="status bg-green" id="boxLimit" style="flex:0.7;font-size:12px;">Limit<span id="valStart" class="big" style="font-size:1.2rem;">0</span></div>
-<div class="status bg-green" id="boxSpielraum" style="flex:1.6;">Spielraum<span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span></div>
-<div id="boxRest" class="status bg-green" style="flex:0.7;font-size:12px;">Rest<span id="valRest" class="big" style="font-size:1.2rem;">0</span></div>
+<div class="status bg-green" id="boxSpielraum" style="flex:2;">Spielraum<span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span></div>
+<div id="topfWrap" style="display:flex;flex-direction:column;align-items:center;padding:4px 4px;">
+<div style="font-size:8px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:0.5px;">Energieplan</div>
+<div style="display:flex;gap:5px;align-items:flex-end;">
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+<div style="width:26px;height:56px;background:#aaa;border-radius:6px;overflow:hidden;position:relative;">
+<div id="topf1Fill" style="width:100%;background:#a8d8ff;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
+</div>
+<div id="topf1Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Morgen<br><span style="font-weight:400;opacity:0.7;">bis 10:30</span></div>
+</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+<div style="width:26px;height:56px;background:#aaa;border-radius:6px;overflow:hidden;position:relative;">
+<div id="topf2Fill" style="width:100%;background:#a8d8ff;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
+</div>
+<div id="topf2Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Mittag<br><span style="font-weight:400;opacity:0.7;">bis 14:00</span></div>
+</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+<div style="width:26px;height:56px;background:#aaa;border-radius:6px;overflow:hidden;position:relative;">
+<div id="topf3Fill" style="width:100%;background:#a8d8ff;transition:height 0.4s;height:100%;position:absolute;top:0;left:0;"></div>
+</div>
+<div id="topf3Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Abend<br><span style="font-weight:400;opacity:0.7;">ab 14:00</span></div>
+</div>
+</div>
+</div>
+<div id="boxRest" class="status bg-green" style="flex:0.55;font-size:11px;">Rest<span id="valRest" class="big" style="font-size:1.2rem;">0</span></div>
 </div>
 
-<!-- NEU 4.4.2: Töpfe + Waage nebeneinander, Pause darunter -->
+<!-- Pause + Waage kompakt nebeneinander -->
 
-<div id="pauseUndWaage" style="display:none;flex-direction:column;gap:8px;margin-bottom:8px;">
-<!-- Zeile 1: Töpfe + Waage -->
-<div style="display:flex;gap:10px;align-items:flex-end;">
-<div id="topfWrap" style="display:flex;gap:5px;flex:1;">
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
-<div style="font-size:9px;font-weight:700;color:#555;text-align:center;">bis 10:30</div>
-<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;">
-<div id="topf1Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;"></div>
-</div>
-<div id="topf1Label" style="font-size:9px;font-weight:700;color:#8e8e93;">T1</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
-<div style="font-size:9px;font-weight:700;color:#555;text-align:center;">bis 14:00</div>
-<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;">
-<div id="topf2Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;"></div>
-</div>
-<div id="topf2Label" style="font-size:9px;font-weight:700;color:#8e8e93;">T2</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
-<div style="font-size:9px;font-weight:700;color:#555;text-align:center;">ab 14:00</div>
-<div style="width:100%;height:70px;background:#e5e5ea;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;">
-<div id="topf3Fill" style="width:100%;background:#34c759;transition:height 0.4s;height:100%;"></div>
-</div>
-<div id="topf3Label" style="font-size:9px;font-weight:700;color:#8e8e93;">T3</div>
-</div>
+<div id="pauseUndWaage" style="display:none;flex-direction:row;gap:10px;align-items:center;margin-bottom:8px;">
+<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
+<button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn</button>
+<button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
+<div id="pauseHint" style="display:none;font-size:10px;padding:4px 6px;border-radius:6px;line-height:1.3;border-left:3px solid var(--pause);background:rgba(255,255,255,0.2);color:inherit;">Ruhe zur Puls-Normalisierung ist KEINE Pause!</div>
 </div>
 <div id="waageWrap" class="waage-wrap" style="flex-shrink:0;">
-<div style="font-size:11px;font-weight:700;color:#555;margin-bottom:2px;text-align:center;">Liegewaage</div>
-<svg id="waageSvg" viewBox="0 0 160 130" width="140" height="115" style="overflow:visible;">
-<line x1="80" y1="20" x2="80" y2="95" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<ellipse cx="80" cy="98" rx="22" ry="5" fill="#ccc"/>
+<div style="font-size:10px;font-weight:700;color:#555;margin-bottom:1px;text-align:center;">Liegewaage</div>
+<svg id="waageSvg" viewBox="0 0 160 115" width="120" height="86" style="overflow:visible;">
+<line x1="80" y1="20" x2="80" y2="90" stroke="#888" stroke-width="3" stroke-linecap="round"/>
+<ellipse cx="80" cy="93" rx="20" ry="4" fill="#ccc"/>
 <circle cx="80" cy="22" r="5" fill="#888"/>
 <line id="waageBalken" x1="15" y1="22" x2="145" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round"/>
 <line id="waageSeilL" x1="20" y1="22" x2="20" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleL" cx="20" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
 <line id="waageSeilR" x1="140" y1="22" x2="140" y2="55" stroke="#aaa" stroke-width="1.5"/>
 <ellipse id="waageSchaleR" cx="140" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<text id="waageTextL" x="20" y="80" text-anchor="middle" font-size="9" font-weight="700" fill="#555">0 Min.</text>
-<text x="20" y="105" text-anchor="middle" font-size="8" fill="#555">liegend</text>
-<text id="waageTextR" x="140" y="80" text-anchor="middle" font-size="9" font-weight="700" fill="#555">0 Min.</text>
-<text x="140" y="105" text-anchor="middle" font-size="8" fill="#555">aufrecht</text>
+<text id="waageTextL" x="20" y="76" text-anchor="middle" font-size="8" font-weight="700" fill="#555">0 Min.</text>
+<text x="20" y="100" text-anchor="middle" font-size="7" fill="#555">liegend</text>
+<text id="waageTextR" x="140" y="76" text-anchor="middle" font-size="8" font-weight="700" fill="#555">0 Min.</text>
+<text x="140" y="100" text-anchor="middle" font-size="7" fill="#555">aufrecht</text>
 </svg>
 </div>
 </div>
-<!-- Zeile 2: Pause-Buttons -->
-<div style="display:flex;flex-direction:column;gap:8px;">
-<button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn</button>
-<button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
-</div>
-</div>
-<div id="pauseHint" class="pause-hint">Hinweis: Ruhe zur Puls-Normalisierung ist KEINE Pause!</div>
 <div id="rollingWarnBox" class="rolling-warn">Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!</div>
 
 <div class="card" id="cardCheck">
@@ -618,11 +613,11 @@ var ind = parseFloat(document.getElementById("sleep").value);
 if (isNaN(ind) || ind <= 0) { showToast("Bitte Schlafwert eingeben!"); return; }
 schlafPunkte = ind;
 } else {
-showToast("Bitte Schlafqualitaet auswaehlen!");
+showToast("Bitte Schlafqualität auswählen!");
 return;
 }
 var f = document.getElementById("feeling").value;
-if (!f) { showToast("Bitte Gefuehl auswaehlen!"); return; }
+if (!f) { showToast("Bitte Gefühl auswählen!"); return; }
 var berechnetes = schlafPunkte + parseFloat(f);
 var h = state.history || [];
 var last3 = h.slice(-3);
@@ -692,7 +687,6 @@ function updateDisplay() {
 if (state.max <= 0) { return; }
 var grenze = Math.ceil(state.max * GRENZE_ROT);
 var spielraum = Math.max(0, state.cur - grenze);
-document.getElementById("valStart").textContent = state.max;
 document.getElementById("valRest").textContent = state.cur;
 document.getElementById("valSpielraum").textContent = spielraum;
 renderStatus(spielraum);
@@ -707,28 +701,26 @@ updateToepfe();
 function renderStatus(spielraum) {
 var body = document.getElementById("mainBody");
 var bR = document.getElementById("boxRest");
-var bL = document.getElementById("boxLimit");
 var bS = document.getElementById("boxSpielraum");
 var msg = document.getElementById("statusMsg");
 body.className = ""
 bR.className = "status"
-bL.className = "status"
 bS.className = "status"
 if (spielraum > state.max * 0.5) {
 body.classList.add("mode-green");
-bR.classList.add("bg-green"); bL.classList.add("bg-green"); bS.classList.add("bg-green");
+bR.classList.add("bg-green"); bS.classList.add("bg-green");
 msg.textContent = "Alles gut! Aber achtsam bleiben!"
 } else if (spielraum > state.max * 0.25) {
 body.classList.add("mode-yellow");
-bR.classList.add("bg-yellow"); bL.classList.add("bg-yellow"); bS.classList.add("bg-yellow");
+bR.classList.add("bg-yellow"); bS.classList.add("bg-yellow");
 msg.textContent = "Achtsam! Pausen einplanen!"
 } else if (spielraum > 0) {
 body.classList.add("mode-orange");
-bR.classList.add("bg-orange"); bL.classList.add("bg-orange"); bS.classList.add("bg-orange");
+bR.classList.add("bg-orange"); bS.classList.add("bg-orange");
 msg.textContent = "Langsam! Nur noch Reserve!"
 } else {
 body.classList.add("mode-red");
-bR.classList.add("bg-red"); bL.classList.add("bg-red"); bS.classList.add("bg-red");
+bR.classList.add("bg-red"); bS.classList.add("bg-red");
 msg.textContent = "STOP! Reserve aufgebraucht!"
 }
 }
@@ -827,8 +819,8 @@ regen = Math.min(regen, Math.floor(state.max * REGEN_MAX_ANTEIL));
 }
 var hinweis;
 if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) { hinweis = "Prima!" }
-else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = "Liegepause waere besser." }
-else { hinweis = "Auf laengere Pausen achten." }
+else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = "Liegepause wäre besser." }
+else { hinweis = "Auf längere Pausen achten." }
 var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
 mutateState(function(s) {
 if (regen > 0) { s.cur = Math.min(s.max, s.cur + regen); }
@@ -997,7 +989,7 @@ bar.textContent = min + " Min. aufrecht - Liegepause sinnvoll!"
 bar.style.background = "#ff9500"
 } else if (state.kurzPausen > 1 && min > schwelle * 0.7) {
 bar.style.display = "block"
-bar.textContent = "Bisherige Pausen reichen nicht - laengere Pause noetig!"
+bar.textContent = "Bisherige Pausen reichen nicht - längere Pause nötig!"
 bar.style.background = "#ff9500"
 } else {
 bar.style.display = "none"
@@ -1054,7 +1046,7 @@ cb.style.animation = "blinker 1.2s linear infinite"
 nb.style.display = "none"
 } else if (sc >= CRASH_SCORE_MITTEL) {
 cb.style.display = "block"
-cb.textContent = "PEM-Risiko erhoeht - Aktivitaeten reduzieren!"
+cb.textContent = "PEM-Risiko erhöht - Aktivitäten reduzieren!"
 cb.style.background = "#e07800"
 cb.style.animation = "none"
 nb.style.display = "none"
@@ -1123,17 +1115,17 @@ var rest = 100 - pct; // verbleibende Energie
 var istAktiv = (t === aktiverTopf);
 var istVergangen = (t < aktiverTopf);
 var farbe;
-if (pct >= 100) { farbe = "#ff3b30" }
-else if (pct >= 70) { farbe = "#ff9500" }
-else { farbe = "#34c759" }
+if (pct >= 100) { farbe = "rgba(255,50,50,0.9)" }
+else if (pct >= 70) { farbe = "rgba(255,200,0,0.9)" }
+else { farbe = "#a8d8ff" }
 fill.style.height = rest + "%"
 fill.style.background = farbe;
 var container = fill.parentElement;
 container.style.opacity = istVergangen ? "0.55" : "1"
-container.style.outline = istAktiv ? "2px solid #007aff" : "none"
-container.style.borderRadius = "8px"
+container.style.outline = istAktiv ? "2px solid #000" : "none"
+container.style.borderRadius = "6px"
 label.textContent = verbrauch[t] + "/" + budgets[t];
-label.style.color = istAktiv ? "#007aff" : "#8e8e93"
+label.style.color = istAktiv ? "#000" : "#555"
 label.style.fontWeight = istAktiv ? "800" : "600"
 }
 
@@ -1344,7 +1336,7 @@ function resetKatalog() {
 loads = STANDARD_KATALOG.slice();
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
 renderCatalog();
-showToast("Katalog zurueckgesetzt");
+showToast("Katalog zurückgesetzt");
 }
 
 // ============================================================
@@ -1456,7 +1448,7 @@ var st = ls ? (ls.ts || 0) : 0;
 if (st > ut && ls) {
 mutateState(function(s) { s.symptome.pop(); });
 updateDisplay();
-showToast("Symptom rueckgaengig");
+showToast("Symptom rückgängig");
 } else if (lu) {
 var last = state.used[state.used.length-1];
 if (last.n.indexOf("STRAFE") >= 0) {
@@ -1521,7 +1513,6 @@ document.getElementById("sleep").value = ""
 document.getElementById("feeling").selectedIndex = 0;
 document.getElementById("statusWrap").style.display = "none"
 document.getElementById("pauseUndWaage").style.display = "none"
-document.getElementById("pauseHint").style.display = "none"
 document.getElementById("pacingHeader").style.display = "none"
 document.getElementById("cardCheck").style.display = "block"
 document.getElementById("btnToggleCheck").style.display = "none"
