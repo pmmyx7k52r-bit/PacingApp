@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.5.15</title>
+<title>PacingApp 4.5.17</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1117,29 +1117,25 @@ else if (u.ts < grenzen[1]) { verbrauchRaw[1] += u.v; }
 else { verbrauchRaw[2] += u.v; }
 }
 
-// Overflow-Logik: Ueberlauf fliesst in naechsten Topf, wird dort rot markiert
+// Overflow-Logik: Ueberlauf fliesst in naechsten Topf
 var verbrauch = [0, 0, 0];
-var ueberlaufPunkte = [0, 0, 0];
 var carry = 0;
 for (var t = 0; t < 3; t++) {
 var zugewiesen = verbrauchRaw[t] + carry;
-ueberlaufPunkte[t] = Math.min(carry, budgets[t]);
 verbrauch[t] = Math.min(zugewiesen, budgets[t]);
 carry = Math.max(0, zugewiesen - budgets[t]);
 }
 
 var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
-var hoehen = [46, 46, 60]; // proportional zu 30/30/40%
+var hoehen = [46, 46, 60];
 for (var t = 0; t < 3; t++) {
 var fill = document.getElementById("topf" + (t+1) + "Fill");
 var label = document.getElementById("topf" + (t+1) + "Label");
 if (!fill || !label) { continue; }
 var pct = budgets[t] > 0 ? Math.min(100, Math.round(verbrauch[t] / budgets[t] * 100)) : 0;
-var uPct = budgets[t] > 0 ? Math.min(100, Math.round(ueberlaufPunkte[t] / budgets[t] * 100)) : 0;
 var istAktiv = (t === aktiverTopf);
 var istVergangen = (t < aktiverTopf);
 
-// Hintergrundfarbe (verbleibende Energie)
 var bgFarbe;
 if (pct >= 90) { bgFarbe = "#ff3b30" }
 else if (pct >= 70) { bgFarbe = "#ffcc00" }
@@ -1152,25 +1148,21 @@ container.style.opacity = istVergangen ? "0.6" : "1"
 container.style.outline = istAktiv ? "2px solid #000" : "none"
 container.style.borderRadius = "6px"
 
-// Overlay von oben: rot fuer Ueberlauf, dann grau fuer normalen Verbrauch
 fill.style.height = pct + "%"
 fill.style.top = "0"
-if (uPct > 0) {
-fill.style.background = "linear-gradient(to bottom, #ff3b30 " + uPct + "%, #aaa " + uPct + "%)"
-} else {
 fill.style.background = "#aaa"
-}
 
 label.textContent = verbrauch[t] + "/" + budgets[t];
 label.style.color = istAktiv ? "#000" : "#555"
 label.style.fontWeight = istAktiv ? "800" : "600"
 
-// Bodensatz nur im 3. Topf - feste Reserve
+// Bodensatz nur im 3. Topf
 if (t === 2) {
 var bodensatz = document.getElementById("topf3Bodensatz");
 if (bodensatz && budgets[2] > 0) {
 var bodensatzPct = Math.min(100, Math.round(TOPF_ABEND_PUFFER / budgets[2] * 100));
 bodensatz.style.height = bodensatzPct + "%"
+bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0"
 }
 }
 }
