@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.5.8</title>
+<title>PacingApp 4.5.11</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -170,7 +170,7 @@ min-width:260px; text-align:center;
 <div id="notbremsBar" style="position:fixed;bottom:200px;left:12px;right:12px;background:#000;color:#ff3b30;border:2px solid #ff3b30;padding:12px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3003;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:blinker 0.8s linear infinite;">STOP! Energie kritisch - keine weiteren Aktivitäten!</div>
 
 <div id="statusWrap" class="status-wrap">
-<div class="status bg-green" id="boxSpielraum" style="flex:2;">Spielraum<span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span></div>
+<div class="status bg-green" id="boxSpielraum" style="flex:2;">Spielraum<span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span><span id="restAnzeige" style="font-size:0.7rem;font-weight:600;margin-top:3px;display:block;opacity:0.85;">Rest: 0</span></div>
 <div id="topfWrap" style="display:flex;flex-direction:column;align-items:center;padding:4px 4px;">
 <div style="font-size:8px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:0.5px;">Energiebudget</div>
 <div style="display:flex;gap:5px;align-items:flex-end;">
@@ -190,14 +190,13 @@ min-width:260px; text-align:center;
 </div>
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
 <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">ab 14:00</div>
-<div style="width:26px;height:56px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
+<div style="width:26px;height:40px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
 <div id="topf3Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
 </div>
 <div id="topf3Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Abend</div>
 </div>
 </div>
 </div>
-<div id="boxRest" class="status bg-green" style="flex:0.55;font-size:11px;">Rest<span id="valRest" class="big" style="font-size:1.2rem;">0</span></div>
 </div>
 
 <!-- Pause + Waage kompakt nebeneinander -->
@@ -690,8 +689,10 @@ function updateDisplay() {
 if (state.max <= 0) { return; }
 var grenze = Math.ceil(state.max * GRENZE_ROT);
 var spielraum = Math.max(0, state.cur - grenze);
-document.getElementById("valRest").textContent = state.cur;
 document.getElementById("valSpielraum").textContent = spielraum;
+// Rest klein unter Spielraum anzeigen
+var restEl = document.getElementById("restAnzeige");
+if (restEl) { restEl.textContent = "Rest: " + state.cur; }
 renderStatus(spielraum);
 renderPemHeader();
 renderUsed();
@@ -703,27 +704,25 @@ updateToepfe();
 
 function renderStatus(spielraum) {
 var body = document.getElementById("mainBody");
-var bR = document.getElementById("boxRest");
 var bS = document.getElementById("boxSpielraum");
 var msg = document.getElementById("statusMsg");
 body.className = ""
-bR.className = "status"
 bS.className = "status"
 if (spielraum > state.max * 0.5) {
 body.classList.add("mode-green");
-bR.classList.add("bg-green"); bS.classList.add("bg-green");
+bS.classList.add("bg-green");
 msg.textContent = "Alles gut! Aber achtsam bleiben!"
 } else if (spielraum > state.max * 0.25) {
 body.classList.add("mode-yellow");
-bR.classList.add("bg-yellow"); bS.classList.add("bg-yellow");
+bS.classList.add("bg-yellow");
 msg.textContent = "Achtsam! Pausen einplanen!"
 } else if (spielraum > 0) {
 body.classList.add("mode-orange");
-bR.classList.add("bg-orange"); bS.classList.add("bg-orange");
+bS.classList.add("bg-orange");
 msg.textContent = "Langsam! Nur noch Reserve!"
 } else {
 body.classList.add("mode-red");
-bR.classList.add("bg-red"); bS.classList.add("bg-red");
+bS.classList.add("bg-red");
 msg.textContent = "STOP! Reserve aufgebraucht!"
 }
 }
@@ -1111,40 +1110,50 @@ else if (u.ts < grenzen[1]) { verbrauchRaw[1] += u.v; }
 else { verbrauchRaw[2] += u.v; }
 }
 
-// Overflow-Logik: was ueber Budget T1 hinausgeht, zaehlt fuer T2 usw.
+// Overflow-Logik: Ueberlauf fliesst in naechsten Topf, wird dort rot markiert
 var verbrauch = [0, 0, 0];
-var ueberlauf = 0;
+var ueberlaufPunkte = [0, 0, 0];
+var carry = 0;
 for (var t = 0; t < 3; t++) {
-var zugewiesen = verbrauchRaw[t] + ueberlauf;
+var zugewiesen = verbrauchRaw[t] + carry;
+ueberlaufPunkte[t] = Math.min(carry, budgets[t]);
 verbrauch[t] = Math.min(zugewiesen, budgets[t]);
-ueberlauf = Math.max(0, zugewiesen - budgets[t]);
+carry = Math.max(0, zugewiesen - budgets[t]);
 }
 
 var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
+var hoehen = [56, 56, 40]; // proportional zu 37/37/26%
 for (var t = 0; t < 3; t++) {
 var fill = document.getElementById("topf" + (t+1) + "Fill");
 var label = document.getElementById("topf" + (t+1) + "Label");
 if (!fill || !label) { continue; }
 var pct = budgets[t] > 0 ? Math.min(100, Math.round(verbrauch[t] / budgets[t] * 100)) : 0;
-// Eimer: Fill = verbleibende Energie, sitzt oben, schrumpft nach unten
-// rest% bleibt oben, verbrauchter Teil (grauer Hintergrund) erscheint unten
-var rest = 100 - pct;
+var uPct = budgets[t] > 0 ? Math.min(100, Math.round(ueberlaufPunkte[t] / budgets[t] * 100)) : 0;
 var istAktiv = (t === aktiverTopf);
 var istVergangen = (t < aktiverTopf);
-var farbe;
-if (pct >= 90) { farbe = "#ff3b30" }
-else if (pct >= 70) { farbe = "#ffcc00" }
-else { farbe = "#34c759" }
-// Eimer: Hintergrund = Energiefarbe, grauer Overlay waechst von oben
-fill.style.height = pct + "%"
-fill.style.top = "0"
-fill.style.background = "#aaa"
+
+// Hintergrundfarbe (verbleibende Energie)
+var bgFarbe;
+if (pct >= 90) { bgFarbe = "#ff3b30" }
+else if (pct >= 70) { bgFarbe = "#ffcc00" }
+else { bgFarbe = "#34c759" }
+
 var container = fill.parentElement;
-container.style.background = farbe;
-var container = fill.parentElement;
-container.style.opacity = istVergangen ? "0.55" : "1"
+container.style.background = bgFarbe;
+container.style.height = hoehen[t] + "px"
+container.style.opacity = istVergangen ? "0.6" : "1"
 container.style.outline = istAktiv ? "2px solid #000" : "none"
 container.style.borderRadius = "6px"
+
+// Overlay von oben: rot fuer Ueberlauf, dann grau fuer normalen Verbrauch
+fill.style.height = pct + "%"
+fill.style.top = "0"
+if (uPct > 0) {
+fill.style.background = "linear-gradient(to bottom, #ff3b30 " + uPct + "%, #aaa " + uPct + "%)"
+} else {
+fill.style.background = "#aaa"
+}
+
 label.textContent = verbrauch[t] + "/" + budgets[t];
 label.style.color = istAktiv ? "#000" : "#555"
 label.style.fontWeight = istAktiv ? "800" : "600"
