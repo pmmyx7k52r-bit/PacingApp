@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.5.18d</title>
+<title>PacingApp 4.6</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -177,21 +177,21 @@ border-top: 1px solid rgba(200,0,0,0.3);
 <div style="display:flex;gap:5px;align-items:flex-end;">
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
 <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 10:30</div>
-<div style="width:26px;height:46px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
+<div style="width:26px;height:50px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
 <div id="topf1Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
 </div>
 <div id="topf1Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Morgen</div>
 </div>
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
 <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 14:00</div>
-<div style="width:26px;height:46px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
+<div style="width:26px;height:50px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
 <div id="topf2Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
 </div>
 <div id="topf2Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Mittag</div>
 </div>
 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
 <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">ab 14:00</div>
-<div style="width:26px;height:60px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
+<div style="width:26px;height:56px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
 <div id="topf3Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
 <div id="topf3Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
 </div>
@@ -207,7 +207,6 @@ border-top: 1px solid rgba(200,0,0,0.3);
 <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
 <button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn (ohne Handy!)</button>
 <button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
-<div id="pauseHint" style="display:none;font-size:10px;padding:4px 6px;border-radius:6px;line-height:1.3;border-left:3px solid var(--pause);background:rgba(255,255,255,0.2);color:inherit;">Ruhe zur Puls-Normalisierung ist KEINE Pause!</div>
 </div>
 <div id="waageWrap" class="waage-wrap" style="flex-shrink:0;">
 <div style="font-size:10px;font-weight:700;color:#555;margin-bottom:1px;text-align:center;">Liegewaage</div>
@@ -356,7 +355,7 @@ var TIMER_WARN_NIEDRIG = 20;
 var TIMER_ZWANG_NIEDRIG = 30;
 
 // NEU 4.4.2: Tages-Toepfe
-var TOPF_ANTEIL = [0.30, 0.30, 0.40]; // Budgetanteile T1/T2/T3
+var TOPF_ANTEIL = [0.32, 0.32, 0.36]; // Budgetanteile T1/T2/T3
 var TOPF_ENDE_H = [10.5, 14.0, 24.0]; // Endzeiten: 10:30 / 14:00 / Tagesende
 var TOPF_START_H = 5.0; // Tagesbeginn fuer Berechnung (ab 05:00)
 var TOPF_ABEND_PUFFER = 15; // Feste Reserve Abend (tabu)
@@ -450,8 +449,10 @@ storeSet(STORAGE_LOADS, JSON.stringify(loads));
 // PAUSE-TIMER
 // ============================================================
 function startPauseTimer() {
+if (!lastActionTime) {
 lastActionTime = Date.now();
 storeSet("pacing_timer_start", String(lastActionTime));
+}
 checkPauseTimer();
 }
 
@@ -664,7 +665,6 @@ else { showToast("Tag gestartet!"); }
 function showMainUI() {
 document.getElementById("statusWrap").style.display = "flex"
 document.getElementById("pauseUndWaage").style.display = "flex"
-document.getElementById("pauseHint").style.display = "block"
 document.getElementById("cardCheck").style.display = "none"
 document.getElementById("btnToggleCheck").style.display = "inline-block"
 document.getElementById("debugBtn").style.display = "inline-block"
@@ -1203,7 +1203,7 @@ carry = Math.max(0, zugewiesen - budgets[t]);
 }
 
 var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
-var hoehen = [46, 46, 60];
+var hoehen = [50, 50, 56];
 for (var t = 0; t < 3; t++) {
 var fill = document.getElementById("topf" + (t+1) + "Fill");
 var label = document.getElementById("topf" + (t+1) + "Label");
