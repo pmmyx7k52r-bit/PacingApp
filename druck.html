@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.6.4</title>
+<title>PacingApp 5.2</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -739,7 +739,7 @@ updateToepfe();
 }
 
 function renderStatus(spielraum) {
-var body = document.getElementById("mainBody");
+if (state.max <= 0) { return; }
 var bS = document.getElementById("boxSpielraum");
 var msg = document.getElementById("statusMsg");
 body.className = ""
@@ -778,6 +778,7 @@ mutateState(function(s) { s.pene = false; });
 }
 
 function renderPemHeader() {
+if (state.max <= 0) { return; }
 var header = document.getElementById("pacingHeader");
 var blockWarnSchwelle = Math.round(state.max * BLOCK_WARN);
 var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
@@ -842,6 +843,7 @@ updateDisplay();
 }
 
 function endePause(auto) {
+if (state.max <= 0) { return; }
 var jetzt = Date.now();
 var minuten = state.pauseBeginnTs ? Math.round((jetzt - state.pauseBeginnTs) / 60000) : 0;
 var pauseWarLiegend = false;
@@ -921,6 +923,7 @@ document.getElementById("rollingWarnBox").style.display = (red >= 3 && !last2ok)
 // POSITIONS-TOGGLE
 // ============================================================
 function togglePosition(idx) {
+if (state.max <= 0) { return; }
 if (!state.used[idx]) { return; }
 var neuePos = state.used[idx].pos === "aufrecht" ? "liegend" : "aufrecht"
 var diff = 0;
@@ -1247,6 +1250,18 @@ if (pct < 25) { r += 2; }
 if (l2 > CRASH_BELASTUNG_HOCH) { r += 2; }
 else if (l2 > CRASH_BELASTUNG_MITTEL) { r += 1; }
 if (up > CRASH_AUFRECHT_MAX) { r += 1; }
+
+// Symptome der letzten 2 Stunden einbeziehen
+var symptomFenster = jetzt - 7200000;
+var symp = state.symptome || [];
+for (var si = 0; si < symp.length; si++) {
+var sym = symp[si];
+if (!sym.ts || sym.ts < symptomFenster || sym.weg) { continue; }
+if (sym.sw === "schwer") { r += 2; }
+else if (sym.sw === "mittel") { r += 1; }
+else if (sym.sw === "leicht") { r += 0.5; }
+}
+
 return r;
 }
 
