@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 4.6.3</title>
+<title>PacingApp 4.6.4</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -308,6 +308,17 @@ border-top: 2px solid #cc0000;
 <button id="btnGuteNacht" style="background:#1c1c6e;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;">Gute Nacht 🌙</button>
 </div>
 
+<div id="zustandsCheckBar" style="position:fixed;top:0;left:0;width:100%;padding:10px 14px;background:#5856d6;color:#fff;font-weight:700;font-size:14px;display:none;z-index:2500;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.2);box-sizing:border-box;cursor:pointer;" onclick="zeigeZustandsPicker()">Wie geht es dir? Tippen zum Bewerten 🔍</div>
+
+<div id="zustandsOverlay" style="position:fixed;inset:0;z-index:3999;background:rgba(0,0,0,0.3);display:none;" onclick="schliesseZustandsPicker()"></div>
+<div id="zustandsPicker" style="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:4000;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);padding:16px;min-width:280px;text-align:center;display:none;">
+<h4 style="margin:0 0 12px;font-size:15px;color:#333;">Wie geht es dir gerade?</h4>
+<div style="display:flex;gap:8px;justify-content:center;">
+<button onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Stabil</button>
+<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Schlechter</button>
+<button onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Viel schlechter</button>
+</div>
+</div>
 <div id="schwereOverlay" class="schwere-overlay" style="display:none;"></div>
 <div id="schwerePicker" class="schwere-picker" style="display:none;">
 <h4 id="schwereTitle">Schweregrad</h4>
@@ -360,6 +371,7 @@ var TOPF_ANTEIL = [0.32, 0.32, 0.36]; // Budgetanteile T1/T2/T3
 var TOPF_ENDE_H = [10.5, 14.0, 24.0]; // Endzeiten: 10:30 / 14:00 / Tagesende
 var TOPF_START_H = 5.0; // Tagesbeginn fuer Berechnung (ab 05:00)
 var TOPF_ABEND_PUFFER = 15; // Feste Reserve Abend (tabu)
+var ZUSTAND_CHECK_MS = 2 * 60 * 60 * 1000; // Alle 2 Stunden
 
 // ============================================================
 // DEFAULT-KATALOG
@@ -427,6 +439,7 @@ var schlafMode = null;
 var lastActionTime = null;
 var minutenTimerInterval = null;
 var _pendingSymptom = null;
+var _letzterZustandCheck = Date.now();
 
 // ============================================================
 // HILFSFUNKTIONEN
@@ -512,6 +525,10 @@ updateToepfe();
 updateAufrechtWarnung();
 checkCrashRisiko();
 checkPauseTimer();
+// Alle 2 Stunden Zustandscheck
+if (Date.now() - _letzterZustandCheck >= ZUSTAND_CHECK_MS) {
+zeigeZustandsCheckBar();
+}
 }
 }, 60000);
 
@@ -1145,6 +1162,61 @@ bar.style.animation = warn.blink ? "blinker 1.2s linear infinite" : "none"
 bar.innerHTML = warn.text + "<br><span style=\"font-size:11px;font-weight:400;opacity:0.8;\">Tippen zum Schliessen</span>"
 }
 
+// ============================================================
+// ZUSTANDSCHECK (alle 2 Stunden)
+// ============================================================
+function zeigeZustandsCheckBar() {
+var bar = document.getElementById("zustandsCheckBar");
+if (bar) {
+bar.style.display = "block"
+document.body.style.paddingTop = "120px"
+}
+}
+
+function zeigeZustandsPicker() {
+document.getElementById("zustandsCheckBar").style.display = "none"
+document.getElementById("zustandsPicker").style.display = "block"
+document.getElementById("zustandsOverlay").style.display = "block"
+document.body.style.paddingTop = "80px"
+}
+
+function schliesseZustandsPicker() {
+document.getElementById("zustandsPicker").style.display = "none"
+document.getElementById("zustandsOverlay").style.display = "none"
+_letzterZustandCheck = Date.now();
+}
+
+function setZustand(zustand) {
+if (state.max <= 0) { return; }
+var anpassung = 0;
+var msg = ""
+if (zustand === "stabil") {
+anpassung = 0;
+msg = "Gut! Weiter so."
+} else if (zustand === "schlechter") {
+anpassung = -Math.round(state.max * 0.10);
+msg = "Budget -10% angepasst."
+} else if (zustand === "crash") {
+anpassung = -Math.round(state.max * 0.20);
+msg = "Budget -20%! Bitte hinlegen."
+}
+if (anpassung < 0) {
+mutateState(function(s) {
+s.cur = Math.max(0, s.cur + anpassung);
+s.used.push({
+n:"Zustandscheck: " + zustand + " (" + anpassung + ")",
+v: Math.abs(anpassung),
+ts: Date.now(),
+t: nowTime(),
+pos: "aufrecht"
+});
+});
+updateDisplay();
+}
+schliesseZustandsPicker();
+showToast(msg);
+}
+
 function getCrashScore() {
 if (state.max <= 0) { return 0; }
 var pct = (state.cur / state.max) * 100;
@@ -1212,14 +1284,14 @@ else { verbrauchRaw[2] += u.v; }
 var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
 
 // Overflow-Logik: Ueberlauf fliesst in naechsten Topf
-// Restübertrag: ungenutztes Budget vergangener Töpfe fliesst weiter
+// Restuebertrag: ungenutztes Budget vergangener Toepfe fliesst weiter
 var verbrauch = [0, 0, 0];
 var carry = 0;
 for (var t = 0; t < 3; t++) {
 var zugewiesen = verbrauchRaw[t] + carry;
 verbrauch[t] = Math.min(zugewiesen, budgets[t]);
 carry = Math.max(0, zugewiesen - budgets[t]);
-// Restübertrag: wenn Topf abgelaufen, ungenutztes Budget weitergeben
+// Restuebertrag: wenn Topf abgelaufen, ungenutztes Budget weitergeben
 if (t < aktiverTopf) {
 var rest = budgets[t] - verbrauch[t];
 if (rest > 0) { budgets[t + 1] += rest; }
@@ -1663,8 +1735,9 @@ if (mwb3) {
 mwb3.style.display = "none"
 mwb3._dismissed = false;
 }
-_lastWarnType = null;
-_lastWarnTs = 0;
+var zcb = document.getElementById("zustandsCheckBar");
+if (zcb) { zcb.style.display = "none" }
+_letzterZustandCheck = Date.now();
 showToast("Neuer Tag!");
 }
 
