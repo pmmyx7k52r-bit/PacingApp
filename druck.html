@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.2</title>
+<title>PacingApp 5.3</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -38,11 +38,6 @@ button:active { opacity:0.7; }
 .btn-add { background:var(--blue); width:auto; padding:10px 14px; margin-top:6px; white-space:nowrap; }
 .btn-pause-big { background:var(--pause); width:100%; }
 .btn-pause-end { background:#34c759; width:100%; display:none; }
-.pause-hint {
-display:none; font-size:12px; padding:8px; border-radius:8px;
-margin-bottom:12px; line-height:1.4; border-left:4px solid var(--pause);
-background:rgba(255,255,255,0.2); color:inherit;
-}
 #pacingHeader {
 position:fixed; top:0; left:0; width:100%; padding:10px;
 text-align:center; font-weight:800; z-index:2000; display:none;
@@ -313,6 +308,7 @@ border-top: 2px solid #cc0000;
 <div id="zustandsOverlay" style="position:fixed;inset:0;z-index:3999;background:rgba(0,0,0,0.3);display:none;" onclick="schliesseZustandsPicker()"></div>
 <div id="zustandsPicker" style="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:4000;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);padding:16px;min-width:280px;text-align:center;display:none;">
 <h4 style="margin:0 0 12px;font-size:15px;color:#333;">Wie geht es dir gerade?</h4>
+<p style="font-size:12px;color:#666;margin:0 0 10px;">Symptome die du nicht mehr sp\u00fcrst werden als weg markiert.</p>
 <div style="display:flex;gap:8px;justify-content:center;">
 <button onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Stabil</button>
 <button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Schlechter</button>
@@ -333,8 +329,6 @@ var STORAGE_LOADS = "pacing_catalog_data"
 var STORAGE_STATE = "pacing_daily_state"
 
 var GRENZE_ROT = 0.25;
-var GRENZE_ORANGE = 0.5;
-var GRENZE_GELB = 0.75;
 
 var BLOCK_WARN = 0.25;
 var BLOCK_PAUSE = 0.33;
@@ -1013,17 +1007,9 @@ return Math.floor((Date.now() - state.aufrechtSeitTs) / 60000);
 // ============================================================
 // WARNUNGEN
 // ============================================================
-function updateAufrechtWarnung() {
-renderMainWarning();
-}
-
-function checkCrashRisiko() {
-renderMainWarning();
-}
-
-function checkBelastungsdichte() {
-renderMainWarning();
-}
+function updateAufrechtWarnung() { renderMainWarning(); }
+function checkCrashRisiko() { renderMainWarning(); }
+function checkBelastungsdichte() { renderMainWarning(); }
 
 function getDichteScore() {
 var jetzt = Date.now();
@@ -1197,6 +1183,23 @@ var msg = ""
 if (zustand === "stabil") {
 anpassung = 0;
 msg = "Gut! Weiter so."
+// Aktive Symptome der letzten 4h als weg markieren
+var fenster = Date.now() - 4 * 3600000;
+var symp = state.symptome || [];
+var aktive = [];
+for (var si = 0; si < symp.length; si++) {
+if (!symp[si].weg && symp[si].ts && symp[si].ts >= fenster) {
+aktive.push(symp[si].s);
+}
+}
+if (aktive.length > 0) {
+mutateState(function(s) {
+for (var ai = 0; ai < aktive.length; ai++) {
+s.symptome.push({s:aktive[ai], t:nowTime(), ts:Date.now(), weg:true});
+}
+});
+renderUsed();
+}
 } else if (zustand === "schlechter") {
 anpassung = -Math.round(state.max * 0.10);
 msg = "Budget -10% angepasst."
@@ -1754,6 +1757,8 @@ mwb3._dismissed = false;
 var zcb = document.getElementById("zustandsCheckBar");
 if (zcb) { zcb.style.display = "none" }
 _letzterZustandCheck = Date.now();
+_lastWarnType = null;
+_lastWarnTs = 0;
 showToast("Neuer Tag!");
 }
 
@@ -1828,6 +1833,7 @@ var c = document.getElementById("catalogChevron");
 var o = b.classList.contains("open");
 b.className = o ? "coll-body" : "coll-body open"
 c.className = o ? "coll-chevron" : "coll-chevron open"
+if (!o) { renderCatalog(); }
 }
 
 function toggleSymptomCard() {
