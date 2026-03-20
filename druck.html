@@ -1,3 +1,5 @@
+5.3.2
+
 <!DOCTYPE html>
 
 <html lang="de">
@@ -310,9 +312,9 @@ border-top: 2px solid #cc0000;
 <h4 style="margin:0 0 12px;font-size:15px;color:#333;">Wie geht es dir gerade?</h4>
 <p style="font-size:12px;color:#666;margin:0 0 10px;">Symptome die du nicht mehr sp\u00fcrst werden als weg markiert.</p>
 <div style="display:flex;gap:8px;justify-content:center;">
-<button onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Stabil</button>
-<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Schlechter</button>
-<button onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Viel schlechter</button>
+<button onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Ok</button>
+<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch\u00f6pft</button>
+<button onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Gar nicht gut</button>
 </div>
 </div>
 <div id="schwereOverlay" class="schwere-overlay" style="display:none;"></div>
@@ -1197,12 +1199,16 @@ mutateState(function(s) {
 for (var ai = 0; ai < aktive.length; ai++) {
 s.symptome.push({s:aktive[ai], t:nowTime(), ts:Date.now(), weg:true});
 }
+s.used.push({
+n:"Zustandscheck: Symptome zur\u00fcckgesetzt (" + aktive.length + ")",
+v:0, ts:Date.now(), t:nowTime(), pos:"liegend"
+});
 });
 renderUsed();
 }
 } else if (zustand === "schlechter") {
 anpassung = -Math.round(state.max * 0.10);
-msg = "Budget -10% angepasst."
+msg = "Budget -10%. Schon auf dich."
 } else if (zustand === "crash") {
 anpassung = -Math.round(state.max * 0.20);
 msg = "Budget -20%! Bitte hinlegen."
