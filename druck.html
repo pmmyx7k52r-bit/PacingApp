@@ -740,6 +740,7 @@ updateToepfe();
 
 function renderStatus(spielraum) {
 if (state.max <= 0) { return; }
+var body = document.getElementById("mainBody");
 var bS = document.getElementById("boxSpielraum");
 var msg = document.getElementById("statusMsg");
 body.className = ""
@@ -1843,7 +1844,7 @@ var c = document.getElementById("usedChevron");
 var o = b.classList.contains("open");
 b.className = o ? "coll-body" : "coll-body open"
 c.className = o ? "coll-chevron" : "coll-chevron open"
-renderUsedPreview();
+if (!o) { renderUsed(); } else { renderUsedPreview(); }
 }
 
 // ============================================================
