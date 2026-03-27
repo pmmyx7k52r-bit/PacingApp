@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.3.5</title>
+<title>PacingApp 5.3.6</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -162,7 +162,7 @@ border-top: 2px solid #cc0000;
 
 <div id="pacingHeader"></div>
 <div id="pauseTimerBar" class="pause-timer-bar"></div>
-<div id="toast">Erfasst</div>
+<div id="toast" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:20px;font-weight:bold;display:none;z-index:9999;pointer-events:none;white-space:nowrap;">Erfasst</div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -273,8 +273,14 @@ border-top: 2px solid #cc0000;
 <!-- Kopf-an + Grenzen -->
 <div id="kopfAnBereich" style="margin-top:10px;">
 <div id="kopfAnRuhe" style="display:flex;gap:8px;align-items:center;">
-<button id="btnKopfAn" onclick="kopfAnStart()" style="background:#5856d6;color:#fff;flex:1;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">&#129504; Kopf an</button>
-<button onclick="zeigeBaselineEditor()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:12px;font-weight:600;padding:8px 10px;border-radius:10px;width:auto;cursor:pointer;touch-action:manipulation;">Grenzen &auml;ndern</button>
+<div style="flex:1;">
+<button id="btnKopfAn" onclick="kopfAnStart()" style="background:#5856d6;color:#fff;width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">&#129504; Kopf an</button>
+<div style="font-size:10px;color:#888;text-align:center;margin-top:3px;">PC &middot; Handy &middot; Besprechung</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:4px;">
+<button id="btnGrenzenAendern" onclick="zeigeBaselineEditor()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:11px;font-weight:600;padding:6px 8px;border-radius:10px;width:auto;cursor:pointer;touch-action:manipulation;">Grenzen &auml;ndern</button>
+<button onclick="kopfAnNacherfassen()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:11px;font-weight:600;padding:6px 8px;border-radius:10px;width:auto;cursor:pointer;touch-action:manipulation;">Nacherfassen</button>
+</div>
 </div>
 <div id="baselineEditor" style="display:none;margin-top:8px;padding:10px;background:#f2f2f7;border-radius:10px;">
 <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px;">Kopf-an Zeitgrenzen (Minuten):</div>
@@ -1072,30 +1078,36 @@ function isTopfKritisch() {
 if (state.max <= 0) { return false; }
 var jetzt = new Date();
 var stundeJetzt = jetzt.getHours() + jetzt.getMinutes() / 60;
-var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : 2;
+var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 :
+stundeJetzt < TOPF_ENDE_H[1] ? 1 :
+stundeJetzt < TOPF_ENDE_H[2] ? 2 : 3;
 var budgets = [
 Math.round(state.max * TOPF_ANTEIL[0]),
 Math.round(state.max * TOPF_ANTEIL[1]),
-Math.round(state.max * TOPF_ANTEIL[2])
+Math.round(state.max * TOPF_ANTEIL[2]),
+Math.round(state.max * TOPF_ANTEIL[3])
 ];
 var heute = new Date(); heute.setHours(0,0,0,0);
 var grenzen = [
 heute.getTime() + TOPF_ENDE_H[0] * 3600000,
 heute.getTime() + TOPF_ENDE_H[1] * 3600000,
-heute.getTime() + TOPF_ENDE_H[2] * 3600000
+heute.getTime() + TOPF_ENDE_H[2] * 3600000,
+heute.getTime() + TOPF_ENDE_H[3] * 3600000
 ];
 var startTs = heute.getTime() + TOPF_START_H * 3600000;
-var verbrauchRaw = [0, 0, 0];
+var verbrauchRaw = [0, 0, 0, 0];
 for (var i = 0; i < state.used.length; i++) {
 var u = state.used[i];
 if (u.v <= 0 || !u.ts || u.ts < startTs) { continue; }
 if (u.ts < grenzen[0]) { verbrauchRaw[0] += u.v; }
 else if (u.ts < grenzen[1]) { verbrauchRaw[1] += u.v; }
-else { verbrauchRaw[2] += u.v; }
+else if (u.ts < grenzen[2]) { verbrauchRaw[2] += u.v; }
+else { verbrauchRaw[3] += u.v; }
 }
 if (verbrauchRaw[aktiverTopf] > budgets[aktiverTopf]) { return true; }
-if (aktiverTopf === 0 && verbrauchRaw[1] > 0) { return true; }
-if (aktiverTopf <= 1 && verbrauchRaw[2] > 0) { return true; }
+for (var t = 0; t < aktiverTopf; t++) {
+if (verbrauchRaw[t + 1] > 0 && t + 1 <= aktiverTopf) { return true; }
+}
 return false;
 }
 
@@ -1289,6 +1301,20 @@ showToast(msg);
 
 var _kopfAnInterval = null;
 
+function kopfAnNacherfassen() {
+if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
+var punkte = KOPFAN_PUNKTE[0];
+mutateState(function(s) {
+s.cur = Math.max(0, s.cur - punkte);
+s.block += punkte;
+s.used.push({n:"Kopf an (Nacherfassung)", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+});
+checkPemPenalty();
+trackDayMinPct();
+updateDisplay();
+showToast("Nacherfasst: " + punkte + " Punkte");
+}
+
 function zeigeBaselineEditor() {
 var ed = document.getElementById("baselineEditor");
 if (ed) { ed.style.display = ed.style.display === "none" ? "block" : "none" }
@@ -1307,14 +1333,26 @@ showToast("Grenzen gespeichert");
 function kopfAnStart() {
 if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
 _kopfAnStartTs = Date.now();
-document.getElementById("kopfAnRuhe").style.display = "none"
+document.getElementById("btnKopfAn").style.opacity = "0.5"
+document.getElementById("btnKopfAn").disabled = true;
+document.getElementById("btnGrenzenAendern").style.display = "none"
 document.getElementById("baselineEditor").style.display = "none"
 document.getElementById("kopfAnLaeuft").style.display = "block"
 _kopfAnInterval = setInterval(function() {
-var min = Math.floor((Date.now() - _kopfAnStartTs) / 60000);
-var sec = Math.floor((Date.now() - _kopfAnStartTs) / 1000) % 60;
+var gesamtSek = Math.floor((Date.now() - _kopfAnStartTs) / 1000);
+var min = Math.floor(gesamtSek / 60);
+var sec = gesamtSek % 60;
 document.getElementById("kopfAnTimer").textContent =
 min + ":" + (sec < 10 ? "0" : "") + sec;
+// Farbe: orange 20 Sek vor Grenze, rot wenn ueberschritten
+var timerEl = document.getElementById("kopfAnTimer");
+var farbe = "#5856d6"
+for (var gi = 0; gi < KOPFAN_GRENZEN.length; gi++) {
+var grenzeSek = KOPFAN_GRENZEN[gi] * 60;
+if (gesamtSek >= grenzeSek) { farbe = "#ff3b30" }
+else if (grenzeSek - gesamtSek <= 20) { farbe = "#ff9500" }
+}
+timerEl.style.color = farbe;
 }, 1000);
 }
 
@@ -1324,24 +1362,23 @@ clearInterval(_kopfAnInterval);
 _kopfAnInterval = null;
 var minuten = Math.floor((Date.now() - _kopfAnStartTs) / 60000);
 _kopfAnStartTs = null;
-document.getElementById("kopfAnRuhe").style.display = "flex"
+document.getElementById("btnKopfAn").style.opacity = "1"
+document.getElementById("btnKopfAn").disabled = false;
+document.getElementById("btnGrenzenAendern").style.display = "block"
 document.getElementById("kopfAnLaeuft").style.display = "none"
 document.getElementById("kopfAnTimer").textContent = "0:00"
+document.getElementById("kopfAnTimer").style.color = "#5856d6"
 
 // Punkte berechnen
 var punkte = KOPFAN_PUNKTE[0];
 for (var i = 0; i < KOPFAN_GRENZEN.length; i++) {
 if (minuten >= KOPFAN_GRENZEN[i]) { punkte = KOPFAN_PUNKTE[i+1]; }
 }
-
 if (state.pauseBeginnTs) { endePause(true); }
 mutateState(function(s) {
 s.cur = Math.max(0, s.cur - punkte);
 s.block += punkte;
-s.used.push({
-n:"Kopf an (" + minuten + " Min.)",
-v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"
-});
+s.used.push({n:"Kopf an (" + minuten + " Min.)", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
 });
 checkPemPenalty();
 trackDayMinPct();
@@ -1916,8 +1953,13 @@ document.getElementById("btnPauseEnde").style.display = "none"
 stopPauseTimer();
 if (_kopfAnInterval) { clearInterval(_kopfAnInterval); _kopfAnInterval = null; }
 _kopfAnStartTs = null;
-var kar = document.getElementById("kopfAnRuhe");
-if (kar) { kar.style.display = "flex" }
+var kai = document.getElementById("btnKopfAn");
+if (kai) {
+kai.style.opacity = "1"
+kai.disabled = false;
+}
+var kga = document.getElementById("btnGrenzenAendern");
+if (kga) { kga.style.display = "block" }
 var kal = document.getElementById("kopfAnLaeuft");
 if (kal) { kal.style.display = "none" }
 var mwb3 = document.getElementById("mainWarnBar");
