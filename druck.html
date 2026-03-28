@@ -162,7 +162,7 @@ border-top: 2px solid #cc0000;
 
 <div id="pacingHeader"></div>
 <div id="pauseTimerBar" class="pause-timer-bar"></div>
-<div id="toast" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:20px;font-weight:bold;display:none;z-index:9999;pointer-events:none;white-space:nowrap;">Erfasst</div>
+<div id="toast" style="position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:20px;font-weight:bold;display:none;z-index:9999;pointer-events:none;white-space:nowrap;">Erfasst</div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -272,14 +272,11 @@ border-top: 2px solid #cc0000;
 </div>
 <!-- Kopf-an + Grenzen -->
 <div id="kopfAnBereich" style="margin-top:10px;">
-<div id="kopfAnRuhe" style="display:flex;gap:8px;align-items:center;">
-<div style="flex:1;">
-<button id="btnKopfAn" onclick="kopfAnStart()" style="background:#5856d6;color:#fff;width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">&#129504; Kopf an</button>
-<div style="font-size:10px;color:#888;text-align:center;margin-top:3px;">PC &middot; Handy &middot; Besprechung</div>
-</div>
-<div style="display:flex;flex-direction:column;gap:4px;">
-<button id="btnGrenzenAendern" onclick="zeigeBaselineEditor()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:11px;font-weight:600;padding:6px 8px;border-radius:10px;width:auto;cursor:pointer;touch-action:manipulation;">Grenzen &auml;ndern</button>
-<button onclick="kopfAnNacherfassen()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:11px;font-weight:600;padding:6px 8px;border-radius:10px;width:auto;cursor:pointer;touch-action:manipulation;">Nacherfassen</button>
+<div id="kopfAnRuhe" style="display:flex;flex-direction:column;gap:6px;">
+<button id="btnKopfAn" onclick="kopfAnStart()" style="background:#5856d6;color:#fff;width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">&#129504; Kopf an<br><span style="font-size:10px;font-weight:400;opacity:0.8;">PC &middot; Handy &middot; Besprechung</span></button>
+<div style="display:flex;gap:6px;">
+<button id="btnGrenzenAendern" onclick="zeigeBaselineEditor()" style="flex:1;background:#8e8e93;color:#fff;padding:8px;border:none;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;touch-action:manipulation;">Grenzen &auml;ndern</button>
+<button onclick="kopfAnNacherfassen()" style="flex:1;background:#8e8e93;color:#fff;padding:8px;border:none;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;touch-action:manipulation;">Nacherfassen</button>
 </div>
 </div>
 <div id="baselineEditor" style="display:none;margin-top:8px;padding:10px;background:#f2f2f7;border-radius:10px;">
@@ -353,10 +350,10 @@ border-top: 2px solid #cc0000;
 <div id="zustandsOverlay" style="position:fixed;inset:0;z-index:3999;background:rgba(0,0,0,0.3);display:none;" onclick="schliesseZustandsPicker()"></div>
 <div id="zustandsPicker" style="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:4000;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);padding:16px;min-width:280px;text-align:center;display:none;">
 <h4 style="margin:0 0 12px;font-size:15px;color:#333;">Wie geht es dir gerade?</h4>
-<p style="font-size:12px;color:#666;margin:0 0 10px;">Symptome die du nicht mehr sp\u00fcrst werden als weg markiert.</p>
+<p style="font-size:12px;color:#666;margin:0 0 10px;">Symptome die du nicht mehr sp&uuml;rst werden als weg markiert.</p>
 <div style="display:flex;gap:8px;justify-content:center;">
 <button onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Ok</button>
-<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch\u00f6pft</button>
+<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch&ouml;pft</button>
 <button onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Gar nicht gut</button>
 </div>
 </div>
