@@ -162,7 +162,7 @@ border-top: 2px solid #cc0000;
 
 <div id="pacingHeader"></div>
 <div id="pauseTimerBar" class="pause-timer-bar"></div>
-<div id="toast" style="position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:20px;font-weight:bold;display:none;z-index:9999;pointer-events:none;white-space:nowrap;">Erfasst</div>
+<div id="toast" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);color:#fff;padding:14px 28px;border-radius:20px;font-weight:bold;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:15px;">Erfasst</div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -849,7 +849,7 @@ s.used.push({n:loads[i].n, v:loads[i].v, ts:Date.now(), t:nowTime(), pos:"aufrec
 checkPemPenalty();
 trackDayMinPct();
 updateDisplay();
-showToast();
+showToast("Erfasst: " + loads[i].n);
 startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
