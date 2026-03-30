@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.3.7</title>
+<title>PacingApp 5.3.8</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -161,7 +161,7 @@ border-top: 2px solid #cc0000;
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
-<div id="toast" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 18px;border-radius:20px;font-weight:600;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:13px;">Erfasst &#128077;</div>
+<div id="toast" style="position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 18px;border-radius:20px;font-weight:600;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:13px;">Erfasst &#128077;</div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -1100,7 +1100,7 @@ return {type:"CRASH_HIGH", text:"PEM-Risiko hoch! Sofort pausieren!", bg:"#ff3b3
 }
 // 3. PEM Zwang
 if (state.block >= blockPauseSchwelle) {
-return {type:"PEM_ZWANG", text:"PEM-Gefahr! Pause jetzt erzwingen!", bg:"#000", color:"#ffcc00", blink:true};
+return {type:"PEM_ZWANG", text:"PEM-Gefahr! Jetzt hinlegen!", bg:"#000", color:"#ffcc00", blink:true};
 }
 // 4. Crash mittel
 if (sc >= CRASH_SCORE_MITTEL) {
@@ -1116,7 +1116,7 @@ var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
 var empfohlen = pct >= 70 ? TIMER_WARN_HOCH : pct >= 40 ? TIMER_WARN_MITTE : TIMER_WARN_NIEDRIG;
 if (minuten >= erzwingen) {
-return {type:"TIMER_ZWANG", text:minuten + " Min. ohne Pause - jetzt pausieren!", bg:"#ff3b30", color:"#fff", blink:true};
+return {type:"TIMER_ZWANG", text:minuten + " Min. aktiv - kurze Pause!", bg:"#ff3b30", color:"#fff", blink:true};
 }
 if (minuten >= empfohlen) {
 return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
@@ -1221,7 +1221,7 @@ renderUsed();
 }
 } else if (zustand === "schlechter") {
 anpassung = -Math.round(state.max * 0.10);
-msg = "Budget -10%. Schon auf dich achten!"
+msg = "Budget -10%. Sch\u00f6n auf dich achten!"
 } else if (zustand === "crash") {
 anpassung = -Math.round(state.max * 0.20);
 msg = "Budget -20%! Bitte hinlegen."
