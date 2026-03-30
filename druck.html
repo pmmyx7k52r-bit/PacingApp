@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.3.6</title>
+<title>PacingApp 5.3.7</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -161,8 +161,7 @@ border-top: 2px solid #cc0000;
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
-<div id="pauseTimerBar" class="pause-timer-bar"></div>
-<div id="toast" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);color:#fff;padding:14px 28px;border-radius:20px;font-weight:bold;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:15px;">Erfasst</div>
+<div id="toast" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 18px;border-radius:20px;font-weight:600;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:13px;">Erfasst &#128077;</div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -512,41 +511,10 @@ checkPauseTimer();
 function stopPauseTimer() {
 lastActionTime = null;
 storeSet("pacing_timer_start", "");
-document.getElementById("pauseTimerBar").style.display = "none"
-document.body.style.paddingTop = "80px"
 }
 
 function checkPauseTimer() {
-if (!lastActionTime || state.max <= 0) { return; }
-var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
-var pct = (state.cur / state.max) * 100;
-var empfohlen;
-var erzwingen;
-if (pct >= 70) {
-empfohlen = TIMER_WARN_HOCH;
-erzwingen = TIMER_ZWANG_HOCH;
-} else if (pct >= 40) {
-empfohlen = TIMER_WARN_MITTE;
-erzwingen = TIMER_ZWANG_MITTE;
-} else {
-empfohlen = TIMER_WARN_NIEDRIG;
-erzwingen = TIMER_ZWANG_NIEDRIG;
-}
-var bar = document.getElementById("pauseTimerBar");
-if (minuten >= erzwingen) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-red"
-bar.textContent = minuten + " Min. ohne Pause - jetzt pausieren!"
-document.body.style.paddingTop = "120px"
-} else if (minuten >= empfohlen) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-orange"
-bar.textContent = minuten + " Min. ohne Pause - Pause empfohlen!"
-document.body.style.paddingTop = "120px"
-} else {
-bar.style.display = "none"
-document.body.style.paddingTop = "80px"
-}
+renderMainWarning();
 }
 
 // ============================================================
@@ -1121,8 +1089,6 @@ var sc = getCrashScore();
 var auf = getAufrechtMinuten();
 var schwelle = pct >= 50 ? AUFRECHT_SCHWELLE_HOCH : pct >= 25 ? AUFRECHT_SCHWELLE_MITTE : AUFRECHT_SCHWELLE_NIEDRIG;
 var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
-var blockWarnSchwelle = Math.round(state.max * BLOCK_WARN);
-var dichte = getDichteScore();
 
 // 1. Notbremse
 if (pct < 20) {
@@ -1134,29 +1100,17 @@ return {type:"CRASH_HIGH", text:"PEM-Risiko hoch! Sofort pausieren!", bg:"#ff3b3
 }
 // 3. PEM Zwang
 if (state.block >= blockPauseSchwelle) {
-return {type:"PEM_ZWANG", text:"PEM-Gefahr! Pause erzwingen!", bg:"#000", color:"#ffcc00", blink:true};
+return {type:"PEM_ZWANG", text:"PEM-Gefahr! Pause jetzt erzwingen!", bg:"#000", color:"#ffcc00", blink:true};
 }
 // 4. Crash mittel
 if (sc >= CRASH_SCORE_MITTEL) {
 return {type:"CRASH_MED", text:"PEM-Risiko steigt - Belastung reduzieren!", bg:"#e07800", color:"#fff", blink:false};
 }
-// 5. PEM Warnung
-if (state.block >= blockWarnSchwelle) {
-return {type:"PEM_WARN", text:"PEM-Gefahr - Pause einplanen!", bg:"#ff3b30", color:"#fff", blink:false};
-}
-// 6. Aufrecht kritisch
-if (pct < 40 && auf > 30) {
-return {type:"AUFRECHT_KRIT", text:auf + " Min. aufrecht + wenig Energie - hinlegen!", bg:"#ff3b30", color:"#fff", blink:false};
-}
-// 7. Aufrecht
+// 5. Aufrecht
 if (auf > schwelle) {
-return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause sinnvoll", bg:"#ff9500", color:"#fff", blink:false};
+return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause einlegen!", bg:"#ff9500", color:"#fff", blink:false};
 }
-// 8. Kurzpausen
-if (state.kurzPausen > 1 && auf > schwelle * 0.7) {
-return {type:"KURZ", text:"Bisherige Pausen reichen nicht - l\u00e4ngere Pause n\u00f6tig!", bg:"#ff9500", color:"#fff", blink:false};
-}
-// 9. Timer
+// 6. Timer
 if (lastActionTime) {
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
@@ -1168,16 +1122,9 @@ if (minuten >= empfohlen) {
 return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
 }
 }
-// 10. Dichte
-if (dichte >= DICHTE_STARK) {
-return {type:"DICHTE_STARK", text:dichte + " Punkte in 30 Min. - jetzt pausieren!", bg:"#ff3b30", color:"#fff", blink:false};
-}
-if (dichte >= DICHTE_WARN) {
-return {type:"DICHTE_WARN", text:dichte + " Punkte in 30 Min. - Pause einplanen!", bg:"#ff9500", color:"#fff", blink:false};
-}
-// 11. Topf
+// 7. Topf
 if (isTopfKritisch()) {
-return {type:"TOPF", text:"Du bist zu aktiv! Vorsicht! \uD83D\uDEA8", bg:"#ff9500", color:"#fff", blink:false};
+return {type:"TOPF", text:"Tagesbudget \u00fcberschritten - Tempo drosseln!", bg:"#ff9500", color:"#fff", blink:false};
 }
 return null;
 }
@@ -1274,7 +1221,7 @@ renderUsed();
 }
 } else if (zustand === "schlechter") {
 anpassung = -Math.round(state.max * 0.10);
-msg = "Budget -10%. Schon auf dich."
+msg = "Budget -10%. Schon auf dich achten!"
 } else if (zustand === "crash") {
 anpassung = -Math.round(state.max * 0.20);
 msg = "Budget -20%! Bitte hinlegen."
