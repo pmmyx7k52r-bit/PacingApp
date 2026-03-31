@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.3.8</title>
+<title>PacingApp 5.3.9</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -488,9 +488,10 @@ return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 
 function showToast(msg) {
 var t = document.getElementById("toast");
-t.textContent = msg || "Erfasst"
+t.innerHTML = (msg || "Erfasst") + " &#128077;"
 t.style.display = "block"
-setTimeout(function() { t.style.display = "none" }, 3000);
+clearTimeout(t._timer);
+t._timer = setTimeout(function() { t.style.display = "none" }, 3000);
 }
 
 function saveLoads() {
@@ -1090,6 +1091,31 @@ var auf = getAufrechtMinuten();
 var schwelle = pct >= 50 ? AUFRECHT_SCHWELLE_HOCH : pct >= 25 ? AUFRECHT_SCHWELLE_MITTE : AUFRECHT_SCHWELLE_NIEDRIG;
 var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
 
+// Topf-Fuellstand des aktiven Topfes berechnen
+var jetzt2 = new Date();
+var stunde2 = jetzt2.getHours() + jetzt2.getMinutes() / 60;
+var aktiverTopf2 = stunde2 < TOPF_ENDE_H[0] ? 0 : stunde2 < TOPF_ENDE_H[1] ? 1 : stunde2 < TOPF_ENDE_H[2] ? 2 : 3;
+var topfBudget2 = Math.round(state.max * TOPF_ANTEIL[aktiverTopf2]);
+var heute2 = new Date(); heute2.setHours(0,0,0,0);
+var grenzen2 = [heute2.getTime()+TOPF_ENDE_H[0]*3600000, heute2.getTime()+TOPF_ENDE_H[1]*3600000, heute2.getTime()+TOPF_ENDE_H[2]*3600000, heute2.getTime()+TOPF_ENDE_H[3]*3600000];
+var startTs2 = heute2.getTime() + TOPF_START_H * 3600000;
+var topfVerbrauch2 = 0;
+for (var ti = 0; ti < state.used.length; ti++) {
+var tu = state.used[ti];
+if (tu.v <= 0 || !tu.ts || tu.ts < startTs2) { continue; }
+var inTopf = (aktiverTopf2 === 0 && tu.ts < grenzen2[0]) ||
+(aktiverTopf2 === 1 && tu.ts >= grenzen2[0] && tu.ts < grenzen2[1]) ||
+(aktiverTopf2 === 2 && tu.ts >= grenzen2[1] && tu.ts < grenzen2[2]) ||
+(aktiverTopf2 === 3 && tu.ts >= grenzen2[2]);
+if (inTopf) { topfVerbrauch2 += tu.v; }
+}
+var topfPct2 = topfBudget2 > 0 ? topfVerbrauch2 / topfBudget2 * 100 : 0;
+
+// Liegeminuten heute
+var liegMin = getLiegendMinuten();
+var gesamtMin = getGesamtMinuten();
+var liegeAnteil = gesamtMin > 0 ? liegMin / gesamtMin : 1;
+
 // 1. Notbremse
 if (pct < 20) {
 return {type:"NOTBREMSE", text:"STOP! Energie kritisch - sofort hinlegen!", bg:"#000", color:"#ff3b30", blink:true};
@@ -1106,15 +1132,22 @@ return {type:"PEM_ZWANG", text:"PEM-Gefahr! Jetzt hinlegen!", bg:"#000", color:"
 if (sc >= CRASH_SCORE_MITTEL) {
 return {type:"CRASH_MED", text:"PEM-Risiko steigt - Belastung reduzieren!", bg:"#e07800", color:"#fff", blink:false};
 }
-// 5. Aufrecht
-if (auf > schwelle) {
+// 5. Aufrecht - dynamisch je nach Topf-Fuellstand
+var aufrechtSchwelleAktiv = topfPct2 >= 70 ? Math.round(schwelle * 0.7) : schwelle;
+if (auf > aufrechtSchwelleAktiv) {
 return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause einlegen!", bg:"#ff9500", color:"#fff", blink:false};
 }
-// 6. Timer
+// 6. Liegeanteil zu niedrig (weniger als 30% des Tages liegend)
+if (gesamtMin > 60 && liegeAnteil < 0.30) {
+return {type:"LIEGE", text:"Zu wenig gelegen heute - Liegepause wichtig!", bg:"#ff9500", color:"#fff", blink:false};
+}
+// 7. Timer - dynamisch je nach Topf-Fuellstand
 if (lastActionTime) {
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
 var empfohlen = pct >= 70 ? TIMER_WARN_HOCH : pct >= 40 ? TIMER_WARN_MITTE : TIMER_WARN_NIEDRIG;
+// Bei vollem Topf frueher warnen
+if (topfPct2 >= 70) { erzwingen = Math.round(erzwingen * 0.7); empfohlen = Math.round(empfohlen * 0.7); }
 if (minuten >= erzwingen) {
 return {type:"TIMER_ZWANG", text:minuten + " Min. aktiv - kurze Pause!", bg:"#ff3b30", color:"#fff", blink:true};
 }
@@ -1122,7 +1155,7 @@ if (minuten >= empfohlen) {
 return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
 }
 }
-// 7. Topf
+// 8. Topf
 if (isTopfKritisch()) {
 return {type:"TOPF", text:"Tagesbudget \u00fcberschritten - Tempo drosseln!", bg:"#ff9500", color:"#fff", blink:false};
 }
