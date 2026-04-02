@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.3.9</title>
+<title>PacingApp 5.4</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -150,13 +150,14 @@ min-width:260px; text-align:center;
 .schwere-mittel { background:#ff9500; color:#fff; }
 .schwere-schwer { background:#ff3b30; color:#fff; }
 .schwere-overlay { position:fixed; inset:0; z-index:3999; background:rgba(0,0,0,0.3); }
-.waage-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:0; }
+
 .topf-bodensatz {
 position:absolute; bottom:0; left:0; width:100%;
 background: #ff6b6b;
 border-top: 2px solid #cc0000;
 }
 </style>
+
 </head>
 <body id="mainBody">
 
@@ -207,30 +208,11 @@ border-top: 2px solid #cc0000;
 </div>
 </div>
 
-<!-- Pause + Waage kompakt nebeneinander -->
+<!-- Pause -->
 
-<div id="pauseUndWaage" style="display:none;flex-direction:row;gap:10px;align-items:center;margin-bottom:8px;">
-<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
+<div id="pauseUndWaage" style="display:none;flex-direction:column;gap:6px;margin-bottom:8px;">
 <button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn (ohne Handy!)</button>
 <button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
-</div>
-<div id="waageWrap" class="waage-wrap" style="flex-shrink:0;">
-<div style="font-size:10px;font-weight:700;color:#555;margin-bottom:1px;text-align:center;">Liegewaage</div>
-<svg id="waageSvg" viewBox="0 0 160 115" width="120" height="86" style="overflow:visible;">
-<line x1="80" y1="20" x2="80" y2="90" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<ellipse cx="80" cy="93" rx="20" ry="4" fill="#ccc"/>
-<circle cx="80" cy="22" r="5" fill="#888"/>
-<line id="waageBalken" x1="15" y1="22" x2="145" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<line id="waageSeilL" x1="20" y1="22" x2="20" y2="55" stroke="#aaa" stroke-width="1.5"/>
-<ellipse id="waageSchaleL" cx="20" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<line id="waageSeilR" x1="140" y1="22" x2="140" y2="55" stroke="#aaa" stroke-width="1.5"/>
-<ellipse id="waageSchaleR" cx="140" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<text id="waageTextL" x="20" y="76" text-anchor="middle" font-size="8" font-weight="700" fill="#555">0 Min.</text>
-<text x="20" y="100" text-anchor="middle" font-size="7" fill="#555">liegend</text>
-<text id="waageTextR" x="140" y="76" text-anchor="middle" font-size="8" font-weight="700" fill="#555">0 Min.</text>
-<text x="140" y="100" text-anchor="middle" font-size="7" fill="#555">aufrecht</text>
-</svg>
-</div>
 </div>
 <div id="rollingWarnBox" class="rolling-warn">Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!</div>
 
@@ -528,7 +510,6 @@ verdrahteButtons();
 if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
 minutenTimerInterval = setInterval(function() {
 if (state.max > 0) {
-updateWaage();
 updateToepfe();
 updateAufrechtWarnung();
 checkCrashRisiko();
@@ -742,7 +723,6 @@ renderPemHeader();
 renderUsed();
 checkRollingPene();
 updateAufrechtWarnung();
-updateWaage();
 updateToepfe();
 }
 
@@ -1539,71 +1519,7 @@ bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0"
 renderMainWarning();
 }
 
-// ============================================================
-// LIEGEWAAGE
-// ============================================================
-function updateWaage() {
-if (state.max <= 0) { return; }
-var gesamt = getGesamtMinuten();
-var lieg = getLiegendMinuten();
-var auf = Math.max(0, gesamt - lieg);
-var diff = (lieg * 3) - auf;
-var maxDiff = Math.max(60, auf + lieg);
-var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
-var rad = winkel * Math.PI / 180;
-var cx = 80;
-var cy = 22;
-var armLen = 60;
-var lx = Math.round(cx - armLen * Math.cos(rad));
-var ly = Math.round(cy - armLen * Math.sin(rad));
-var rx = Math.round(cx + armLen * Math.cos(rad));
-var ry = Math.round(cy + armLen * Math.sin(rad));
-var seilLen = 33;
-var lSx = lx;
-var lSy = Math.round(ly + seilLen);
-var rSx = rx;
-var rSy = Math.round(ry + seilLen);
-document.getElementById("waageBalken").setAttribute("x1", lx);
-document.getElementById("waageBalken").setAttribute("y1", ly);
-document.getElementById("waageBalken").setAttribute("x2", rx);
-document.getElementById("waageBalken").setAttribute("y2", ry);
-document.getElementById("waageSeilL").setAttribute("x1", lx);
-document.getElementById("waageSeilL").setAttribute("y1", ly);
-document.getElementById("waageSeilL").setAttribute("x2", lSx);
-document.getElementById("waageSeilL").setAttribute("y2", lSy);
-document.getElementById("waageSeilR").setAttribute("x1", rx);
-document.getElementById("waageSeilR").setAttribute("y1", ry);
-document.getElementById("waageSeilR").setAttribute("x2", rSx);
-document.getElementById("waageSeilR").setAttribute("y2", rSy);
-document.getElementById("waageSchaleL").setAttribute("cx", lSx);
-document.getElementById("waageSchaleL").setAttribute("cy", lSy + 5);
-document.getElementById("waageSchaleR").setAttribute("cx", rSx);
-document.getElementById("waageSchaleR").setAttribute("cy", rSy + 5);
-document.getElementById("waageTextL").setAttribute("x", lSx);
-document.getElementById("waageTextL").setAttribute("y", lSy + 42);
-document.getElementById("waageTextR").setAttribute("x", rSx);
-document.getElementById("waageTextR").setAttribute("y", rSy + 22);
-document.getElementById("waageTextL").textContent = lieg + " Min."
-document.getElementById("waageTextR").textContent = auf + " Min."
-var aufAnteil = gesamt > 0 ? auf / gesamt : 0;
-var ampelFarbe;
-var ampelTextL;
-if (aufAnteil <= 0.65) {
-ampelFarbe = "#34c759"
-ampelTextL = "#1a7a3a"
-} else if (aufAnteil <= 0.80) {
-ampelFarbe = "#ff9500"
-ampelTextL = "#c07000"
-} else {
-ampelFarbe = "#ff3b30"
-ampelTextL = "#c00000"
-}
-document.getElementById("waageSchaleL").setAttribute("fill", ampelFarbe);
-document.getElementById("waageSchaleR").setAttribute("fill", ampelFarbe);
-document.getElementById("waageBalken").setAttribute("stroke", ampelFarbe);
-document.getElementById("waageTextL").setAttribute("fill", ampelTextL);
-document.getElementById("waageTextR").setAttribute("fill", ampelTextL);
-}
+
 
 // ============================================================
 // KATALOG
