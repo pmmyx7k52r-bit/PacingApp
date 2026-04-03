@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.4</title>
+<title>PacingApp 5.4.1</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -150,19 +150,18 @@ min-width:260px; text-align:center;
 .schwere-mittel { background:#ff9500; color:#fff; }
 .schwere-schwer { background:#ff3b30; color:#fff; }
 .schwere-overlay { position:fixed; inset:0; z-index:3999; background:rgba(0,0,0,0.3); }
-
+.waage-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:0; }
 .topf-bodensatz {
 position:absolute; bottom:0; left:0; width:100%;
 background: #ff6b6b;
 border-top: 2px solid #cc0000;
 }
 </style>
-
 </head>
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
-<div id="toast" style="position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 18px;border-radius:20px;font-weight:600;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:13px;">Erfasst &#128077;</div>
+<div id="toast" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);color:#fff;padding:14px 28px;border-radius:20px;font-weight:bold;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:15px;">Erfasst</div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -208,7 +207,7 @@ border-top: 2px solid #cc0000;
 </div>
 </div>
 
-<!-- Pause -->
+<!-- Pause Buttons -->
 
 <div id="pauseUndWaage" style="display:none;flex-direction:column;gap:6px;margin-bottom:8px;">
 <button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn (ohne Handy!)</button>
@@ -470,10 +469,9 @@ return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 
 function showToast(msg) {
 var t = document.getElementById("toast");
-t.innerHTML = (msg || "Erfasst") + " &#128077;"
+t.textContent = msg || "Erfasst"
 t.style.display = "block"
-clearTimeout(t._timer);
-t._timer = setTimeout(function() { t.style.display = "none" }, 3000);
+setTimeout(function() { t.style.display = "none" }, 3000);
 }
 
 function saveLoads() {
@@ -494,9 +492,11 @@ checkPauseTimer();
 function stopPauseTimer() {
 lastActionTime = null;
 storeSet("pacing_timer_start", "");
+document.body.style.paddingTop = "80px"
 }
 
 function checkPauseTimer() {
+if (!lastActionTime || state.max <= 0) { return; }
 renderMainWarning();
 }
 
@@ -514,7 +514,6 @@ updateToepfe();
 updateAufrechtWarnung();
 checkCrashRisiko();
 checkPauseTimer();
-// Alle 2 Stunden Zustandscheck
 if (Date.now() - _letzterZustandCheck >= ZUSTAND_CHECK_MS) {
 zeigeZustandsCheckBar();
 }
@@ -715,7 +714,6 @@ if (state.max <= 0) { return; }
 var grenze = Math.ceil(state.max * GRENZE_ROT);
 var spielraum = Math.max(0, state.cur - grenze);
 document.getElementById("valSpielraum").textContent = spielraum;
-// Rest klein unter Spielraum anzeigen
 var restEl = document.getElementById("restAnzeige");
 if (restEl) { restEl.textContent = "Rest: " + state.cur; }
 renderStatus(spielraum);
@@ -798,7 +796,8 @@ s.used.push({n:loads[i].n, v:loads[i].v, ts:Date.now(), t:nowTime(), pos:"aufrec
 checkPemPenalty();
 trackDayMinPct();
 updateDisplay();
-showToast("Erfasst: " + loads[i].n);
+var _toastName = loads[i].n;
+setTimeout(function() { showToast("Erfasst: " + _toastName); }, 50);
 startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
@@ -1071,31 +1070,6 @@ var auf = getAufrechtMinuten();
 var schwelle = pct >= 50 ? AUFRECHT_SCHWELLE_HOCH : pct >= 25 ? AUFRECHT_SCHWELLE_MITTE : AUFRECHT_SCHWELLE_NIEDRIG;
 var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
 
-// Topf-Fuellstand des aktiven Topfes berechnen
-var jetzt2 = new Date();
-var stunde2 = jetzt2.getHours() + jetzt2.getMinutes() / 60;
-var aktiverTopf2 = stunde2 < TOPF_ENDE_H[0] ? 0 : stunde2 < TOPF_ENDE_H[1] ? 1 : stunde2 < TOPF_ENDE_H[2] ? 2 : 3;
-var topfBudget2 = Math.round(state.max * TOPF_ANTEIL[aktiverTopf2]);
-var heute2 = new Date(); heute2.setHours(0,0,0,0);
-var grenzen2 = [heute2.getTime()+TOPF_ENDE_H[0]*3600000, heute2.getTime()+TOPF_ENDE_H[1]*3600000, heute2.getTime()+TOPF_ENDE_H[2]*3600000, heute2.getTime()+TOPF_ENDE_H[3]*3600000];
-var startTs2 = heute2.getTime() + TOPF_START_H * 3600000;
-var topfVerbrauch2 = 0;
-for (var ti = 0; ti < state.used.length; ti++) {
-var tu = state.used[ti];
-if (tu.v <= 0 || !tu.ts || tu.ts < startTs2) { continue; }
-var inTopf = (aktiverTopf2 === 0 && tu.ts < grenzen2[0]) ||
-(aktiverTopf2 === 1 && tu.ts >= grenzen2[0] && tu.ts < grenzen2[1]) ||
-(aktiverTopf2 === 2 && tu.ts >= grenzen2[1] && tu.ts < grenzen2[2]) ||
-(aktiverTopf2 === 3 && tu.ts >= grenzen2[2]);
-if (inTopf) { topfVerbrauch2 += tu.v; }
-}
-var topfPct2 = topfBudget2 > 0 ? topfVerbrauch2 / topfBudget2 * 100 : 0;
-
-// Liegeminuten heute
-var liegMin = getLiegendMinuten();
-var gesamtMin = getGesamtMinuten();
-var liegeAnteil = gesamtMin > 0 ? liegMin / gesamtMin : 1;
-
 // 1. Notbremse
 if (pct < 20) {
 return {type:"NOTBREMSE", text:"STOP! Energie kritisch - sofort hinlegen!", bg:"#000", color:"#ff3b30", blink:true};
@@ -1106,38 +1080,31 @@ return {type:"CRASH_HIGH", text:"PEM-Risiko hoch! Sofort pausieren!", bg:"#ff3b3
 }
 // 3. PEM Zwang
 if (state.block >= blockPauseSchwelle) {
-return {type:"PEM_ZWANG", text:"PEM-Gefahr! Jetzt hinlegen!", bg:"#000", color:"#ffcc00", blink:true};
+return {type:"PEM_ZWANG", text:"PEM-Gefahr! Pause erzwingen!", bg:"#000", color:"#ffcc00", blink:true};
 }
 // 4. Crash mittel
 if (sc >= CRASH_SCORE_MITTEL) {
 return {type:"CRASH_MED", text:"PEM-Risiko steigt - Belastung reduzieren!", bg:"#e07800", color:"#fff", blink:false};
 }
-// 5. Aufrecht - dynamisch je nach Topf-Fuellstand
-var aufrechtSchwelleAktiv = topfPct2 >= 70 ? Math.round(schwelle * 0.7) : schwelle;
-if (auf > aufrechtSchwelleAktiv) {
-return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause einlegen!", bg:"#ff9500", color:"#fff", blink:false};
+// 5. Aufrecht
+if (auf > schwelle) {
+return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause sinnvoll", bg:"#ff9500", color:"#fff", blink:false};
 }
-// 6. Liegeanteil zu niedrig (weniger als 30% des Tages liegend)
-if (gesamtMin > 60 && liegeAnteil < 0.30) {
-return {type:"LIEGE", text:"Zu wenig gelegen heute - Liegepause wichtig!", bg:"#ff9500", color:"#fff", blink:false};
-}
-// 7. Timer - dynamisch je nach Topf-Fuellstand
+// 6. Timer
 if (lastActionTime) {
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
 var empfohlen = pct >= 70 ? TIMER_WARN_HOCH : pct >= 40 ? TIMER_WARN_MITTE : TIMER_WARN_NIEDRIG;
-// Bei vollem Topf frueher warnen
-if (topfPct2 >= 70) { erzwingen = Math.round(erzwingen * 0.7); empfohlen = Math.round(empfohlen * 0.7); }
 if (minuten >= erzwingen) {
-return {type:"TIMER_ZWANG", text:minuten + " Min. aktiv - kurze Pause!", bg:"#ff3b30", color:"#fff", blink:true};
+return {type:"TIMER_ZWANG", text:minuten + " Min. ohne Pause - jetzt pausieren!", bg:"#ff3b30", color:"#fff", blink:true};
 }
 if (minuten >= empfohlen) {
 return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
 }
 }
-// 8. Topf
+// 7. Topf
 if (isTopfKritisch()) {
-return {type:"TOPF", text:"Tagesbudget \u00fcberschritten - Tempo drosseln!", bg:"#ff9500", color:"#fff", blink:false};
+return {type:"TOPF", text:"Tagesabschnitt-Budget \u00fcberschritten!", bg:"#ff9500", color:"#fff", blink:false};
 }
 return null;
 }
@@ -1234,7 +1201,7 @@ renderUsed();
 }
 } else if (zustand === "schlechter") {
 anpassung = -Math.round(state.max * 0.10);
-msg = "Budget -10%. Sch\u00f6n auf dich achten!"
+msg = "Budget -10%. Schon auf dich."
 } else if (zustand === "crash") {
 anpassung = -Math.round(state.max * 0.20);
 msg = "Budget -20%! Bitte hinlegen."
@@ -1519,7 +1486,71 @@ bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0"
 renderMainWarning();
 }
 
-
+// ============================================================
+// LIEGEWAAGE
+// ============================================================
+function updateWaage() {
+if (state.max <= 0) { return; }
+var gesamt = getGesamtMinuten();
+var lieg = getLiegendMinuten();
+var auf = Math.max(0, gesamt - lieg);
+var diff = (lieg * 3) - auf;
+var maxDiff = Math.max(60, auf + lieg);
+var winkel = Math.max(-18, Math.min(18, (diff / maxDiff) * 18));
+var rad = winkel * Math.PI / 180;
+var cx = 80;
+var cy = 22;
+var armLen = 60;
+var lx = Math.round(cx - armLen * Math.cos(rad));
+var ly = Math.round(cy - armLen * Math.sin(rad));
+var rx = Math.round(cx + armLen * Math.cos(rad));
+var ry = Math.round(cy + armLen * Math.sin(rad));
+var seilLen = 33;
+var lSx = lx;
+var lSy = Math.round(ly + seilLen);
+var rSx = rx;
+var rSy = Math.round(ry + seilLen);
+document.getElementById("waageBalken").setAttribute("x1", lx);
+document.getElementById("waageBalken").setAttribute("y1", ly);
+document.getElementById("waageBalken").setAttribute("x2", rx);
+document.getElementById("waageBalken").setAttribute("y2", ry);
+document.getElementById("waageSeilL").setAttribute("x1", lx);
+document.getElementById("waageSeilL").setAttribute("y1", ly);
+document.getElementById("waageSeilL").setAttribute("x2", lSx);
+document.getElementById("waageSeilL").setAttribute("y2", lSy);
+document.getElementById("waageSeilR").setAttribute("x1", rx);
+document.getElementById("waageSeilR").setAttribute("y1", ry);
+document.getElementById("waageSeilR").setAttribute("x2", rSx);
+document.getElementById("waageSeilR").setAttribute("y2", rSy);
+document.getElementById("waageSchaleL").setAttribute("cx", lSx);
+document.getElementById("waageSchaleL").setAttribute("cy", lSy + 5);
+document.getElementById("waageSchaleR").setAttribute("cx", rSx);
+document.getElementById("waageSchaleR").setAttribute("cy", rSy + 5);
+document.getElementById("waageTextL").setAttribute("x", lSx);
+document.getElementById("waageTextL").setAttribute("y", lSy + 42);
+document.getElementById("waageTextR").setAttribute("x", rSx);
+document.getElementById("waageTextR").setAttribute("y", rSy + 22);
+document.getElementById("waageTextL").textContent = lieg + " Min."
+document.getElementById("waageTextR").textContent = auf + " Min."
+var aufAnteil = gesamt > 0 ? auf / gesamt : 0;
+var ampelFarbe;
+var ampelTextL;
+if (aufAnteil <= 0.65) {
+ampelFarbe = "#34c759"
+ampelTextL = "#1a7a3a"
+} else if (aufAnteil <= 0.80) {
+ampelFarbe = "#ff9500"
+ampelTextL = "#c07000"
+} else {
+ampelFarbe = "#ff3b30"
+ampelTextL = "#c00000"
+}
+document.getElementById("waageSchaleL").setAttribute("fill", ampelFarbe);
+document.getElementById("waageSchaleR").setAttribute("fill", ampelFarbe);
+document.getElementById("waageBalken").setAttribute("stroke", ampelFarbe);
+document.getElementById("waageTextL").setAttribute("fill", ampelTextL);
+document.getElementById("waageTextR").setAttribute("fill", ampelTextL);
+}
 
 // ============================================================
 // KATALOG
