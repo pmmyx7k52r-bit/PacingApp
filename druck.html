@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.3.6</title>
+<title>PacingApp 5.4.3</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -161,8 +161,7 @@ border-top: 2px solid #cc0000;
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
-<div id="pauseTimerBar" class="pause-timer-bar"></div>
-<div id="toast" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:20px;font-weight:bold;display:none;z-index:9999;pointer-events:none;white-space:nowrap;">Erfasst</div>
+<div id="toast" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.82);color:#fff;padding:13px 26px;border-radius:20px;font-weight:700;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:15px;"></div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -208,30 +207,11 @@ border-top: 2px solid #cc0000;
 </div>
 </div>
 
-<!-- Pause + Waage kompakt nebeneinander -->
+<!-- Pause Buttons -->
 
-<div id="pauseUndWaage" style="display:none;flex-direction:row;gap:10px;align-items:center;margin-bottom:8px;">
-<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
+<div id="pauseUndWaage" style="display:none;flex-direction:column;gap:6px;margin-bottom:8px;">
 <button class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn (ohne Handy!)</button>
 <button class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
-</div>
-<div id="waageWrap" class="waage-wrap" style="flex-shrink:0;">
-<div style="font-size:10px;font-weight:700;color:#555;margin-bottom:1px;text-align:center;">Liegewaage</div>
-<svg id="waageSvg" viewBox="0 0 160 115" width="120" height="86" style="overflow:visible;">
-<line x1="80" y1="20" x2="80" y2="90" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<ellipse cx="80" cy="93" rx="20" ry="4" fill="#ccc"/>
-<circle cx="80" cy="22" r="5" fill="#888"/>
-<line id="waageBalken" x1="15" y1="22" x2="145" y2="22" stroke="#888" stroke-width="3" stroke-linecap="round"/>
-<line id="waageSeilL" x1="20" y1="22" x2="20" y2="55" stroke="#aaa" stroke-width="1.5"/>
-<ellipse id="waageSchaleL" cx="20" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<line id="waageSeilR" x1="140" y1="22" x2="140" y2="55" stroke="#aaa" stroke-width="1.5"/>
-<ellipse id="waageSchaleR" cx="140" cy="60" rx="18" ry="7" fill="#34c759" opacity="0.85"/>
-<text id="waageTextL" x="20" y="76" text-anchor="middle" font-size="8" font-weight="700" fill="#555">0 Min.</text>
-<text x="20" y="100" text-anchor="middle" font-size="7" fill="#555">liegend</text>
-<text id="waageTextR" x="140" y="76" text-anchor="middle" font-size="8" font-weight="700" fill="#555">0 Min.</text>
-<text x="140" y="100" text-anchor="middle" font-size="7" fill="#555">aufrecht</text>
-</svg>
-</div>
 </div>
 <div id="rollingWarnBox" class="rolling-warn">Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!</div>
 
@@ -247,14 +227,6 @@ border-top: 2px solid #cc0000;
 <div class="individuell-row" id="individuellRow">
 <input id="sleep" type="number" placeholder="Eigener Wert">
 </div>
-<label style="font-weight:600;font-size:13px;margin-top:10px;display:block;">Wie fühlst du dich?</label>
-<select id="feeling" style="margin-top:4px;">
-<option value="" disabled selected>Wie fühlst du dich?</option>
-<option value="12">Es geht mir gut (+12)</option>
-<option value="4">Leichter Druck, es geht aber (+4)</option>
-<option value="-6">Starker Druck/Nebel, es geht irgendwie (-6)</option>
-<option value="-12">Schwerer Druck, Pfeifen, es geht nichts (-12)</option>
-</select>
 <button class="btn-start" id="btnStart">Tag starten</button>
 <button class="btn-reset" id="btnReset">Neuer Tag! (Reset!)</button>
 </div>
@@ -272,14 +244,11 @@ border-top: 2px solid #cc0000;
 </div>
 <!-- Kopf-an + Grenzen -->
 <div id="kopfAnBereich" style="margin-top:10px;">
-<div id="kopfAnRuhe" style="display:flex;gap:8px;align-items:center;">
-<div style="flex:1;">
-<button id="btnKopfAn" onclick="kopfAnStart()" style="background:#5856d6;color:#fff;width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">&#129504; Kopf an</button>
-<div style="font-size:10px;color:#888;text-align:center;margin-top:3px;">PC &middot; Handy &middot; Besprechung</div>
-</div>
-<div style="display:flex;flex-direction:column;gap:4px;">
-<button id="btnGrenzenAendern" onclick="zeigeBaselineEditor()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:11px;font-weight:600;padding:6px 8px;border-radius:10px;width:auto;cursor:pointer;touch-action:manipulation;">Grenzen &auml;ndern</button>
-<button onclick="kopfAnNacherfassen()" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:11px;font-weight:600;padding:6px 8px;border-radius:10px;width:auto;cursor:pointer;touch-action:manipulation;">Nacherfassen</button>
+<div id="kopfAnRuhe" style="display:flex;flex-direction:column;gap:6px;">
+<button id="btnKopfAn" onclick="kopfAnStart()" style="background:#5856d6;color:#fff;width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">&#129504; Kopf an<br><span style="font-size:10px;font-weight:400;opacity:0.8;">PC &middot; Handy &middot; Besprechung</span></button>
+<div style="display:flex;gap:6px;">
+<button id="btnGrenzenAendern" onclick="zeigeBaselineEditor()" style="flex:1;background:#8e8e93;color:#fff;padding:8px;border:none;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;touch-action:manipulation;">Grenzen &auml;ndern</button>
+<button onclick="kopfAnNacherfassen()" style="flex:1;background:#8e8e93;color:#fff;padding:8px;border:none;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;touch-action:manipulation;">Nacherfassen</button>
 </div>
 </div>
 <div id="baselineEditor" style="display:none;margin-top:8px;padding:10px;background:#f2f2f7;border-radius:10px;">
@@ -353,10 +322,10 @@ border-top: 2px solid #cc0000;
 <div id="zustandsOverlay" style="position:fixed;inset:0;z-index:3999;background:rgba(0,0,0,0.3);display:none;" onclick="schliesseZustandsPicker()"></div>
 <div id="zustandsPicker" style="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:4000;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);padding:16px;min-width:280px;text-align:center;display:none;">
 <h4 style="margin:0 0 12px;font-size:15px;color:#333;">Wie geht es dir gerade?</h4>
-<p style="font-size:12px;color:#666;margin:0 0 10px;">Symptome die du nicht mehr sp\u00fcrst werden als weg markiert.</p>
+<p style="font-size:12px;color:#666;margin:0 0 10px;">Symptome die du nicht mehr sp&uuml;rst werden als weg markiert.</p>
 <div style="display:flex;gap:8px;justify-content:center;">
 <button onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Ok</button>
-<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch\u00f6pft</button>
+<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch&ouml;pft</button>
 <button onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Gar nicht gut</button>
 </div>
 </div>
@@ -492,9 +461,10 @@ return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 
 function showToast(msg) {
 var t = document.getElementById("toast");
-t.textContent = msg || "Erfasst"
+t.textContent = (msg || "Erfasst") + " \uD83D\uDC4D"
 t.style.display = "block"
-setTimeout(function() { t.style.display = "none" }, 3000);
+if (t._timer) { clearTimeout(t._timer); }
+t._timer = setTimeout(function() { t.style.display = "none" }, 2500);
 }
 
 function saveLoads() {
@@ -515,41 +485,12 @@ checkPauseTimer();
 function stopPauseTimer() {
 lastActionTime = null;
 storeSet("pacing_timer_start", "");
-document.getElementById("pauseTimerBar").style.display = "none"
 document.body.style.paddingTop = "80px"
 }
 
 function checkPauseTimer() {
 if (!lastActionTime || state.max <= 0) { return; }
-var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
-var pct = (state.cur / state.max) * 100;
-var empfohlen;
-var erzwingen;
-if (pct >= 70) {
-empfohlen = TIMER_WARN_HOCH;
-erzwingen = TIMER_ZWANG_HOCH;
-} else if (pct >= 40) {
-empfohlen = TIMER_WARN_MITTE;
-erzwingen = TIMER_ZWANG_MITTE;
-} else {
-empfohlen = TIMER_WARN_NIEDRIG;
-erzwingen = TIMER_ZWANG_NIEDRIG;
-}
-var bar = document.getElementById("pauseTimerBar");
-if (minuten >= erzwingen) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-red"
-bar.textContent = minuten + " Min. ohne Pause - jetzt pausieren!"
-document.body.style.paddingTop = "120px"
-} else if (minuten >= empfohlen) {
-bar.style.display = "block"
-bar.className = "pause-timer-bar pt-orange"
-bar.textContent = minuten + " Min. ohne Pause - Pause empfohlen!"
-document.body.style.paddingTop = "120px"
-} else {
-bar.style.display = "none"
-document.body.style.paddingTop = "80px"
-}
+renderMainWarning();
 }
 
 // ============================================================
@@ -562,12 +503,10 @@ verdrahteButtons();
 if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
 minutenTimerInterval = setInterval(function() {
 if (state.max > 0) {
-updateWaage();
 updateToepfe();
 updateAufrechtWarnung();
 checkCrashRisiko();
 checkPauseTimer();
-// Alle 2 Stunden Zustandscheck
 if (Date.now() - _letzterZustandCheck >= ZUSTAND_CHECK_MS) {
 zeigeZustandsCheckBar();
 }
@@ -683,9 +622,9 @@ schlafPunkte = ind;
 showToast("Bitte Schlafqualit\u00e4t ausw\u00e4hlen!");
 return;
 }
-var f = document.getElementById("feeling").value;
-if (!f) { showToast("Bitte Gef\u00fchl ausw\u00e4hlen!"); return; }
-var berechnetes = schlafPunkte + parseFloat(f);
+var f = document.getElementById("feeling");
+if (f) { f.selectedIndex = 0; }
+var berechnetes = schlafPunkte;
 var h = state.history || [];
 var last3 = h.slice(-3);
 var crashDays = last3.filter(function(d) {
@@ -735,21 +674,17 @@ document.getElementById("cardSymptome").style.display = "block"
 }
 
 function toggleCheck() {
+if (!confirm("Neuen Tag starten? Alle heutigen Daten werden archiviert.")) { return; }
 try { archiveDay(); } catch(e) {}
 resetDayInternal();
 }
 
 function guteNacht() {
-// Laufende Pause beenden falls aktiv
-if (state.pauseBeginnTs) {
-endePause(false);
-}
-// Tag archivieren und reset
+if (!confirm("Gute Nacht! Tag abschlie\u00dfen?")) { return; }
+if (state.pauseBeginnTs) { endePause(false); }
 archiveDay();
 showToast("Gute Nacht! \uD83C\uDF19");
-setTimeout(function() {
-resetDayInternal();
-}, 1500);
+setTimeout(function() { resetDayInternal(); }, 1500);
 }
 
 // ============================================================
@@ -768,7 +703,6 @@ if (state.max <= 0) { return; }
 var grenze = Math.ceil(state.max * GRENZE_ROT);
 var spielraum = Math.max(0, state.cur - grenze);
 document.getElementById("valSpielraum").textContent = spielraum;
-// Rest klein unter Spielraum anzeigen
 var restEl = document.getElementById("restAnzeige");
 if (restEl) { restEl.textContent = "Rest: " + state.cur; }
 renderStatus(spielraum);
@@ -776,7 +710,6 @@ renderPemHeader();
 renderUsed();
 checkRollingPene();
 updateAufrechtWarnung();
-updateWaage();
 updateToepfe();
 }
 
@@ -852,7 +785,8 @@ s.used.push({n:loads[i].n, v:loads[i].v, ts:Date.now(), t:nowTime(), pos:"aufrec
 checkPemPenalty();
 trackDayMinPct();
 updateDisplay();
-showToast();
+var _toastName = loads[i].n;
+setTimeout(function() { showToast("Erfasst: " + _toastName); }, 50);
 startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
@@ -1124,8 +1058,6 @@ var sc = getCrashScore();
 var auf = getAufrechtMinuten();
 var schwelle = pct >= 50 ? AUFRECHT_SCHWELLE_HOCH : pct >= 25 ? AUFRECHT_SCHWELLE_MITTE : AUFRECHT_SCHWELLE_NIEDRIG;
 var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
-var blockWarnSchwelle = Math.round(state.max * BLOCK_WARN);
-var dichte = getDichteScore();
 
 // 1. Notbremse
 if (pct < 20) {
@@ -1143,23 +1075,11 @@ return {type:"PEM_ZWANG", text:"PEM-Gefahr! Pause erzwingen!", bg:"#000", color:
 if (sc >= CRASH_SCORE_MITTEL) {
 return {type:"CRASH_MED", text:"PEM-Risiko steigt - Belastung reduzieren!", bg:"#e07800", color:"#fff", blink:false};
 }
-// 5. PEM Warnung
-if (state.block >= blockWarnSchwelle) {
-return {type:"PEM_WARN", text:"PEM-Gefahr - Pause einplanen!", bg:"#ff3b30", color:"#fff", blink:false};
-}
-// 6. Aufrecht kritisch
-if (pct < 40 && auf > 30) {
-return {type:"AUFRECHT_KRIT", text:auf + " Min. aufrecht + wenig Energie - hinlegen!", bg:"#ff3b30", color:"#fff", blink:false};
-}
-// 7. Aufrecht
-if (auf > schwelle) {
+// 5. Aufrecht - nur wenn vorher gelegen (aufrechtSeitTs gesetzt durch Pause)
+if (auf > schwelle && state.letzteLiegeZeit) {
 return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause sinnvoll", bg:"#ff9500", color:"#fff", blink:false};
 }
-// 8. Kurzpausen
-if (state.kurzPausen > 1 && auf > schwelle * 0.7) {
-return {type:"KURZ", text:"Bisherige Pausen reichen nicht - l\u00e4ngere Pause n\u00f6tig!", bg:"#ff9500", color:"#fff", blink:false};
-}
-// 9. Timer
+// 6. Timer
 if (lastActionTime) {
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
@@ -1171,16 +1091,9 @@ if (minuten >= empfohlen) {
 return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
 }
 }
-// 10. Dichte
-if (dichte >= DICHTE_STARK) {
-return {type:"DICHTE_STARK", text:dichte + " Punkte in 30 Min. - jetzt pausieren!", bg:"#ff3b30", color:"#fff", blink:false};
-}
-if (dichte >= DICHTE_WARN) {
-return {type:"DICHTE_WARN", text:dichte + " Punkte in 30 Min. - Pause einplanen!", bg:"#ff9500", color:"#fff", blink:false};
-}
-// 11. Topf
+// 7. Topf
 if (isTopfKritisch()) {
-return {type:"TOPF", text:"Du bist zu aktiv! Vorsicht! \uD83D\uDEA8", bg:"#ff9500", color:"#fff", blink:false};
+return {type:"TOPF", text:"Tagesabschnitt-Budget \u00fcberschritten!", bg:"#ff9500", color:"#fff", blink:false};
 }
 return null;
 }
@@ -1930,7 +1843,6 @@ var btns = document.querySelectorAll(".schlaf-btn");
 for (var i = 0; i < btns.length; i++) { btns[i].classList.remove("selected"); }
 document.getElementById("individuellRow").classList.remove("open");
 document.getElementById("sleep").value = ""
-document.getElementById("feeling").selectedIndex = 0;
 document.getElementById("statusWrap").style.display = "none"
 document.getElementById("pauseUndWaage").style.display = "none"
 document.getElementById("pacingHeader").style.display = "none"
