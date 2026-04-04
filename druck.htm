@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.4.3</title>
+<title>PacingApp 5.4.3.1</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -132,10 +132,20 @@ font-weight:700; font-size:14px; display:none; z-index:3000;
 text-align:center; box-shadow:0 4px 16px rgba(0,0,0,0.25);
 }
 #toast {
-position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
-background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px;
-border-radius:20px; font-weight:bold; display:none; z-index:9999;
-pointer-events:none; white-space:nowrap;
+position:fixed;
+bottom:30px;
+left:50%;
+transform:translateX(-50%);
+background:rgba(0,0,0,0.82);
+color:#fff;
+padding:13px 26px;
+border-radius:20px;
+font-weight:700;
+display:none;
+z-index:99999;
+pointer-events:none;
+white-space:nowrap;
+font-size:15px;
 }
 .schwere-picker {
 position:fixed; left:50%; transform:translateX(-50%); bottom:100px;
@@ -161,7 +171,7 @@ border-top: 2px solid #cc0000;
 <body id="mainBody">
 
 <div id="pacingHeader"></div>
-<div id="toast" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.82);color:#fff;padding:13px 26px;border-radius:20px;font-weight:700;display:none;z-index:99999;pointer-events:none;white-space:nowrap;font-size:15px;"></div>
+<div id="toast"></div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -374,14 +384,13 @@ var TIMER_ZWANG_MITTE = 45;
 var TIMER_WARN_NIEDRIG = 20;
 var TIMER_ZWANG_NIEDRIG = 30;
 
-// NEU 4.4.2: Tages-Toepfe
-var TOPF_ANTEIL = [0.16, 0.16, 0.32, 0.36]; // T0/T1/T2/T3
-var TOPF_ENDE_H = [9.0, 10.5, 14.0, 24.0]; // Endzeiten
+var TOPF_ANTEIL = [0.16, 0.16, 0.32, 0.36];
+var TOPF_ENDE_H = [9.0, 10.5, 14.0, 24.0];
 var TOPF_START_H = 5.0;
-var TOPF_ABEND_PUFFER = 15; // Feste Reserve Abend (tabu)
-var ZUSTAND_CHECK_MS = 2 * 60 * 60 * 1000; // Alle 2 Stunden
-var KOPFAN_GRENZEN = [3, 10, 15, 30]; // Minuten-Grenzen
-var KOPFAN_PUNKTE = [2, 5, 10, 15, 20]; // Punkte je Stufe
+var TOPF_ABEND_PUFFER = 15;
+var ZUSTAND_CHECK_MS = 2 * 60 * 60 * 1000;
+var KOPFAN_GRENZEN = [3, 10, 15, 30];
+var KOPFAN_PUNKTE = [2, 5, 10, 15, 20];
 
 // ============================================================
 // DEFAULT-KATALOG
@@ -451,6 +460,8 @@ var minutenTimerInterval = null;
 var _pendingSymptom = null;
 var _letzterZustandCheck = Date.now();
 var _kopfAnStartTs = null;
+var _lastWarnType = null;
+var _lastWarnTs = 0;
 
 // ============================================================
 // HILFSFUNKTIONEN
@@ -745,7 +756,7 @@ var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
 if (state.block >= blockPauseSchwelle && !state.pene) {
 mutateState(function(s) {
 s.cur = Math.max(0, s.cur - 1);
-s.used.push({n:"STRAFE: PENE-Warnung", v:-1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+s.used.push({n:"Strafe: PENE-Warnung", v:1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
 s.pene = true;
 });
 } else if (state.block < blockPauseSchwelle && state.pene) {
@@ -806,7 +817,6 @@ s.pauseBeginnTs = jetzt;
 s.aufrechtSeitTs = null;
 s.used.push({n:"Pausenbeginn", v:0, ts:jetzt, t:nowTime(), pos:"liegend"});
 });
-// mainWarnBar beim Pausenbeginn ausblenden
 var mwb = document.getElementById("mainWarnBar");
 if (mwb) {
 mwb.style.display = "none"
@@ -1045,10 +1055,8 @@ if (verbrauchRaw[t + 1] > 0 && t + 1 <= aktiverTopf) { return true; }
 return false;
 }
 
-// Hysterese
 var _lastPauseEndeTs = 0;
-var SYMPTOM_SCORE_COOLDOWN_MS = 5 * 60 * 1000; // 5 Min nach Pause
-var _lastWarnTs = 0;
+var SYMPTOM_SCORE_COOLDOWN_MS = 5 * 60 * 1000;
 var WARN_HYSTERESE_MS = 8000;
 
 function getMainWarning() {
@@ -1059,27 +1067,21 @@ var auf = getAufrechtMinuten();
 var schwelle = pct >= 50 ? AUFRECHT_SCHWELLE_HOCH : pct >= 25 ? AUFRECHT_SCHWELLE_MITTE : AUFRECHT_SCHWELLE_NIEDRIG;
 var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
 
-// 1. Notbremse
 if (pct < 20) {
 return {type:"NOTBREMSE", text:"STOP! Energie kritisch - sofort hinlegen!", bg:"#000", color:"#ff3b30", blink:true};
 }
-// 2. Crash hoch
 if (sc >= CRASH_SCORE_HOCH) {
 return {type:"CRASH_HIGH", text:"PEM-Risiko hoch! Sofort pausieren!", bg:"#ff3b30", color:"#fff", blink:true};
 }
-// 3. PEM Zwang
 if (state.block >= blockPauseSchwelle) {
 return {type:"PEM_ZWANG", text:"PEM-Gefahr! Pause erzwingen!", bg:"#000", color:"#ffcc00", blink:true};
 }
-// 4. Crash mittel
 if (sc >= CRASH_SCORE_MITTEL) {
 return {type:"CRASH_MED", text:"PEM-Risiko steigt - Belastung reduzieren!", bg:"#e07800", color:"#fff", blink:false};
 }
-// 5. Aufrecht - nur wenn vorher gelegen (aufrechtSeitTs gesetzt durch Pause)
 if (auf > schwelle && state.letzteLiegeZeit) {
 return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause sinnvoll", bg:"#ff9500", color:"#fff", blink:false};
 }
-// 6. Timer
 if (lastActionTime) {
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
@@ -1091,7 +1093,6 @@ if (minuten >= empfohlen) {
 return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
 }
 }
-// 7. Topf
 if (isTopfKritisch()) {
 return {type:"TOPF", text:"Tagesabschnitt-Budget \u00fcberschritten!", bg:"#ff9500", color:"#fff", blink:false};
 }
@@ -1104,12 +1105,10 @@ if (!bar) { return; }
 var warn = getMainWarning();
 var typ = warn ? warn.type : null;
 
-// PEM_ZWANG und CRASH_HIGH sind nicht wegdrueckbar
 var nichtWegdrueckbar = (typ === "PEM_ZWANG" || typ === "CRASH_HIGH" || typ === "NOTBREMSE");
 if (bar._dismissed && !nichtWegdrueckbar) { return; }
 if (nichtWegdrueckbar) { bar._dismissed = false; }
 
-// Hysterese
 if (typ !== _lastWarnType) {
 if (Date.now() - _lastWarnTs < WARN_HYSTERESE_MS) { return; }
 _lastWarnType = typ;
@@ -1137,7 +1136,7 @@ bar.innerHTML = warn.text + "<br><span style=\"font-size:11px;font-weight:400;op
 }
 
 // ============================================================
-// ZUSTANDSCHECK (alle 2 Stunden)
+// ZUSTANDSCHECK
 // ============================================================
 function zeigeZustandsCheckBar() {
 var bar = document.getElementById("zustandsCheckBar");
@@ -1167,7 +1166,6 @@ var msg = ""
 if (zustand === "stabil") {
 anpassung = 0;
 msg = "Gut! Weiter so."
-// Aktive Symptome der letzten 4h als weg markieren
 var fenster = Date.now() - 4 * 3600000;
 var symp = state.symptome || [];
 var aktive = [];
@@ -1257,7 +1255,6 @@ var min = Math.floor(gesamtSek / 60);
 var sec = gesamtSek % 60;
 document.getElementById("kopfAnTimer").textContent =
 min + ":" + (sec < 10 ? "0" : "") + sec;
-// Farbe: orange 20 Sek vor Grenze, rot wenn ueberschritten
 var timerEl = document.getElementById("kopfAnTimer");
 var farbe = "#5856d6"
 for (var gi = 0; gi < KOPFAN_GRENZEN.length; gi++) {
@@ -1282,7 +1279,6 @@ document.getElementById("kopfAnLaeuft").style.display = "none"
 document.getElementById("kopfAnTimer").textContent = "0:00"
 document.getElementById("kopfAnTimer").style.color = "#5856d6"
 
-// Punkte berechnen
 var punkte = KOPFAN_PUNKTE[0];
 for (var i = 0; i < KOPFAN_GRENZEN.length; i++) {
 if (minuten >= KOPFAN_GRENZEN[i]) { punkte = KOPFAN_PUNKTE[i+1]; }
@@ -1307,7 +1303,6 @@ var el = document.getElementById("aktiveSymptomeAnzeige");
 if (!el) { return; }
 el.innerHTML = ""
 var symp = state.symptome || [];
-// Letzten Status pro Symptom ermitteln
 var letzter = {};
 for (var i = 0; i < symp.length; i++) {
 letzter[symp[i].s] = symp[i];
@@ -1361,7 +1356,6 @@ if (l2 > CRASH_BELASTUNG_HOCH) { r += 2; }
 else if (l2 > CRASH_BELASTUNG_MITTEL) { r += 1; }
 if (up > CRASH_AUFRECHT_MAX) { r += 1; }
 
-// Symptome der letzten 2 Stunden einbeziehen (nicht direkt nach Pause)
 var symptomFenster = jetzt - 7200000;
 var nachPauseCooldown = (Date.now() - _lastPauseEndeTs) < SYMPTOM_SCORE_COOLDOWN_MS;
 if (!nachPauseCooldown) {
@@ -1379,7 +1373,7 @@ return r;
 }
 
 // ============================================================
-// NEU 4.4.2: TAGES-TOePFE
+// TAGES-TOePFE
 // ============================================================
 function updateToepfe() {
 if (state.max <= 0) { return; }
@@ -1401,7 +1395,6 @@ heute.getTime() + TOPF_ENDE_H[3] * 3600000
 ];
 var startTs = heute.getTime() + TOPF_START_H * 3600000;
 
-// Verbrauch pro Zeitfenster (4 Toepfe)
 var verbrauchRaw = [0, 0, 0, 0];
 for (var i = 0; i < state.used.length; i++) {
 var u = state.used[i];
@@ -1416,7 +1409,6 @@ var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 :
 stundeJetzt < TOPF_ENDE_H[1] ? 1 :
 stundeJetzt < TOPF_ENDE_H[2] ? 2 : 3;
 
-// Overflow + Restuebertrag
 var verbrauch = [0, 0, 0, 0];
 var carry = 0;
 for (var t = 0; t < 4; t++) {
@@ -1429,7 +1421,6 @@ if (rest > 0) { budgets[t + 1] += rest; }
 }
 }
 
-// T0+T1 haben IDs topf0Fill/topf1Fill, T2=topf2Fill, T3=topf3Fill
 var ids = ["topf0", "topf1", "topf2", "topf3"];
 var hoehen = [24, 24, 50, 56];
 for (var t = 0; t < 4; t++) {
@@ -1460,7 +1451,6 @@ label.textContent = verbrauch[t] + "/" + budgets[t];
 label.style.color = istAktiv ? "#000" : "#555"
 label.style.fontWeight = istAktiv ? "800" : "600"
 
-// Bodensatz nur im letzten Topf (T3)
 if (t === 3) {
 var bodensatz = document.getElementById("topf3Bodensatz");
 if (bodensatz && budgets[3] > 0) {
@@ -1471,7 +1461,6 @@ bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0"
 }
 }
 
-// Topf-Warnung via getMainWarning
 renderMainWarning();
 }
 
@@ -1784,7 +1773,8 @@ updateDisplay();
 showToast("Symptom r\u00fcckg\u00e4ngig");
 } else if (lu) {
 var last = state.used[state.used.length-1];
-if (last.n.indexOf("STRAFE") >= 0) {
+if (last.n.indexOf("Strafe:") === 0) {
+// Strafe hatte v:1 (positiver Wert = Abzug), also cur um 1 erhoehen
 mutateState(function(s) {
 s.used.pop();
 s.cur = Math.min(s.max, s.cur + 1);
