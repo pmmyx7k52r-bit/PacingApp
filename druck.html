@@ -1460,25 +1460,13 @@ var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 :
 stundeJetzt < TOPF_ENDE_H[1] ? 1 :
 stundeJetzt < TOPF_ENDE_H[2] ? 2 : 3;
 
-var verbrauch = [0, 0, 0, 0];
-var carry = 0;
-for (var t = 0; t < 4; t++) {
-var zugewiesen = verbrauchRaw[t] + carry;
-verbrauch[t] = Math.min(zugewiesen, budgets[t]);
-carry = Math.max(0, zugewiesen - budgets[t]);
-if (t < aktiverTopf && t < 3) {
-var rest = budgets[t] - verbrauch[t];
-if (rest > 0) { budgets[t + 1] += rest; }
-}
-}
-
 var ids = ["topf0", "topf1", "topf2", "topf3"];
 var hoehen = [24, 24, 50, 56];
 for (var t = 0; t < 4; t++) {
 var fill = document.getElementById(ids[t] + "Fill");
 var label = document.getElementById(ids[t] + "Label");
 if (!fill || !label) { continue; }
-var pct = budgets[t] > 0 ? Math.min(100, Math.round(verbrauch[t] / budgets[t] * 100)) : 0;
+var pct = budgets[t] > 0 ? Math.min(100, Math.round(verbrauchRaw[t] / budgets[t] * 100)) : 0;
 var istAktiv = (t === aktiverTopf);
 var istVergangen = (t < aktiverTopf);
 
@@ -1498,7 +1486,7 @@ fill.style.height = pct + "%"
 fill.style.top = "0"
 fill.style.background = "#aaa"
 
-label.textContent = verbrauch[t] + "/" + budgets[t];
+label.textContent = verbrauchRaw[t] + "/" + budgets[t];
 label.style.color = istAktiv ? "#000" : "#555"
 label.style.fontWeight = istAktiv ? "800" : "600"
 
