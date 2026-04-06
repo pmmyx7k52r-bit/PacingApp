@@ -107,7 +107,7 @@ cursor:pointer; touch-action:manipulation; user-select:none; padding:4px 0;
 .coll-header h3 { margin:0; }
 .coll-chevron { font-size:14px; color:#8e8e93; transition:transform 0.2s; }
 .coll-chevron.open { transform:rotate(180deg); }
-.kopf-ruhe { display:flex !important; gap:6px; align-items:center; }
+.kopf-ruhe { display:flex !important; gap:4px; align-items:center; overflow:hidden; width:100%; box-sizing:border-box; }
 .kopf-ruhe.hidden { display:none !important; }
 .kopf-laeuft { display:none !important; gap:6px; align-items:center; margin-top:6px; }
 .kopf-laeuft.active { display:flex !important; }
@@ -250,28 +250,21 @@ border-top: 2px solid #cc0000;
 <h3>Belastungskatalog <span style="font-size:11px;font-weight:400;opacity:0.6;">Tippen: auf/zu</span></h3>
 <span class="coll-chevron" id="catalogChevron">&#9660;</span>
 </div>
-<div class="coll-body" id="catalogBody">
-<div style="display:flex;gap:6px;align-items:flex-end;">
-<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
-<input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
-<button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
-</div>
-<!-- Kopf-an: alles in einer Zeile -->
-<div id="kopfAnBereich" style="margin-top:10px;">
-<div id="kopfAnRuhe" class="kopf-ruhe">
-<button id="btnKopfAn" type="button" onclick="kopfAnStart()" style="flex:0 0 auto;background:#5856d6;color:#fff;padding:10px 10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">&#129504; Kopf an</button>
-<div style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;">
-<div style="font-size:9px;font-weight:700;color:#5856d6;letter-spacing:0.5px;text-align:center;">NACHERFASSEN</div>
-<div style="display:flex;gap:3px;">
-<button type="button" onclick="kopfAnNacherfassen(0)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 2px;border:none;border-radius:7px;font-weight:600;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">kurz</button>
-<button type="button" onclick="kopfAnNacherfassen(1)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 2px;border:none;border-radius:7px;font-weight:600;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">mittel</button>
-<button type="button" onclick="kopfAnNacherfassen(2)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 2px;border:none;border-radius:7px;font-weight:600;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">lang</button>
-<button type="button" onclick="kopfAnNacherfassen(3)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 2px;border:none;border-radius:7px;font-weight:600;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">sehr<br>lang</button>
+<!-- Kopf-an: immer sichtbar, ausserhalb coll-body -->
+<div id="kopfAnBereich" style="margin-top:8px;display:none;">
+<div id="kopfAnRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
+<button id="btnKopfAn" type="button" onclick="kopfAnStart()" style="flex:0 0 68px;background:#5856d6;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#129504;<br>Kopf an</button>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+<div style="font-size:8px;font-weight:700;color:#5856d6;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
+<div style="display:flex;gap:2px;">
+<button type="button" onclick="kopfAnNacherfassen(0)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">kurz</button>
+<button type="button" onclick="kopfAnNacherfassen(1)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">mittel</button>
+<button type="button" onclick="kopfAnNacherfassen(2)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">lang</button>
+<button type="button" onclick="kopfAnNacherfassen(3)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">s.lang</button>
 </div>
 </div>
-<button id="btnGrenzenAendern" type="button" onclick="zeigeBaselineEditor()" style="flex:0 0 auto;background:#c7c7cc;color:#333;padding:6px 7px;border:none;border-radius:8px;font-weight:600;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">Gren-<br>zen<br>änd.</button>
+<button id="btnGrenzenAendern" type="button" onclick="zeigeBaselineEditor()" style="flex:0 0 36px;background:#c7c7cc;color:#333;padding:6px 0;border:none;border-radius:8px;font-weight:600;font-size:8px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.4;">Gren-<br>zen</button>
 </div>
-<!-- Läuft-Zeile: [Kopf an °] [0:00] [Beenden] -->
 <div id="kopfAnLaeuft" class="kopf-laeuft">
 <div style="flex:1;background:#5856d6;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;white-space:nowrap;">&#129504; läuft…</div>
 <div id="kopfAnTimer" style="flex:1;text-align:center;font-weight:700;font-size:20px;color:#5856d6;">0:00</div>
@@ -293,7 +286,13 @@ border-top: 2px solid #cc0000;
 <button type="button" onclick="speichereBaseline()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
 </div>
 </div>
-<div id="catalog" style="margin-top:15px;"></div>
+<div class="coll-body" id="catalogBody">
+<div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;">
+<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
+<input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
+<button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
+</div>
+<div id="catalog" style="margin-top:10px;"></div>
 <button type="button" id="btnResetKatalog" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">Grundkatalog wiederherstellen</button>
 </div>
 </div>
@@ -1327,12 +1326,16 @@ function kopfAnStop() {
 if (!_kopfAnStartTs) { return; }
 clearInterval(_kopfAnInterval);
 _kopfAnInterval = null;
-var minuten = Math.floor((Date.now() - _kopfAnStartTs) / 60000);
+var sekunden = Math.floor((Date.now() - _kopfAnStartTs) / 1000);
+var minuten = Math.floor(sekunden / 60);
 _kopfAnStartTs = null;
 document.getElementById("kopfAnLaeuft").classList.remove("active");
 document.getElementById("kopfAnRuhe").classList.remove("hidden");
 document.getElementById("kopfAnTimer").textContent = "0:00"
 document.getElementById("kopfAnTimer").style.color = "#5856d6"
+
+// Unter 10 Sekunden: versehentlicher Start, keine Buchung
+if (sekunden < 10) { showToast("Abgebrochen"); return; }
 
 var punkte = KOPFAN_PUNKTE[0];
 for (var i = 0; i < KOPFAN_GRENZEN.length; i++) {
@@ -1892,6 +1895,9 @@ if (_kopfAnInterval) { clearInterval(_kopfAnInterval); _kopfAnInterval = null; }
 _kopfAnStartTs = null;
 document.getElementById("kopfAnLaeuft").classList.remove("active");
 document.getElementById("kopfAnRuhe").classList.remove("hidden");
+document.getElementById("kopfAnBereich").style.display = "none"
+document.getElementById("catalogBody").className = "coll-body"
+document.getElementById("catalogChevron").className = "coll-chevron"
 var mwb3 = document.getElementById("mainWarnBar");
 if (mwb3) {
 mwb3.style.display = "none"
@@ -1974,9 +1980,11 @@ showToast(SYMPTOM_NAMEN[idx] + " weg");
 function toggleCatalogCard() {
 var b = document.getElementById("catalogBody");
 var c = document.getElementById("catalogChevron");
+var k = document.getElementById("kopfAnBereich");
 var o = b.classList.contains("open");
 b.className = o ? "coll-body" : "coll-body open"
 c.className = o ? "coll-chevron" : "coll-chevron open"
+if (k) { k.style.display = o ? "none" : "block" }
 if (!o) { renderCatalog(); }
 }
 
