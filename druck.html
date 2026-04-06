@@ -1,3 +1,5 @@
+5.4.3.3
+
 <!DOCTYPE html>
 
 <html lang="de">
@@ -252,14 +254,27 @@ border-top: 2px solid #cc0000;
 <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
 <button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
 </div>
-<!-- Kopf-an + Grenzen -->
+<!-- Kopf-an: kompakte Zeile -->
 <div id="kopfAnBereich" style="margin-top:10px;">
+<!-- Ruhe-Zeile: [Kopf an] [Grenzen] -->
 <div id="kopfAnRuhe" style="display:flex;flex-direction:column;gap:6px;">
-<button id="btnKopfAn" onclick="kopfAnStart()" style="background:#5856d6;color:#fff;width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">&#129504; Kopf an<br><span style="font-size:10px;font-weight:400;opacity:0.8;">PC &middot; Handy &middot; Besprechung</span></button>
-<div style="display:flex;gap:6px;">
-<button id="btnGrenzenAendern" onclick="zeigeBaselineEditor()" style="flex:1;background:#8e8e93;color:#fff;padding:8px;border:none;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;touch-action:manipulation;">Grenzen &auml;ndern</button>
-<button onclick="kopfAnNacherfassen()" style="flex:1;background:#8e8e93;color:#fff;padding:8px;border:none;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;touch-action:manipulation;">Nacherfassen</button>
+<div style="display:flex;gap:6px;align-items:center;">
+<button id="btnKopfAn" type="button" onclick="kopfAnStart()" style="flex:2;background:#5856d6;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">&#129504; Kopf an</button>
+<button id="btnGrenzenAendern" type="button" onclick="zeigeBaselineEditor()" style="flex:1;background:#8e8e93;color:#fff;padding:10px 6px;border:none;border-radius:10px;font-weight:600;font-size:11px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Grenzen</button>
 </div>
+<!-- Nacherfassen: kurz / mittel / lang -->
+<div style="display:flex;gap:6px;">
+<button type="button" onclick="kopfAnNacherfassen(0)" style="flex:1;background:#8e8e93;color:#fff;padding:8px 4px;border:none;border-radius:10px;font-weight:600;font-size:11px;cursor:pointer;touch-action:manipulation;text-align:center;">kurz<br><span style="font-size:9px;font-weight:400;opacity:0.8;">bis 3 Min.</span></button>
+<button type="button" onclick="kopfAnNacherfassen(1)" style="flex:1;background:#8e8e93;color:#fff;padding:8px 4px;border:none;border-radius:10px;font-weight:600;font-size:11px;cursor:pointer;touch-action:manipulation;text-align:center;">mittel<br><span style="font-size:9px;font-weight:400;opacity:0.8;">bis 10 Min.</span></button>
+<button type="button" onclick="kopfAnNacherfassen(2)" style="flex:1;background:#8e8e93;color:#fff;padding:8px 4px;border:none;border-radius:10px;font-weight:600;font-size:11px;cursor:pointer;touch-action:manipulation;text-align:center;">lang<br><span style="font-size:9px;font-weight:400;opacity:0.8;">bis 15 Min.</span></button>
+<button type="button" onclick="kopfAnNacherfassen(3)" style="flex:1;background:#8e8e93;color:#fff;padding:8px 4px;border:none;border-radius:10px;font-weight:600;font-size:11px;cursor:pointer;touch-action:manipulation;text-align:center;">sehr lang<br><span style="font-size:9px;font-weight:400;opacity:0.8;">bis 30 Min.</span></button>
+</div>
+</div>
+<!-- Läuft-Zeile: [Kopf an °] [0:00] [Beenden] -->
+<div id="kopfAnLaeuft" style="display:none;margin-top:6px;gap:6px;align-items:center;">
+<div style="flex:1;background:#5856d6;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;white-space:nowrap;">&#129504; läuft…</div>
+<div id="kopfAnTimer" style="flex:1;text-align:center;font-weight:700;font-size:20px;color:#5856d6;">0:00</div>
+<button type="button" onclick="kopfAnStop()" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
 </div>
 <div id="baselineEditor" style="display:none;margin-top:8px;padding:10px;background:#f2f2f7;border-radius:10px;">
 <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px;">Kopf-an Zeitgrenzen (Minuten):</div>
@@ -274,11 +289,7 @@ border-top: 2px solid #cc0000;
 <input id="kopfGrenze3" type="number" value="30" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;margin:0;">
 </div>
 <div style="font-size:11px;color:#666;margin-bottom:4px;text-align:center;">Punkte: 2 / 5 / 10 / 15 / 20 (fest)</div>
-<button onclick="speichereBaseline()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
-</div>
-<div id="kopfAnLaeuft" style="display:none;margin-top:6px;">
-<div id="kopfAnTimer" style="text-align:center;font-weight:700;font-size:22px;color:#5856d6;padding:4px 0;">0:00</div>
-<button onclick="kopfAnStop()" style="background:#34c759;color:#fff;width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;">Beendet</button>
+<button type="button" onclick="speichereBaseline()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
 </div>
 </div>
 <div id="catalog" style="margin-top:15px;"></div>
@@ -1256,13 +1267,16 @@ showToast(msg);
 
 var _kopfAnInterval = null;
 
-function kopfAnNacherfassen() {
+// stufe: 0=kurz, 1=mittel, 2=lang, 3=sehr lang → KOPFAN_PUNKTE[stufe+1]
+function kopfAnNacherfassen(stufe) {
 if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
-var punkte = KOPFAN_PUNKTE[0];
-mutateState(function(s) {
-s.cur = Math.max(0, s.cur - punkte);
-s.block += punkte;
-s.used.push({n:"Kopf an (Nacherfassung)", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+var s = (typeof stufe === "number") ? stufe : 0;
+var punkte = KOPFAN_PUNKTE[Math.min(s + 1, KOPFAN_PUNKTE.length - 1)];
+var grenze = KOPFAN_GRENZEN[Math.min(s, KOPFAN_GRENZEN.length - 1)];
+mutateState(function(st) {
+st.cur = Math.max(0, st.cur - punkte);
+st.block += punkte;
+st.used.push({n:"Kopf an Nacherfassung (bis " + grenze + " Min.)", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
 });
 checkPemPenalty();
 trackDayMinPct();
@@ -1288,11 +1302,9 @@ showToast("Grenzen gespeichert");
 function kopfAnStart() {
 if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
 _kopfAnStartTs = Date.now();
-document.getElementById("btnKopfAn").style.opacity = "0.5"
-document.getElementById("btnKopfAn").disabled = true;
-document.getElementById("btnGrenzenAendern").style.display = "none"
+document.getElementById("kopfAnRuhe").style.display = "none"
 document.getElementById("baselineEditor").style.display = "none"
-document.getElementById("kopfAnLaeuft").style.display = "block"
+document.getElementById("kopfAnLaeuft").style.display = "flex"
 _kopfAnInterval = setInterval(function() {
 var gesamtSek = Math.floor((Date.now() - _kopfAnStartTs) / 1000);
 var min = Math.floor(gesamtSek / 60);
@@ -1316,10 +1328,8 @@ clearInterval(_kopfAnInterval);
 _kopfAnInterval = null;
 var minuten = Math.floor((Date.now() - _kopfAnStartTs) / 60000);
 _kopfAnStartTs = null;
-document.getElementById("btnKopfAn").style.opacity = "1"
-document.getElementById("btnKopfAn").disabled = false;
-document.getElementById("btnGrenzenAendern").style.display = "block"
 document.getElementById("kopfAnLaeuft").style.display = "none"
+document.getElementById("kopfAnRuhe").style.display = "flex"
 document.getElementById("kopfAnTimer").textContent = "0:00"
 document.getElementById("kopfAnTimer").style.color = "#5856d6"
 
@@ -1600,43 +1610,28 @@ var name = document.createElement("span");
 name.style.cssText = "flex-grow:1;cursor:pointer;padding:8px 0;"
 name.textContent = loads[i].n + " (" + loads[i].v + ")"
 name.addEventListener("click", machApplyHandler(i));
+// Buttons: Erfassen (groß, oben) / Ändern+Löschen (klein, nebeneinander)
 var btns = document.createElement("div");
-btns.style.display = "flex"
+btns.style.cssText = "display:flex;flex-direction:column;gap:3px;min-width:80px;"
 var bAdd = document.createElement("button");
-bAdd.className = "small-btn"
-bAdd.style.background = "#007aff"
-bAdd.style.color = "#fff"
-bAdd.textContent = "+"
+bAdd.type = "button"
+bAdd.style.cssText = "width:100%;height:28px;padding:0;font-size:13px;font-weight:700;border-radius:6px;border:none;background:#007aff;color:#fff;cursor:pointer;touch-action:manipulation;line-height:1;"
+bAdd.textContent = "Erfassen"
 bAdd.addEventListener("click", machApplyHandler(i));
+var bRow = document.createElement("div");
+bRow.style.cssText = "display:flex;gap:3px;"
 var bEdit = document.createElement("button");
-bEdit.className = "small-btn"
-bEdit.style.background = "#8e8e93"
-bEdit.style.color = "#fff"
-bEdit.textContent = "E"
+bEdit.type = "button"
+bEdit.style.cssText = "flex:1;height:24px;padding:0;font-size:11px;font-weight:600;border-radius:6px;border:none;background:#8e8e93;color:#fff;cursor:pointer;touch-action:manipulation;line-height:1;"
+bEdit.textContent = "\u00c4ndern"
 bEdit.addEventListener("click", machEditHandler(i));
 var bDel = document.createElement("button");
-bDel.className = "small-btn"
-bDel.style.background = "#ff3b30"
-bDel.style.color = "#fff"
-bDel.textContent = "X"
+bDel.type = "button"
+bDel.style.cssText = "flex:1;height:24px;padding:0;font-size:11px;font-weight:600;border-radius:6px;border:none;background:#ff3b30;color:#fff;cursor:pointer;touch-action:manipulation;line-height:1;"
+bDel.textContent = "L\u00f6schen"
 bDel.addEventListener("click", machDeleteHandler(i));
-var bUp = document.createElement("button");
-bUp.className = "small-btn"
-bUp.style.background = "rgba(0,0,0,0.2)"
-bUp.style.color = "#fff"
-bUp.textContent = "^"
-bUp.addEventListener("click", machMoveHandler(i, -1));
-var bDown = document.createElement("button");
-bDown.className = "small-btn"
-bDown.style.background = "rgba(0,0,0,0.2)"
-bDown.style.color = "#fff"
-bDown.textContent = "v"
-bDown.addEventListener("click", machMoveHandler(i, 1));
-btns.appendChild(bAdd);
-btns.appendChild(bEdit);
-btns.appendChild(bDel);
-btns.appendChild(bUp);
-btns.appendChild(bDown);
+bRow.appendChild(bEdit); bRow.appendChild(bDel);
+btns.appendChild(bAdd); btns.appendChild(bRow);
 row.appendChild(name);
 row.appendChild(btns);
 div.appendChild(row);
@@ -1894,15 +1889,8 @@ document.getElementById("btnPauseEnde").style.display = "none"
 stopPauseTimer();
 if (_kopfAnInterval) { clearInterval(_kopfAnInterval); _kopfAnInterval = null; }
 _kopfAnStartTs = null;
-var kai = document.getElementById("btnKopfAn");
-if (kai) {
-kai.style.opacity = "1"
-kai.disabled = false;
-}
-var kga = document.getElementById("btnGrenzenAendern");
-if (kga) { kga.style.display = "block" }
-var kal = document.getElementById("kopfAnLaeuft");
-if (kal) { kal.style.display = "none" }
+document.getElementById("kopfAnLaeuft").style.display = "none"
+document.getElementById("kopfAnRuhe").style.display = "flex"
 var mwb3 = document.getElementById("mainWarnBar");
 if (mwb3) {
 mwb3.style.display = "none"
