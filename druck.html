@@ -250,8 +250,14 @@ border-top: 2px solid #cc0000;
 <h3>Belastungskatalog <span style="font-size:11px;font-weight:400;opacity:0.6;">Tippen: auf/zu</span></h3>
 <span class="coll-chevron" id="catalogChevron">&#9660;</span>
 </div>
-<!-- Kopf-an: immer sichtbar, ausserhalb coll-body -->
-<div id="kopfAnBereich" style="margin-top:8px;display:none;">
+<div class="coll-body" id="catalogBody">
+<div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;">
+<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
+<input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
+<button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
+</div>
+<!-- Kopf-an: innerhalb coll-body, nach Aktivität-Eingabe -->
+<div id="kopfAnBereich" style="margin-top:8px;">
 <div id="kopfAnRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
 <button id="btnKopfAn" type="button" onclick="kopfAnStart()" style="flex:0 0 68px;background:#5856d6;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#129504;<br>Kopf an</button>
 <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
@@ -285,12 +291,6 @@ border-top: 2px solid #cc0000;
 <div style="font-size:11px;color:#666;margin-bottom:4px;text-align:center;">Punkte: 2 / 5 / 10 / 15 / 20 (fest)</div>
 <button type="button" onclick="speichereBaseline()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
 </div>
-</div>
-<div class="coll-body" id="catalogBody">
-<div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;">
-<input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
-<input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
-<button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
 </div>
 <div id="catalog" style="margin-top:10px;"></div>
 <button type="button" id="btnResetKatalog" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">Grundkatalog wiederherstellen</button>
@@ -1271,7 +1271,7 @@ var _kopfAnInterval = null;
 function kopfAnNacherfassen(stufe) {
 if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
 var s = (typeof stufe === "number") ? stufe : 0;
-var punkte = KOPFAN_PUNKTE[Math.min(s + 1, KOPFAN_PUNKTE.length - 1)];
+var punkte = KOPFAN_PUNKTE[Math.min(s, KOPFAN_PUNKTE.length - 1)];
 var grenze = KOPFAN_GRENZEN[Math.min(s, KOPFAN_GRENZEN.length - 1)];
 mutateState(function(st) {
 st.cur = Math.max(0, st.cur - punkte);
@@ -1895,7 +1895,6 @@ if (_kopfAnInterval) { clearInterval(_kopfAnInterval); _kopfAnInterval = null; }
 _kopfAnStartTs = null;
 document.getElementById("kopfAnLaeuft").classList.remove("active");
 document.getElementById("kopfAnRuhe").classList.remove("hidden");
-document.getElementById("kopfAnBereich").style.display = "none"
 document.getElementById("catalogBody").className = "coll-body"
 document.getElementById("catalogChevron").className = "coll-chevron"
 var mwb3 = document.getElementById("mainWarnBar");
@@ -1980,11 +1979,9 @@ showToast(SYMPTOM_NAMEN[idx] + " weg");
 function toggleCatalogCard() {
 var b = document.getElementById("catalogBody");
 var c = document.getElementById("catalogChevron");
-var k = document.getElementById("kopfAnBereich");
 var o = b.classList.contains("open");
 b.className = o ? "coll-body" : "coll-body open"
 c.className = o ? "coll-chevron" : "coll-chevron open"
-if (k) { k.style.display = o ? "none" : "block" }
 if (!o) { renderCatalog(); }
 }
 
