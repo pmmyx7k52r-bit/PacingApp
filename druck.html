@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 5.4.3.6</title>
+<title>PacingApp 5.4.3.7</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -174,12 +174,27 @@ border-top: 2px solid #cc0000;
 </head>
 <body id="mainBody">
 
+<!-- SPRACHAUSWAHL -->
+
+<div id="langOverlay" style="position:fixed;inset:0;z-index:99998;background:linear-gradient(135deg,#1c1c2e 0%,#2d2d4e 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;">
+<div style="font-size:48px;margin-bottom:16px;">🧠</div>
+<div style="font-size:26px;font-weight:800;color:#fff;margin-bottom:6px;">PacingApp</div>
+<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:40px;text-align:center;">Energie-Management bei ME/CFS &amp; PEM</div>
+<div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px;">
+<button type="button" onclick="waehleSpache('de')" style="background:#fff;color:#1c1c2e;padding:14px;border:none;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;">🇩🇪 Deutsch</button>
+<button type="button" onclick="waehleSpache('en')" style="background:rgba(255,255,255,0.15);color:#fff;padding:14px;border:none;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;">🇬🇧 English</button>
+<button type="button" onclick="waehleSpache('nl')" style="background:rgba(255,255,255,0.15);color:#fff;padding:14px;border:none;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;">🇳🇱 Nederlands</button>
+<button type="button" onclick="waehleSpache('fr')" style="background:rgba(255,255,255,0.15);color:#fff;padding:14px;border:none;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;">🇫🇷 Français</button>
+<button type="button" onclick="waehleSpache('es')" style="background:rgba(255,255,255,0.15);color:#fff;padding:14px;border:none;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;">🇪🇸 Español</button>
+</div>
+</div>
+
 <div id="pacingHeader"></div>
 <div id="toast"></div>
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
-<div class="status bg-green" id="boxSpielraum" style="flex:2;">Spielraum<span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span><span id="restAnzeige" style="font-size:0.7rem;font-weight:600;margin-top:3px;display:block;opacity:0.85;">Rest: 0</span></div>
+<div class="status bg-green" id="boxSpielraum" style="flex:2;"><span id="labelSpielraum">Spielraum</span><span id="valSpielraum" class="big">0</span><span id="statusMsg" class="status-msg"></span><span id="restAnzeige" style="font-size:0.7rem;font-weight:600;margin-top:3px;display:block;opacity:0.85;">Rest: 0</span></div>
 <div id="topfWrap" style="display:flex;flex-direction:column;align-items:center;padding:4px 4px;">
 <div style="font-size:8px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:0.5px;">Energiebudget</div>
 <div style="display:flex;gap:5px;align-items:flex-end;">
@@ -360,6 +375,813 @@ border-top: 2px solid #cc0000;
 
 <script>
 // ============================================================
+// SPRACHSYSTEM
+// ============================================================
+var STORAGE_LANG = "pacing_lang"
+
+var LANG = {
+de: {
+appTitle: "PacingApp",
+// Morgen-Check
+morgenCheck: "Morgen-Check",
+schlafqualitaet: "Schlafqualit\u00e4t",
+sehrGut: "Sehr gut",
+normal: "Normal",
+schlecht: "Schlecht",
+eigenerWert: "Eigener Wert",
+eigenerWertHint: "z.B. Schlaftracker",
+tagStarten: "Tag starten",
+neuerTagReset: "Neuer Tag! (Reset!)",
+// Katalog
+belastungskatalog: "Belastungskatalog",
+tippenAufZu: "Tippen: auf/zu",
+aktivitaet: "Aktivit\u00e4t",
+punkte: "Pkt.",
+neu: "Neu",
+nacherfassen: "NACHERFASSEN",
+grenzen: "Gren-\nzen",
+beendet: "Beendet",
+laeuft: "\uD83E\uDDE0 l\u00e4uft\u2026",
+erfassen: "Erfassen",
+aendern: "\u00c4ndern",
+loeschen: "L\u00f6schen",
+kurz: "kurz",
+mittel: "mittel",
+lang: "lang",
+sehrLang: "s.lang",
+grundkatalogWiederh: "Grundkatalog wiederherstellen",
+// Symptome
+symptomeErfassen: "Symptome erfassen",
+// Aktivitäten
+heutigeAktivitaeten: "Heutige Aktivit\u00e4ten",
+rueckgaengig: "R\u00fckg\u00e4ngig",
+historyAnzeigen: "History anzeigen",
+neuenTagStarten: "Neuen Tag starten",
+guteNacht: "Gute Nacht \uD83C\uDF19",
+// Pause
+pausenbeginn: "Pausenbeginn (ohne Handy!)",
+pauseBeendet: "Pause beendet",
+// Status
+statusGut: "Alles gut! Aber achtsam bleiben!",
+statusAchtsam: "Achtsam! Pausen einplanen!",
+statusLangsam: "Langsam! Nur noch Reserve!",
+statusStop: "STOP! Reserve aufgebraucht!",
+spielraum: "Spielraum",
+spielraum: "Speelruimte",
+rest: "Rest: ",
+// Warnungen
+warnNachPause: "Bitte erst den Tag starten!",
+warnSchlafAuswaehlen: "Bitte Schlafqualit\u00e4t ausw\u00e4hlen!",
+warnSchlafWert: "Bitte Schlafwert eingeben!",
+warnPauseZuKurz: "Pause zu kurz! Mindestens 10 Minuten",
+warnNotbremse: "STOP! Energie kritisch - sofort hinlegen!",
+warnCrashHigh: "PEM-Risiko hoch! Sofort pausieren!",
+warnPemZwang: "PEM-Gefahr! Pause erzwingen!",
+warnCrashMed: "PEM-Risiko steigt - Belastung reduzieren!",
+warnAufrecht: " Min. aufrecht - Liegepause sinnvoll",
+warnTimerZwang: " Min. ohne Pause - jetzt pausieren!",
+warnTimerWarn: " Min. aktiv - Pause einplanen",
+warnTopf: "Tagesabschnitt-Budget \u00fcberschritten!",
+warnPemEmpf: "PEM-Gefahr! Pause empfohlen!",
+warnPemErzw: "PEM-Gefahr! Pause erzwingen!",
+tippenSchliessen: "Tippen zum Schlie\u00dfen",
+// Toasts
+toastTagGestartet: "Tag gestartet!",
+toastLimitMinus: "Limit -10% wegen Crash-Vortage",
+toastLimitPlus: "Limit +5% wegen stabiler Vortage!",
+toastPauseBeginn: "Pausenbeginn erfasst",
+toastPauseEnde: "Pause: ",
+toastPauseZuKurz: "Pause zu kurz! Mindestens 10 Minuten",
+toastPrima: "Prima!",
+toastLiegeBesser: "Liegepause w\u00e4re besser.",
+toastLaengere: "Auf l\u00e4ngere Pausen achten.",
+toastGespeichert: "Gespeichert",
+toastGrenzen: "Grenzen gespeichert",
+toastKatalogReset: "Katalog zur\u00fcckgesetzt",
+toastErfasst: "Erfasst: ",
+toastNacherfasst: "Nacherfasst: ",
+toastPunkte: " Punkte",
+toastNeuerTag: "Neuer Tag!",
+toastSymptomRueck: "Symptom r\u00fckg\u00e4ngig",
+toastAbgebrochen: "Abgebrochen",
+toastGuteNacht: "Gute Nacht! \uD83C\uDF19",
+toastGut: "Gut! Weiter so.",
+toastBudgetMinus10: "Budget -10%. Schon auf dich.",
+toastBudgetMinus20: "Budget -20%! Bitte hinlegen.",
+// Confirms
+confirmNeuerTag: "Neuen Tag starten? Alle heutigen Daten werden archiviert.",
+confirmGuteNacht: "Gute Nacht! Tag abschlie\u00dfen?",
+// Zustandscheck
+wieGehtsDir: "Wie geht es dir? Tippen zum Bewerten \uD83D\uDD0D",
+wieGehtsGerade: "Wie geht es dir gerade?",
+symptomeWegHinweis: "Symptome die du nicht mehr sp\u00FCrst werden als weg markiert.",
+zustandOk: "\uD83D\uDE0A Ok",
+zustandSchlechter: "\uD83D\uDE10 Leicht ersch\u00f6pft",
+zustandCrash: "\uD83D\uDE23 Gar nicht gut",
+// Schwere
+leicht: "leicht",
+schwer: "schwer",
+weg: "weg",
+// Kopf-an
+kopfAnTimer: "Kopf an (",
+kopfAnNach: "Kopf an Nacherfassung (bis ",
+kopfAnErg: "Kopf an: ",
+kopfAnMin: " Min.",
+kopfAnGleich: " Min. = ",
+// Strafe
+strafe: "Strafe: PENE-Warnung",
+// Energiebudget
+energiebudget: "Energiebudget",
+// Schlaf-Labels
+schlafTopfFrueh: "Fr\u00FCh",
+schlafTopfMorgen: "Morgen",
+schlafTopfMittag: "Mittag",
+schlafTopfAbend: "Abend",
+// Positionen
+posAufrecht: "aufrecht",
+posLiegend: "liegend",
+posLiegendFrage: "liegend?",
+// Symptom-Namen
+symptomKopfDruck: "Kopf-Druck",
+symptomAugen: "Augenschmerzen",
+symptomBrainFog: "Brain-Fog",
+symptomErschoepfung: "Ersch\u00f6pfung",
+symptomPfeifen: "Pfeifen",
+symptomUnruhe: "Unruhe",
+symptomMuskel: "Muskelschmerz",
+symptomGelenk: "Gelenkschmerz",
+// Katalog-Standard
+katPuls: "Puls > 88",
+kat3Min: "3-Minuten-Arbeiten",
+katAufstehen: "Aufstehen",
+katLeicht: "Leichte Arbeiten",
+kat30Bew: "30 Min. achtsame Bewegung",
+katLaengLeicht: "L\u00e4ngere leichte Arbeiten",
+katAergern: "\u00c4rgern",
+katProblem: "Problem w\u00e4lzen",
+katKonzentration: "L\u00e4ngere starke Konzentration",
+// Grenzen-Editor
+grenzenTitel: "Kopf-an Zeitgrenzen (Minuten):",
+grenze1: "Grenze 1", grenze2: "Grenze 2", grenze3: "Grenze 3", grenze4: "Grenze 4",
+grenzenPunkte: "Punkte: 2 / 5 / 10 / 15 / 20 (fest)",
+speichern: "Speichern",
+// Schlaf-Grid
+sehrGutPunkte: "90 Punkte",
+normalPunkte: "80 Punkte",
+schlechtPunkte: "70 Punkte",
+// History
+historyLeer: "History leer",
+historyTage: " Tage: ",
+// Weitere
+aktuell: "Aktuell:",
+weitere: " weitere",
+zustandscheck: "Zustandscheck: ",
+zustandsSymptomeReset: "Zustandscheck: Symptome zurückgesetzt (",
+tagGestartetEintrag: "Tag gestartet",
+pausenbeginnEintrag: "Pausenbeginn",
+rollingPene: "Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!",
+kopfAnBereich: "\uD83E\uDDE0 Kopf an"
+},
+en: {
+appTitle: "PacingApp",
+morgenCheck: "Morning Check",
+schlafqualitaet: "Sleep quality",
+sehrGut: "Very good",
+normal: "Normal",
+schlecht: "Poor",
+eigenerWert: "Custom value",
+eigenerWertHint: "e.g. sleep tracker",
+tagStarten: "Start day",
+neuerTagReset: "New day! (Reset!)",
+belastungskatalog: "Activity catalog",
+tippenAufZu: "Tap: open/close",
+aktivitaet: "Activity",
+punkte: "Pts.",
+neu: "New",
+nacherfassen: "BACKLOG",
+grenzen: "Lim-\nits",
+beendet: "Done",
+laeuft: "\uD83E\uDDE0 running\u2026",
+erfassen: "Log",
+aendern: "Edit",
+loeschen: "Delete",
+kurz: "short",
+mittel: "mid",
+lang: "long",
+sehrLang: "v.long",
+grundkatalogWiederh: "Restore default catalog",
+symptomeErfassen: "Log symptoms",
+heutigeAktivitaeten: "Today's activities",
+rueckgaengig: "Undo",
+historyAnzeigen: "Show history",
+neuenTagStarten: "Start new day",
+guteNacht: "Good night \uD83C\uDF19",
+pausenbeginn: "Rest start (no phone!)",
+pauseBeendet: "Rest ended",
+statusGut: "All good! Stay mindful!",
+statusAchtsam: "Take care! Plan rests!",
+statusLangsam: "Slow down! Reserve only!",
+statusStop: "STOP! Energy depleted!",
+spielraum: "Headroom",
+rest: "Left: ",
+warnNachPause: "Please start the day first!",
+warnSchlafAuswaehlen: "Please select sleep quality!",
+warnSchlafWert: "Please enter sleep value!",
+warnPauseZuKurz: "Rest too short! At least 10 minutes",
+warnNotbremse: "STOP! Energy critical - lie down now!",
+warnCrashHigh: "High PEM risk! Rest immediately!",
+warnPemZwang: "PEM danger! Force a rest!",
+warnCrashMed: "PEM risk rising - reduce activity!",
+warnAufrecht: " min upright - lying rest advised",
+warnTimerZwang: " min without rest - rest now!",
+warnTimerWarn: " min active - plan a rest",
+warnTopf: "Time slot budget exceeded!",
+warnPemEmpf: "PEM danger! Rest recommended!",
+warnPemErzw: "PEM danger! Force a rest!",
+tippenSchliessen: "Tap to close",
+toastTagGestartet: "Day started!",
+toastLimitMinus: "Limit -10% due to crash days",
+toastLimitPlus: "Limit +5% due to stable days!",
+toastPauseBeginn: "Rest started",
+toastPauseEnde: "Rest: ",
+toastPauseZuKurz: "Rest too short! At least 10 minutes",
+toastPrima: "Great!",
+toastLiegeBesser: "Lying rest would be better.",
+toastLaengere: "Aim for longer rests.",
+toastGespeichert: "Saved",
+toastGrenzen: "Limits saved",
+toastKatalogReset: "Catalog reset",
+toastErfasst: "Logged: ",
+toastNacherfasst: "Backlogged: ",
+toastPunkte: " points",
+toastNeuerTag: "New day!",
+toastSymptomRueck: "Symptom undone",
+toastAbgebrochen: "Cancelled",
+toastGuteNacht: "Good night! \uD83C\uDF19",
+toastGut: "Good! Keep it up.",
+toastBudgetMinus10: "Budget -10%. Take care.",
+toastBudgetMinus20: "Budget -20%! Please lie down.",
+confirmNeuerTag: "Start new day? All today's data will be archived.",
+confirmGuteNacht: "Good night! Close today?",
+wieGehtsDir: "How are you? Tap to rate \uD83D\uDD0D",
+wieGehtsGerade: "How are you right now?",
+symptomeWegHinweis: "Symptoms you no longer feel will be marked as gone.",
+zustandOk: "\uD83D\uDE0A OK",
+zustandSchlechter: "\uD83D\uDE10 Slightly tired",
+zustandCrash: "\uD83D\uDE23 Not good at all",
+leicht: "mild",
+schwer: "severe",
+weg: "gone",
+kopfAnTimer: "Brain on (",
+kopfAnNach: "Brain on backlog (up to ",
+kopfAnErg: "Brain on: ",
+kopfAnMin: " min.",
+kopfAnGleich: " min. = ",
+strafe: "Penalty: PEM warning",
+energiebudget: "Energy budget",
+schlafTopfFrueh: "Early",
+schlafTopfMorgen: "Morn.",
+schlafTopfMittag: "Noon",
+schlafTopfAbend: "Eve.",
+posAufrecht: "upright",
+posLiegend: "lying",
+posLiegendFrage: "lying?",
+symptomKopfDruck: "Head pressure",
+symptomAugen: "Eye pain",
+symptomBrainFog: "Brain fog",
+symptomErschoepfung: "Exhaustion",
+symptomPfeifen: "Tinnitus",
+symptomUnruhe: "Restlessness",
+symptomMuskel: "Muscle pain",
+symptomGelenk: "Joint pain",
+katPuls: "Pulse > 88",
+kat3Min: "3-minute activity",
+katAufstehen: "Getting up",
+katLeicht: "Light work",
+kat30Bew: "30 min mindful movement",
+katLaengLeicht: "Longer light work",
+katAergern: "Getting upset",
+katProblem: "Ruminating",
+katKonzentration: "Extended concentration",
+grenzenTitel: "Brain-on time limits (minutes):",
+grenze1: "Limit 1", grenze2: "Limit 2", grenze3: "Limit 3", grenze4: "Limit 4",
+grenzenPunkte: "Points: 2 / 5 / 10 / 15 / 20 (fixed)",
+speichern: "Save",
+sehrGutPunkte: "90 points",
+normalPunkte: "80 points",
+schlechtPunkte: "70 points",
+historyLeer: "History empty",
+historyTage: " days: ",
+aktuell: "Current:",
+weitere: " more",
+zustandscheck: "Status check: ",
+zustandsSymptomeReset: "Status check: symptoms reset (",
+tagGestartetEintrag: "Day started",
+pausenbeginnEintrag: "Rest start",
+rollingPene: "Multiple red days! Watch out for rolling PEM!",
+kopfAnBereich: "\uD83E\uDDE0 Brain on",
+mittel: "mid"
+},
+nl: {
+appTitle: "PacingApp",
+morgenCheck: "Ochtendscan",
+schlafqualitaet: "Slaapkwaliteit",
+sehrGut: "Zeer goed",
+normal: "Normaal",
+schlecht: "Slecht",
+eigenerWert: "Eigen waarde",
+eigenerWertHint: "bijv. slaaptracker",
+tagStarten: "Dag starten",
+neuerTagReset: "Nieuwe dag! (Reset!)",
+belastungskatalog: "Activiteitencatalogus",
+tippenAufZu: "Tikken: open/dicht",
+aktivitaet: "Activiteit",
+punkte: "Ptn.",
+neu: "Nieuw",
+nacherfassen: "NADERHAND",
+grenzen: "Gren-\nzen",
+beendet: "Klaar",
+laeuft: "\uD83E\uDDE0 bezig\u2026",
+erfassen: "Loggen",
+aendern: "Wijzigen",
+loeschen: "Verwijderen",
+kurz: "kort",
+mittel: "midden",
+lang: "lang",
+sehrLang: "z.lang",
+grundkatalogWiederh: "Standaardcatalogus herstellen",
+symptomeErfassen: "Symptomen loggen",
+heutigeAktivitaeten: "Activiteiten vandaag",
+rueckgaengig: "Ongedaan maken",
+historyAnzeigen: "Geschiedenis tonen",
+neuenTagStarten: "Nieuwe dag starten",
+guteNacht: "Goedenacht \uD83C\uDF19",
+pausenbeginn: "Rust beginnen (zonder telefoon!)",
+pauseBeendet: "Rust be\u00ebindigd",
+statusGut: "Alles goed! Blijf bewust!",
+statusAchtsam: "Voorzichtig! Plan pauzes!",
+statusLangsam: "Langzamer! Alleen reserve!",
+statusStop: "STOP! Energie op!",
+rest: "Rest: ",
+warnNachPause: "Start eerst de dag!",
+warnSchlafAuswaehlen: "Selecteer slaapkwaliteit!",
+warnSchlafWert: "Voer slaapwaarde in!",
+warnPauseZuKurz: "Pauze te kort! Minimaal 10 minuten",
+warnNotbremse: "STOP! Energie kritiek - nu gaan liggen!",
+warnCrashHigh: "Hoog PEM-risico! Onmiddellijk rusten!",
+warnPemZwang: "PEM-gevaar! Rust afdwingen!",
+warnCrashMed: "PEM-risico stijgt - activiteit verminderen!",
+warnAufrecht: " min rechtop - liggend rusten aanbevolen",
+warnTimerZwang: " min zonder rust - nu rusten!",
+warnTimerWarn: " min actief - plan een pauze",
+warnTopf: "Tijdslot-budget overschreden!",
+warnPemEmpf: "PEM-gevaar! Rust aanbevolen!",
+warnPemErzw: "PEM-gevaar! Rust afdwingen!",
+tippenSchliessen: "Tikken om te sluiten",
+toastTagGestartet: "Dag gestart!",
+toastLimitMinus: "Limiet -10% wegens crashdagen",
+toastLimitPlus: "Limiet +5% wegens stabiele dagen!",
+toastPauseBeginn: "Rust gestart",
+toastPauseEnde: "Rust: ",
+toastPauseZuKurz: "Pauze te kort! Minimaal 10 minuten",
+toastPrima: "Prima!",
+toastLiegeBesser: "Liggend rusten is beter.",
+toastLaengere: "Streef naar langere pauzes.",
+toastGespeichert: "Opgeslagen",
+toastGrenzen: "Grenzen opgeslagen",
+toastKatalogReset: "Catalogus gereset",
+toastErfasst: "Gelogd: ",
+toastNacherfasst: "Naderhand gelogd: ",
+toastPunkte: " punten",
+toastNeuerTag: "Nieuwe dag!",
+toastSymptomRueck: "Symptoom ongedaan gemaakt",
+toastAbgebrochen: "Afgebroken",
+toastGuteNacht: "Goedenacht! \uD83C\uDF19",
+toastGut: "Goed! Ga zo door.",
+toastBudgetMinus10: "Budget -10%. Pas op jezelf.",
+toastBudgetMinus20: "Budget -20%! Ga alsjeblieft liggen.",
+confirmNeuerTag: "Nieuwe dag starten? Alle gegevens van vandaag worden gearchiveerd.",
+confirmGuteNacht: "Goedenacht! Dag afsluiten?",
+wieGehtsDir: "Hoe gaat het? Tikken om te beoordelen \uD83D\uDD0D",
+wieGehtsGerade: "Hoe gaat het nu?",
+symptomeWegHinweis: "Symptomen die je niet meer voelt worden als weg gemarkeerd.",
+zustandOk: "\uD83D\uDE0A Goed",
+zustandSchlechter: "\uD83D\uDE10 Licht uitgeput",
+zustandCrash: "\uD83D\uDE23 Helemaal niet goed",
+leicht: "licht",
+schwer: "ernstig",
+weg: "weg",
+kopfAnTimer: "Hoofd aan (",
+kopfAnNach: "Hoofd aan naderhand (tot ",
+kopfAnErg: "Hoofd aan: ",
+kopfAnMin: " min.",
+kopfAnGleich: " min. = ",
+strafe: "Straf: PEM-waarschuwing",
+energiebudget: "Energiebudget",
+schlafTopfFrueh: "Vroeg",
+schlafTopfMorgen: "Ochtend",
+schlafTopfMittag: "Middag",
+schlafTopfAbend: "Avond",
+posAufrecht: "rechtop",
+posLiegend: "liggend",
+posLiegendFrage: "liggend?",
+symptomKopfDruck: "Hoofddruk",
+symptomAugen: "Oogpijn",
+symptomBrainFog: "Hersenmist",
+symptomErschoepfung: "Uitputting",
+symptomPfeifen: "Tinnitus",
+symptomUnruhe: "Onrust",
+symptomMuskel: "Spierpijn",
+symptomGelenk: "Gewrichtspijn",
+katPuls: "Pols > 88",
+kat3Min: "3-minuten activiteit",
+katAufstehen: "Opstaan",
+katLeicht: "Licht werk",
+kat30Bew: "30 min bewuste beweging",
+katLaengLeicht: "Langer licht werk",
+katAergern: "Boos worden",
+katProblem: "Piekeren",
+katKonzentration: "Langdurige concentratie",
+grenzenTitel: "Hoofd-aan tijdsgrenzen (minuten):",
+grenze1: "Grens 1", grenze2: "Grens 2", grenze3: "Grens 3", grenze4: "Grens 4",
+grenzenPunkte: "Punten: 2 / 5 / 10 / 15 / 20 (vast)",
+speichern: "Opslaan",
+sehrGutPunkte: "90 punten",
+normalPunkte: "80 punten",
+schlechtPunkte: "70 punten",
+historyLeer: "Geschiedenis leeg",
+historyTage: " dagen: ",
+aktuell: "Huidig:",
+weitere: " meer",
+zustandscheck: "Statuscontrole: ",
+zustandsSymptomeReset: "Statuscontrole: symptomen gereset (",
+tagGestartetEintrag: "Dag gestart",
+pausenbeginnEintrag: "Rust beginnen",
+rollingPene: "Meerdere rode dagen! Let op rollende PEM!",
+kopfAnBereich: "\uD83E\uDDE0 Hoofd aan",
+mittel: "midden"
+},
+fr: {
+appTitle: "PacingApp",
+morgenCheck: "Bilan matinal",
+schlafqualitaet: "Qualit\u00e9 du sommeil",
+sehrGut: "Tr\u00e8s bon",
+normal: "Normal",
+schlecht: "Mauvais",
+eigenerWert: "Valeur personnalis\u00e9e",
+eigenerWertHint: "ex. tracker de sommeil",
+tagStarten: "D\u00e9marrer la journ\u00e9e",
+neuerTagReset: "Nouveau jour! (R\u00e9init.!)",
+belastungskatalog: "Catalogue d'activit\u00e9s",
+tippenAufZu: "Appuyer: ouvrir/fermer",
+aktivitaet: "Activit\u00e9",
+punkte: "Pts.",
+neu: "Nouveau",
+nacherfassen: "RATTRAPER",
+grenzen: "Lim-\nites",
+beendet: "Termin\u00e9",
+laeuft: "\uD83E\uDDE0 en cours\u2026",
+erfassen: "Enregistrer",
+aendern: "Modifier",
+loeschen: "Supprimer",
+kurz: "court",
+mittel: "moyen",
+lang: "long",
+sehrLang: "t.long",
+grundkatalogWiederh: "Restaurer le catalogue par d\u00e9faut",
+symptomeErfassen: "Enregistrer les sympt\u00f4mes",
+heutigeAktivitaeten: "Activit\u00e9s d'aujourd'hui",
+rueckgaengig: "Annuler",
+historyAnzeigen: "Afficher l'historique",
+neuenTagStarten: "Nouveau jour",
+guteNacht: "Bonne nuit \uD83C\uDF19",
+pausenbeginn: "D\u00e9but du repos (sans t\u00e9l\u00e9phone!)",
+pauseBeendet: "Repos termin\u00e9",
+statusGut: "Tout va bien! Restez attentif!",
+statusAchtsam: "Attention! Planifiez des pauses!",
+statusLangsam: "Ralentir! R\u00e9serve seulement!",
+statusStop: "STOP! \u00c9nergie \u00e9puis\u00e9e!",
+spielraum: "Marge",
+rest: "Reste: ",
+warnNachPause: "Veuillez d'abord d\u00e9marrer la journ\u00e9e!",
+warnSchlafAuswaehlen: "Veuillez s\u00e9lectionner la qualit\u00e9 du sommeil!",
+warnSchlafWert: "Veuillez entrer la valeur de sommeil!",
+warnPauseZuKurz: "Pause trop courte! Au moins 10 minutes",
+warnNotbremse: "STOP! \u00c9nergie critique - allongez-vous!",
+warnCrashHigh: "Risque PEM \u00e9lev\u00e9! Reposez-vous imm\u00e9diatement!",
+warnPemZwang: "Danger PEM! Forcer un repos!",
+warnCrashMed: "Risque PEM croissant - r\u00e9duire l'activit\u00e9!",
+warnAufrecht: " min debout - repos allong\u00e9 conseill\u00e9",
+warnTimerZwang: " min sans repos - repos maintenant!",
+warnTimerWarn: " min actif - planifier un repos",
+warnTopf: "Budget du cr\u00e9neau horaire d\u00e9pass\u00e9!",
+warnPemEmpf: "Danger PEM! Repos recommand\u00e9!",
+warnPemErzw: "Danger PEM! Forcer un repos!",
+tippenSchliessen: "Appuyer pour fermer",
+toastTagGestartet: "Journ\u00e9e d\u00e9marr\u00e9e!",
+toastLimitMinus: "Limite -10% suite aux jours de crash",
+toastLimitPlus: "Limite +5% suite aux jours stables!",
+toastPauseBeginn: "Repos commenc\u00e9",
+toastPauseEnde: "Repos: ",
+toastPauseZuKurz: "Pause trop courte! Au moins 10 minutes",
+toastPrima: "Parfait!",
+toastLiegeBesser: "Un repos allong\u00e9 serait mieux.",
+toastLaengere: "Visez des pauses plus longues.",
+toastGespeichert: "Sauvegard\u00e9",
+toastGrenzen: "Limites sauvegard\u00e9es",
+toastKatalogReset: "Catalogue r\u00e9initialis\u00e9",
+toastErfasst: "Enregistr\u00e9: ",
+toastNacherfasst: "Rattrap\u00e9: ",
+toastPunkte: " points",
+toastNeuerTag: "Nouveau jour!",
+toastSymptomRueck: "Sympt\u00f4me annul\u00e9",
+toastAbgebrochen: "Annul\u00e9",
+toastGuteNacht: "Bonne nuit! \uD83C\uDF19",
+toastGut: "Bien! Continuez ainsi.",
+toastBudgetMinus10: "Budget -10%. Prenez soin de vous.",
+toastBudgetMinus20: "Budget -20%! Veuillez vous allonger.",
+confirmNeuerTag: "D\u00e9marrer un nouveau jour? Toutes les donn\u00e9es d'aujourd'hui seront archiv\u00e9es.",
+confirmGuteNacht: "Bonne nuit! Terminer la journ\u00e9e?",
+wieGehtsDir: "Comment allez-vous? Appuyez pour \u00e9valuer \uD83D\uDD0D",
+wieGehtsGerade: "Comment allez-vous maintenant?",
+symptomeWegHinweis: "Les sympt\u00f4mes que vous ne ressentez plus seront marqu\u00e9s comme disparus.",
+zustandOk: "\uD83D\uDE0A OK",
+zustandSchlechter: "\uD83D\uDE10 L\u00e8g\u00e8rement fatigu\u00e9",
+zustandCrash: "\uD83D\uDE23 Pas bien du tout",
+leicht: "l\u00e9ger",
+schwer: "s\u00e9v\u00e8re",
+weg: "disparu",
+kopfAnTimer: "T\u00eate active (",
+kopfAnNach: "T\u00eate active rattrap\u00e9e (jusqu'\u00e0 ",
+kopfAnErg: "T\u00eate active: ",
+kopfAnMin: " min.",
+kopfAnGleich: " min. = ",
+strafe: "P\u00e9nalit\u00e9: avertissement PEM",
+energiebudget: "Budget d'\u00e9nergie",
+schlafTopfFrueh: "T\u00f4t",
+schlafTopfMorgen: "Matin",
+schlafTopfMittag: "Midi",
+schlafTopfAbend: "Soir",
+posAufrecht: "debout",
+posLiegend: "allong\u00e9",
+posLiegendFrage: "allong\u00e9?",
+symptomKopfDruck: "Pression c\u00e9r\u00e9brale",
+symptomAugen: "Douleur oculaire",
+symptomBrainFog: "Brouillard c\u00e9r\u00e9bral",
+symptomErschoepfung: "Fatigue",
+symptomPfeifen: "Acouph\u00e8nes",
+symptomUnruhe: "Agitation",
+symptomMuskel: "Douleur musculaire",
+symptomGelenk: "Douleur articulaire",
+katPuls: "Pouls > 88",
+kat3Min: "Activit\u00e9 3 minutes",
+katAufstehen: "Se lever",
+katLeicht: "Travail l\u00e9ger",
+kat30Bew: "30 min de mouvement consciencieux",
+katLaengLeicht: "Travail l\u00e9ger prolong\u00e9",
+katAergern: "S'\u00e9nerver",
+katProblem: "Ruminer",
+katKonzentration: "Concentration prolong\u00e9e",
+grenzenTitel: "Limites de temps t\u00eate active (minutes):",
+grenze1: "Limite 1", grenze2: "Limite 2", grenze3: "Limite 3", grenze4: "Limite 4",
+grenzenPunkte: "Points: 2 / 5 / 10 / 15 / 20 (fixes)",
+speichern: "Enregistrer",
+sehrGutPunkte: "90 points",
+normalPunkte: "80 points",
+schlechtPunkte: "70 points",
+historyLeer: "Historique vide",
+historyTage: " jours: ",
+aktuell: "Actuel:",
+weitere: " autres",
+zustandscheck: "Bilan de situation: ",
+zustandsSymptomeReset: "Bilan: sympt\u00f4mes r\u00e9initialis\u00e9s (",
+tagGestartetEintrag: "Journ\u00e9e d\u00e9marr\u00e9e",
+pausenbeginnEintrag: "D\u00e9but du repos",
+rollingPene: "Plusieurs jours rouges! Attention au PEM cumulatif!",
+kopfAnBereich: "\uD83E\uDDE0 T\u00eate active",
+mittel: "moyen"
+},
+es: {
+appTitle: "PacingApp",
+morgenCheck: "Control matutino",
+schlafqualitaet: "Calidad del sue\u00f1o",
+sehrGut: "Muy bueno",
+normal: "Normal",
+schlecht: "Malo",
+eigenerWert: "Valor propio",
+eigenerWertHint: "ej. rastreador de sue\u00f1o",
+tagStarten: "Iniciar d\u00eda",
+neuerTagReset: "\u00a1Nuevo d\u00eda! (\u00a1Reiniciar!)",
+belastungskatalog: "Cat\u00e1logo de actividades",
+tippenAufZu: "Tocar: abrir/cerrar",
+aktivitaet: "Actividad",
+punkte: "Pts.",
+neu: "Nuevo",
+nacherfassen: "REGISTRAR",
+grenzen: "L\u00eem-\nites",
+beendet: "Hecho",
+laeuft: "\uD83E\uDDE0 en curso\u2026",
+erfassen: "Registrar",
+aendern: "Editar",
+loeschen: "Eliminar",
+kurz: "corto",
+mittel: "medio",
+lang: "largo",
+sehrLang: "m.largo",
+grundkatalogWiederh: "Restaurar cat\u00e1logo predeterminado",
+symptomeErfassen: "Registrar s\u00edntomas",
+heutigeAktivitaeten: "Actividades de hoy",
+rueckgaengig: "Deshacer",
+historyAnzeigen: "Ver historial",
+neuenTagStarten: "Nuevo d\u00eda",
+guteNacht: "Buenas noches \uD83C\uDF19",
+pausenbeginn: "Inicio del descanso (\u00a1sin tel\u00e9fono!)",
+pauseBeendet: "Descanso terminado",
+statusGut: "\u00a1Todo bien! \u00a1Mant\u00e9ngase atento!",
+statusAchtsam: "\u00a1Cuidado! \u00a1Planifique descansos!",
+statusLangsam: "\u00a1M\u00e1s lento! \u00a1Solo reserva!",
+statusStop: "\u00a1STOP! \u00a1Energ\u00eda agotada!",
+spielraum: "Margen",
+rest: "Restante: ",
+warnNachPause: "\u00a1Inicie el d\u00eda primero!",
+warnSchlafAuswaehlen: "\u00a1Seleccione la calidad del sue\u00f1o!",
+warnSchlafWert: "\u00a1Ingrese el valor del sue\u00f1o!",
+warnPauseZuKurz: "\u00a1Descanso muy corto! M\u00ednimo 10 minutos",
+warnNotbremse: "\u00a1STOP! Energ\u00eda cr\u00edtica - \u00a1ti\u00e9ndase ya!",
+warnCrashHigh: "\u00a1Alto riesgo PEM! \u00a1Descanse inmediatamente!",
+warnPemZwang: "\u00a1Peligro PEM! \u00a1Forzar descanso!",
+warnCrashMed: "Riesgo PEM aumentando - \u00a1reducir actividad!",
+warnAufrecht: " min de pie - descanso acostado recomendado",
+warnTimerZwang: " min sin descanso - \u00a1descanse ya!",
+warnTimerWarn: " min activo - planifique un descanso",
+warnTopf: "\u00a1Presupuesto del intervalo excedido!",
+warnPemEmpf: "\u00a1Peligro PEM! \u00a1Descanso recomendado!",
+warnPemErzw: "\u00a1Peligro PEM! \u00a1Forzar descanso!",
+tippenSchliessen: "Tocar para cerrar",
+toastTagGestartet: "\u00a1D\u00eda iniciado!",
+toastLimitMinus: "L\u00edmite -10% por d\u00edas de colapso",
+toastLimitPlus: "\u00a1L\u00edmite +5% por d\u00edas estables!",
+toastPauseBeginn: "Descanso iniciado",
+toastPauseEnde: "Descanso: ",
+toastPauseZuKurz: "\u00a1Descanso muy corto! M\u00ednimo 10 minutos",
+toastPrima: "\u00a1Perfecto!",
+toastLiegeBesser: "Un descanso acostado ser\u00eda mejor.",
+toastLaengere: "Apunte a descansos m\u00e1s largos.",
+toastGespeichert: "Guardado",
+toastGrenzen: "L\u00edmites guardados",
+toastKatalogReset: "Cat\u00e1logo reiniciado",
+toastErfasst: "Registrado: ",
+toastNacherfasst: "Registrado despu\u00e9s: ",
+toastPunkte: " puntos",
+toastNeuerTag: "\u00a1Nuevo d\u00eda!",
+toastSymptomRueck: "S\u00edntoma deshecho",
+toastAbgebrochen: "Cancelado",
+toastGuteNacht: "\u00a1Buenas noches! \uD83C\uDF19",
+toastGut: "\u00a1Bien! Siga as\u00ed.",
+toastBudgetMinus10: "Presupuesto -10%. Cu\u00eddese.",
+toastBudgetMinus20: "\u00a1Presupuesto -20%! Por favor ti\u00e9ndase.",
+confirmNeuerTag: "\u00bfIniciar nuevo d\u00eda? Todos los datos de hoy se archivar\u00e1n.",
+confirmGuteNacht: "\u00bfBuenas noches! \u00bfCerrar el d\u00eda?",
+wieGehtsDir: "\u00bfC\u00f3mo est\u00e1s? Toca para valorar \uD83D\uDD0D",
+wieGehtsGerade: "\u00bfC\u00f3mo est\u00e1s ahora mismo?",
+symptomeWegHinweis: "Los s\u00edntomas que ya no sientes se marcar\u00e1n como desaparecidos.",
+zustandOk: "\uD83D\uDE0A Bien",
+zustandSchlechter: "\uD83D\uDE10 Ligeramente agotado",
+zustandCrash: "\uD83D\uDE23 Para nada bien",
+leicht: "leve",
+schwer: "grave",
+weg: "desaparecido",
+kopfAnTimer: "Mente activa (",
+kopfAnNach: "Mente activa registrada (hasta ",
+kopfAnErg: "Mente activa: ",
+kopfAnMin: " min.",
+kopfAnGleich: " min. = ",
+strafe: "Penalizaci\u00f3n: advertencia PEM",
+energiebudget: "Presupuesto de energ\u00eda",
+schlafTopfFrueh: "Temprano",
+schlafTopfMorgen: "Ma\u00f1ana",
+schlafTopfMittag: "Mediod\u00eda",
+schlafTopfAbend: "Tarde",
+posAufrecht: "de pie",
+posLiegend: "acostado",
+posLiegendFrage: "\u00bfacostado?",
+symptomKopfDruck: "Presi\u00f3n craneal",
+symptomAugen: "Dolor ocular",
+symptomBrainFog: "Niebla mental",
+symptomErschoepfung: "Agotamiento",
+symptomPfeifen: "Tinnitus",
+symptomUnruhe: "Inquietud",
+symptomMuskel: "Dolor muscular",
+symptomGelenk: "Dolor articular",
+katPuls: "Pulso > 88",
+kat3Min: "Actividad de 3 minutos",
+katAufstehen: "Levantarse",
+katLeicht: "Trabajo ligero",
+kat30Bew: "30 min de movimiento consciente",
+katLaengLeicht: "Trabajo ligero prolongado",
+katAergern: "Enfadarse",
+katProblem: "Rumiar",
+katKonzentration: "Concentraci\u00f3n prolongada",
+grenzenTitel: "L\u00edmites de tiempo mente activa (minutos):",
+grenze1: "L\u00edmite 1", grenze2: "L\u00edmite 2", grenze3: "L\u00edmite 3", grenze4: "L\u00edmite 4",
+grenzenPunkte: "Puntos: 2 / 5 / 10 / 15 / 20 (fijos)",
+speichern: "Guardar",
+sehrGutPunkte: "90 puntos",
+normalPunkte: "80 puntos",
+schlechtPunkte: "70 puntos",
+historyLeer: "Historial vac\u00edo",
+historyTage: " d\u00edas: ",
+aktuell: "Actual:",
+weitere: " m\u00e1s",
+zustandscheck: "Control de estado: ",
+zustandsSymptomeReset: "Control: s\u00edntomas reiniciados (",
+tagGestartetEintrag: "D\u00eda iniciado",
+pausenbeginnEintrag: "Inicio del descanso",
+rollingPene: "\u00a1M\u00faltiples d\u00edas rojos! \u00a1Cuidado con el PEM acumulativo!",
+kopfAnBereich: "\uD83E\uDDE0 Mente activa",
+mittel: "medio"
+}
+};
+
+var _lang = "de"
+
+function t(key) {
+var l = LANG[_lang] || LANG["de"];
+return l[key] !== undefined ? l[key] : (LANG["de"][key] || key);
+}
+
+function waehleSpache(lang) {
+try { localStorage.setItem(STORAGE_LANG, lang); } catch(e) {}
+// Seite neu laden - window.onload setzt dann korrekt alles
+window.location.reload();
+}
+
+function applyLanguageToDOM() {
+// Morgen-Check
+var el;
+el = document.querySelector("#cardCheck h3"); if(el) el.childNodes[0].nodeValue = t("morgenCheck") + " "
+el = document.querySelector("label[for=sleep]") || document.querySelector("#cardCheck label"); if(el) el.textContent = t("schlafqualitaet");
+var schlafBtns = document.querySelectorAll(".schlaf-btn");
+var schlafKeys = [["sehrGut","sehrGutPunkte"],["normal","normalPunkte"],["schlecht","schlechtPunkte"],["eigenerWert","eigenerWertHint"]];
+for(var si=0;si<schlafBtns.length;si++){
+var sv = schlafBtns[si].querySelector(".schlaf-val");
+var svHtml = sv ? '<span class="schlaf-val">' + t(schlafKeys[si][1]) + '</span>' : '';
+schlafBtns[si].innerHTML = t(schlafKeys[si][0]) + svHtml;
+}
+el = document.getElementById("sleep"); if(el) el.placeholder = t("eigenerWert");
+el = document.getElementById("labelSpielraum"); if(el) el.textContent = t("spielraum");
+el = document.getElementById("btnStart"); if(el) el.textContent = t("tagStarten");
+el = document.getElementById("btnReset"); if(el) el.textContent = t("neuerTagReset");
+// Katalog-Header
+var catH = document.querySelector("#btnToggleCatalog h3");
+if(catH) {
+catH.innerHTML = t("belastungskatalog") + ' <span style="font-size:11px;font-weight:400;opacity:0.6;">' + t("tippenAufZu") + '</span>';
+}
+el = document.getElementById("loadName"); if(el) el.placeholder = t("aktivitaet");
+el = document.getElementById("loadVal"); if(el) el.placeholder = t("punkte");
+el = document.getElementById("btnAddCatalog"); if(el) el.textContent = t("neu");
+el = document.getElementById("btnKopfAn"); if(el) el.innerHTML = t("kopfAnBereich").replace("\n","<br>");
+// Nacherfassen-Label
+var nachLabel = document.querySelector("#kopfAnBereich .kopf-ruhe > div > div:first-child");
+if(nachLabel) nachLabel.textContent = t("nacherfassen");
+// Grenzen-Button
+el = document.getElementById("btnGrenzenAendern"); if(el) el.innerHTML = t("grenzen").replace("\n","<br>");
+// Pause-Buttons
+el = document.getElementById("btnPauseBeginn"); if(el) el.textContent = t("pausenbeginn");
+el = document.getElementById("btnPauseEnde"); if(el) el.textContent = t("pauseBeendet");
+// Symptome-Header
+var sympH = document.querySelector("#btnToggleSymptom h3");
+if(sympH) {
+sympH.innerHTML = t("symptomeErfassen") + ' <span style="font-size:11px;font-weight:400;opacity:0.6;">' + t("tippenAufZu") + '</span>';
+}
+// Symptom-Buttons
+var sympBtns = document.querySelectorAll(".symptom-btn");
+var sympKeys = ["symptomKopfDruck","symptomAugen","symptomBrainFog","symptomErschoepfung","symptomPfeifen","symptomUnruhe","symptomMuskel","symptomGelenk"];
+for(var sbi=0;sbi<sympBtns.length;sbi++) { if(sympKeys[sbi]) sympBtns[sbi].textContent = t(sympKeys[sbi]); }
+// Aktivitäten-Header
+var usedH = document.querySelector("#btnToggleUsed h3");
+if(usedH) {
+usedH.innerHTML = t("heutigeAktivitaeten") + ' <span style="font-size:11px;font-weight:400;opacity:0.6;">' + t("tippenAufZu") + '</span>';
+}
+el = document.getElementById("btnUndo"); if(el) el.textContent = t("rueckgaengig");
+el = document.getElementById("debugBtn"); if(el) el.textContent = t("historyAnzeigen");
+el = document.getElementById("btnToggleCheck"); if(el) el.textContent = t("neuenTagStarten");
+el = document.getElementById("btnGuteNacht"); if(el) el.textContent = t("guteNacht");
+// Grundkatalog
+el = document.getElementById("btnResetKatalog"); if(el) el.textContent = t("grundkatalogWiederh");
+// Zustandscheck
+el = document.getElementById("zustandsCheckBar"); if(el) el.textContent = t("wieGehtsDir");
+var zpH = document.querySelector("#zustandsPicker h4"); if(zpH) zpH.textContent = t("wieGehtsGerade");
+var zpP = document.querySelector("#zustandsPicker p"); if(zpP) zpP.textContent = t("symptomeWegHinweis");
+// Energiebudget-Label
+var ebLabel = document.querySelector("#topfWrap > div:first-child"); if(ebLabel) ebLabel.textContent = t("energiebudget");
+// Topf-Beschriftungen (Zeitangaben bleiben, nur Label)
+var topfLabels = ["topf0Label","topf1Label","topf2Label","topf3Label"];
+var topfKeys = ["schlafTopfFrueh","schlafTopfMorgen","schlafTopfMittag","schlafTopfAbend"];
+// Diese werden in updateToepfe() dynamisch gesetzt – OK
+}
+
+// ============================================================
 // KONSTANTEN
 // ============================================================
 var STORAGE_LOADS = "pacing_catalog_data"
@@ -409,18 +1231,19 @@ var KOPFAN_PUNKTE = [2, 5, 10, 15, 20];
 // DEFAULT-KATALOG
 // ============================================================
 var STANDARD_KATALOG = [
-{n:"Puls > 88", v:1},
-{n:"3-Minuten-Arbeiten", v:2},
-{n:"Aufstehen", v:3},
-{n:"Leichte Arbeiten", v:2},
-{n:"30 Min. achtsame Bewegung", v:5},
-{n:"L\u00e4ngere leichte Arbeiten", v:10},
-{n:"\u00c4rgern", v:10},
-{n:"Problem w\u00e4lzen", v:10},
-{n:"L\u00e4ngere starke Konzentration", v:10}
+{n:t("katPuls"), v:1},
+{n:t("kat3Min"), v:2},
+{n:t("katAufstehen"), v:3},
+{n:t("katLeicht"), v:2},
+{n:t("kat30Bew"), v:5},
+{n:t("katLaengLeicht"), v:10},
+{n:t("katAergern"), v:10},
+{n:t("katProblem"), v:10},
+{n:t("katKonzentration"), v:10}
 ];
 
-var SYMPTOM_NAMEN = ["Kopf-Druck","Augenschmerzen","Brain-Fog","Ersch\u00f6pfung","Pfeifen","Unruhe","Muskelschmerz","Gelenkschmerz"];
+function getSYMPTOM_NAMEN() { return [t("symptomKopfDruck"),t("symptomAugen"),t("symptomBrainFog"),t("symptomErschoepfung"),t("symptomPfeifen"),t("symptomUnruhe"),t("symptomMuskel"),t("symptomGelenk")]; }
+var SYMPTOM_NAMEN = getSYMPTOM_NAMEN();
 
 // ============================================================
 // STORAGE
@@ -537,7 +1360,29 @@ renderMainWarning();
 // INITIALISIERUNG
 // ============================================================
 window.onload = function() {
+// Sprache laden
+var savedLang = storeGet(STORAGE_LANG);
+if (savedLang && LANG[savedLang]) {
+_lang = savedLang;
+document.getElementById("langOverlay").style.display = "none"
+}
+// Standard-Katalog in gewaehlter Sprache neu aufbauen (falls kein gespeicherter)
+if (!storeGet(STORAGE_LOADS)) {
+STANDARD_KATALOG = [
+{n:t("katPuls"), v:1},
+{n:t("kat3Min"), v:2},
+{n:t("katAufstehen"), v:3},
+{n:t("katLeicht"), v:2},
+{n:t("kat30Bew"), v:5},
+{n:t("katLaengLeicht"), v:10},
+{n:t("katAergern"), v:10},
+{n:t("katProblem"), v:10},
+{n:t("katKonzentration"), v:10}
+];
+loads = STANDARD_KATALOG.slice();
+}
 buildSchwereButtons();
+applyLanguageToDOM();
 verdrahteButtons();
 
 if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
@@ -656,10 +1501,10 @@ if (schlafMode === "preset") {
 schlafPunkte = schlafWert;
 } else if (schlafMode === "individuell") {
 var ind = parseFloat(document.getElementById("sleep").value);
-if (isNaN(ind) || ind <= 0) { showToast("Bitte Schlafwert eingeben!"); return; }
+if (isNaN(ind) || ind <= 0) { showToast(t("warnSchlafWert")); return; }
 schlafPunkte = ind;
 } else {
-showToast("Bitte Schlafqualit\u00e4t ausw\u00e4hlen!");
+showToast(t("warnSchlafAuswaehlen"));
 return;
 }
 var f = document.getElementById("feeling");
@@ -682,7 +1527,7 @@ s.max = neuesMax;
 s.cur = neuesMax;
 s.block = 0;
 s.pene = false;
-s.used = [{n:"Tag gestartet", v:0, ts:Date.now(), t:nowTime(), pos:"liegend"}];
+s.used = [{n:t("tagGestartetEintrag"), v:0, ts:Date.now(), t:nowTime(), pos:"liegend"}];
 s.symptome = [];
 s.date = new Date().toDateString();
 s.dayMinPct = 100;
@@ -694,9 +1539,9 @@ s._faktor = faktor;
 });
 showMainUI();
 updateDisplay();
-if (faktor < 1) { showToast("Limit -10% wegen Crash-Vortage"); }
-else if (faktor > 1) { showToast("Limit +5% wegen stabiler Vortage!"); }
-else { showToast("Tag gestartet!"); }
+if (faktor < 1) { showToast(t("toastLimitMinus")); }
+else if (faktor > 1) { showToast(t("toastLimitPlus")); }
+else { showToast(t("toastTagGestartet")); }
 }
 
 // ============================================================
@@ -714,7 +1559,7 @@ document.getElementById("cardSymptome").style.display = "block"
 }
 
 function toggleCheck() {
-if (!confirm("Neuen Tag starten? Alle heutigen Daten werden archiviert.")) { return; }
+if (!confirm(t("confirmNeuerTag"))) { return; }
 try { archiveDay(); } catch(e) {}
 resetDayInternal();
 }
@@ -722,11 +1567,11 @@ resetDayInternal();
 // FIX F: Gute-Nacht ohne Toast-Kollision.
 // Pause wird still beendet, dann erst Archiv + Reset + Toast.
 function guteNacht() {
-if (!confirm("Gute Nacht! Tag abschlie\u00dfen?")) { return; }
+if (!confirm(t("confirmGuteNacht"))) { return; }
 if (state.pauseBeginnTs) { endePauseStill(); }
 archiveDay();
 setTimeout(function() { resetDayInternal(); }, 50);
-showToast("Gute Nacht! \uD83C\uDF19");
+showToast(t("toastGuteNacht"));
 }
 
 // Pause still beenden: kein Toast, kein updateDisplay – nur fuer guteNacht
@@ -771,7 +1616,7 @@ var grenze = Math.ceil(state.max * GRENZE_ROT);
 var spielraum = Math.max(0, state.cur - grenze);
 document.getElementById("valSpielraum").textContent = spielraum;
 var restEl = document.getElementById("restAnzeige");
-if (restEl) { restEl.textContent = "Rest: " + state.cur; }
+if (restEl) { restEl.textContent = t("rest") + state.cur; }
 renderStatus(spielraum);
 renderPemHeader();
 renderUsed();
@@ -790,19 +1635,19 @@ bS.className = "status"
 if (spielraum > state.max * 0.5) {
 body.classList.add("mode-green");
 bS.classList.add("bg-green");
-msg.textContent = "Alles gut! Aber achtsam bleiben!"
+msg.textContent = t("statusGut");
 } else if (spielraum > state.max * 0.25) {
 body.classList.add("mode-yellow");
 bS.classList.add("bg-yellow");
-msg.textContent = "Achtsam! Pausen einplanen!"
+msg.textContent = t("statusAchtsam");
 } else if (spielraum > 0) {
 body.classList.add("mode-orange");
 bS.classList.add("bg-orange");
-msg.textContent = "Langsam! Nur noch Reserve!"
+msg.textContent = t("statusLangsam");
 } else {
 body.classList.add("mode-red");
 bS.classList.add("bg-red");
-msg.textContent = "STOP! Reserve aufgebraucht!"
+msg.textContent = t("statusStop");
 }
 }
 
@@ -812,7 +1657,7 @@ var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
 if (state.block >= blockPauseSchwelle && !state.pene) {
 mutateState(function(s) {
 s.cur = Math.max(0, s.cur - 1);
-s.used.push({n:"Strafe: PENE-Warnung", v:1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+s.used.push({n:t("strafe"), v:1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
 s.pene = true;
 });
 } else if (state.block < blockPauseSchwelle && state.pene) {
@@ -843,7 +1688,7 @@ updatePaddingTop(); // FIX D
 // AKTIVITAeT BUCHEN
 // ============================================================
 function applyLoad(i) {
-if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
+if (state.max <= 0) { showToast(t("warnNachPause")); return; }
 if (state.pauseBeginnTs) { endePause(true); }
 mutateState(function(s) {
 s.cur = Math.max(0, s.cur - loads[i].v);
@@ -854,7 +1699,7 @@ if (!s.aufrechtSeitTs) { s.aufrechtSeitTs = Date.now(); }
 checkPemPenalty();
 trackDayMinPct();
 updateDisplay();
-showToast("Erfasst: " + loads[i].n);
+showToast(t("toastErfasst") + loads[i].n);
 startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
@@ -872,7 +1717,7 @@ s.block = 0;
 s.pene = false;
 s.pauseBeginnTs = jetzt;
 s.aufrechtSeitTs = null;
-s.used.push({n:"Pausenbeginn", v:0, ts:jetzt, t:nowTime(), pos:"liegend"});
+s.used.push({n:t("pausenbeginnEintrag"), v:0, ts:jetzt, t:nowTime(), pos:"liegend"});
 });
 var mwb = document.getElementById("mainWarnBar");
 if (mwb) {
@@ -882,7 +1727,7 @@ mwb._dismissed = false;
 stopPauseTimer();
 document.getElementById("btnPauseBeginn").style.display = "none"
 document.getElementById("btnPauseEnde").style.display = "block"
-showToast("Pausenbeginn erfasst");
+showToast(t("toastPauseBeginn"));
 updateDisplay();
 }
 
@@ -904,9 +1749,9 @@ regen = Math.floor(regenMin / 10) * REGEN_PRO_10_MIN;
 regen = Math.min(regen, Math.floor(state.max * REGEN_MAX_ANTEIL));
 }
 var hinweis;
-if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) { hinweis = "Prima!" }
-else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = "Liegepause w\u00e4re besser." }
-else { hinweis = "Auf l\u00e4ngere Pausen achten." }
+if (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) { hinweis = t("toastPrima"); }
+else if (minuten >= PAUSE_MINDEST_MIN && !pauseWarLiegend) { hinweis = t("toastLiegeBesser"); }
+else { hinweis = t("toastLaengere"); }
 var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
 mutateState(function(s) {
 if (regen > 0) { s.cur = Math.min(s.max, s.cur + regen); }
@@ -931,9 +1776,9 @@ trackDayMinPct();
 updateDisplay();
 startPauseTimer();
 if (minuten < PAUSE_MINDEST_MIN) {
-showToast("Pause zu kurz! Mindestens 10 Minuten");
+showToast(t("toastPauseZuKurz"));
 } else {
-showToast("Pause: " + minuten + " Min. - " + hinweis);
+showToast(t("toastPauseEnde") + minuten + t("kopfAnMin") + " - " + hinweis);
 }
 }
 }
@@ -1136,17 +1981,17 @@ if (sc >= CRASH_SCORE_MITTEL) {
 return {type:"CRASH_MED", text:"PEM-Risiko steigt - Belastung reduzieren!", bg:"#e07800", color:"#fff", blink:false};
 }
 if (auf > schwelle && state.letzteLiegeZeit) {
-return {type:"AUFRECHT", text:auf + " Min. aufrecht - Liegepause sinnvoll", bg:"#ff9500", color:"#fff", blink:false};
+return {type:"AUFRECHT", text:auf + t("warnAufrecht"), bg:"#ff9500", color:"#fff", blink:false};
 }
 if (lastActionTime) {
 var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
 var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
 var empfohlen = pct >= 70 ? TIMER_WARN_HOCH : pct >= 40 ? TIMER_WARN_MITTE : TIMER_WARN_NIEDRIG;
 if (minuten >= erzwingen) {
-return {type:"TIMER_ZWANG", text:minuten + " Min. ohne Pause - jetzt pausieren!", bg:"#ff3b30", color:"#fff", blink:true};
+return {type:"TIMER_ZWANG", text:minuten + t("warnTimerZwang"), bg:"#ff3b30", color:"#fff", blink:true};
 }
 if (minuten >= empfohlen) {
-return {type:"TIMER_WARN", text:minuten + " Min. aktiv - Pause einplanen", bg:"#ff9500", color:"#fff", blink:false};
+return {type:"TIMER_WARN", text:minuten + t("warnTimerWarn"), bg:"#ff9500", color:"#fff", blink:false};
 }
 }
 if (isTopfKritisch()) {
@@ -1221,7 +2066,7 @@ var anpassung = 0;
 var msg = ""
 if (zustand === "stabil") {
 anpassung = 0;
-msg = "Gut! Weiter so."
+msg = t("toastGut");
 var fenster = Date.now() - 4 * 3600000;
 var symp = state.symptome || [];
 var aktive = [];
@@ -1244,16 +2089,16 @@ renderUsed();
 }
 } else if (zustand === "schlechter") {
 anpassung = -Math.round(state.max * 0.10);
-msg = "Budget -10%. Schon auf dich."
+msg = t("toastBudgetMinus10");
 } else if (zustand === "crash") {
 anpassung = -Math.round(state.max * 0.20);
-msg = "Budget -20%! Bitte hinlegen."
+msg = t("toastBudgetMinus20");
 }
 if (anpassung < 0) {
 mutateState(function(s) {
 s.cur = Math.max(0, s.cur + anpassung);
 s.used.push({
-n:"Zustandscheck: " + zustand + " (" + anpassung + ")",
+n:t("zustandscheck") + zustand + " (" + anpassung + ")",
 v: Math.abs(anpassung),
 ts: Date.now(),
 t: nowTime(),
@@ -1277,12 +2122,13 @@ var grenze = KOPFAN_GRENZEN[Math.min(s, KOPFAN_GRENZEN.length - 1)];
 mutateState(function(st) {
 st.cur = Math.max(0, st.cur - punkte);
 st.block += punkte;
-st.used.push({n:"Kopf an Nacherfassung (bis " + grenze + " Min.)", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+st.used.push({n:t("kopfAnNach") + grenze + t("kopfAnMin") + ")", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+if (!st.aufrechtSeitTs) { st.aufrechtSeitTs = Date.now(); }
 });
 checkPemPenalty();
 trackDayMinPct();
 updateDisplay();
-showToast("Nacherfasst: " + punkte + " Punkte");
+showToast(t("toastNacherfasst") + punkte + t("toastPunkte"));
 }
 
 function zeigeBaselineEditor() {
@@ -1297,7 +2143,7 @@ var g2 = parseInt(document.getElementById("kopfGrenze2").value) || 15;
 var g3 = parseInt(document.getElementById("kopfGrenze3").value) || 30;
 KOPFAN_GRENZEN = [g0, g1, g2, g3];
 document.getElementById("baselineEditor").style.display = "none"
-showToast("Grenzen gespeichert");
+showToast(t("toastGrenzen"));
 }
 
 function kopfAnStart() {
@@ -1336,7 +2182,7 @@ document.getElementById("kopfAnTimer").textContent = "0:00"
 document.getElementById("kopfAnTimer").style.color = "#5856d6"
 
 // Unter 10 Sekunden: versehentlicher Start, keine Buchung
-if (sekunden < 10) { showToast("Abgebrochen"); return; }
+if (sekunden < 10) { showToast(t("toastAbgebrochen")); return; }
 
 var punkte = KOPFAN_PUNKTE[0];
 for (var i = 0; i < KOPFAN_GRENZEN.length; i++) {
@@ -1346,7 +2192,8 @@ if (state.pauseBeginnTs) { endePause(true); }
 mutateState(function(s) {
 s.cur = Math.max(0, s.cur - punkte);
 s.block += punkte;
-s.used.push({n:"Kopf an (" + minuten + " Min.)", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+s.used.push({n:t("kopfAnTimer") + minuten + t("kopfAnMin") + ")", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+if (!s.aufrechtSeitTs) { s.aufrechtSeitTs = Date.now(); }
 });
 checkPemPenalty();
 trackDayMinPct();
@@ -1354,7 +2201,7 @@ updateDisplay();
 startPauseTimer();
 checkBelastungsdichte();
 checkCrashRisiko();
-showToast("Kopf an: " + minuten + " Min. = " + punkte + " Punkte");
+showToast(t("kopfAnErg") + minuten + t("kopfAnGleich") + punkte + t("toastPunkte"));
 }
 
 function renderAktiveSymptome() {
@@ -1379,7 +2226,7 @@ for (var ai = 0; ai < aktive.length; ai++) {
 var chip = document.createElement("span");
 var farbe = aktive[ai].sw === "schwer" ? "#ff3b30" : aktive[ai].sw === "mittel" ? "#ff9500" : "#ffcc00"
 chip.style.cssText = "font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;color:#fff;background:" + farbe + ""
-chip.textContent = SYMPTOM_NAMEN[aktive[ai].s];
+chip.textContent = getSYMPTOM_NAMEN()[aktive[ai].s];
 el.appendChild(chip);
 }
 }
@@ -1602,7 +2449,7 @@ saveLoads();
 renderCatalog();
 document.getElementById("loadName").value = ""
 document.getElementById("loadVal").value = ""
-showToast("Gespeichert");
+showToast(t("toastGespeichert"));
 }
 
 function renderCatalog() {
@@ -1696,7 +2543,7 @@ function resetKatalog() {
 loads = STANDARD_KATALOG.slice();
 storeSet(STORAGE_LOADS, JSON.stringify(loads));
 renderCatalog();
-showToast("Katalog zur\u00fcckgesetzt");
+showToast(t("toastKatalogReset"));
 }
 
 // ============================================================
@@ -1735,11 +2582,11 @@ var pw = document.createElement("span");
 pw.className = "pos-wrap"
 var tU = document.createElement("span");
 tU.className = "pos-tag pos-aufrecht" + (pos === "aufrecht" ? " aktiv" : "");
-tU.textContent = "aufrecht"
+tU.textContent = t("posAufrecht");
 tU.addEventListener("click", machTogglePositionHandler(oi));
 var tD = document.createElement("span");
 tD.className = "pos-tag pos-liegend" + (pos === "liegend" ? " aktiv" : "");
-tD.textContent = pos === "liegend" ? "liegend" : "liegend?"
+tD.textContent = pos === "liegend" ? t("posLiegend") : t("posLiegendFrage");
 tD.addEventListener("click", machTogglePositionHandler(oi));
 pw.appendChild(tU);
 pw.appendChild(tD);
@@ -1758,11 +2605,11 @@ var ts2 = document.createElement("span");
 ts2.style.cssText = "font-size:11px;opacity:0.8;margin-right:6px;"
 ts2.textContent = s.t || ""
 left2.appendChild(ts2);
-left2.appendChild(document.createTextNode(SYMPTOM_NAMEN[s.s]));
+left2.appendChild(document.createTextNode(getSYMPTOM_NAMEN()[s.s]));
 if (s.weg) {
 var ws = document.createElement("span");
 ws.style.cssText = "color:#34c759;font-weight:700;margin-left:4px;"
-ws.textContent = "weg"
+ws.textContent = t("weg");
 left2.appendChild(ws);
 } else if (s.sw) {
 left2.appendChild(document.createTextNode(" (" + s.sw + ")"));
@@ -1783,7 +2630,7 @@ for (var i = 0; i < count; i++) { preview.appendChild(makeEntryRow(combined[i]))
 if (combined.length > 2) {
 var more = document.createElement("div");
 more.style.cssText = "font-size:11px;color:#8e8e93;text-align:center;padding:4px 0;"
-more.textContent = "+" + (combined.length - 2) + " weitere"
+more.textContent = "+" + (combined.length - 2) + t("weitere");
 preview.appendChild(more);
 }
 }
@@ -1809,7 +2656,7 @@ var st = ls ? (ls.ts || 0) : 0;
 if (st > ut && ls) {
 mutateState(function(s) { s.symptome.pop(); });
 updateDisplay();
-showToast("Symptom r\u00fcckg\u00e4ngig");
+showToast(t("toastSymptomRueck"));
 } else if (lu) {
 var last = state.used[state.used.length-1];
 if (last.n.indexOf("Strafe:") === 0) {
@@ -1909,7 +2756,7 @@ _letzterZustandCheck = Date.now();
 _lastWarnType = null;
 _lastWarnTs = 0;
 updatePaddingTop(); // FIX D
-showToast("Neuer Tag!");
+showToast(t("toastNeuerTag"));
 }
 
 // ============================================================
@@ -1919,10 +2766,10 @@ function buildSchwereButtons() {
 var container = document.getElementById("schwereBtns");
 container.innerHTML = ""
 var items = [
-{label:"leicht", cls:"schwere-leicht"},
-{label:"mittel", cls:"schwere-mittel"},
-{label:"schwer", cls:"schwere-schwer"},
-{label:"weg", extra:"background:#34c759;color:#fff;"}
+{label:t("leicht"), cls:"schwere-leicht"},
+{label:t("mittel"), cls:"schwere-mittel"},
+{label:t("schwer"), cls:"schwere-schwer"},
+{label:t("weg"), extra:"background:#34c759;color:#fff;"}
 ];
 for (var i = 0; i < items.length; i++) {
 var btn = document.createElement("button");
@@ -1938,7 +2785,7 @@ function machSchwereBtnHandler(lbl) { return function() { logSymptomMitSchwere(l
 
 function pickSchwere(idx) {
 _pendingSymptom = idx;
-document.getElementById("schwereTitle").textContent = SYMPTOM_NAMEN[idx];
+document.getElementById("schwereTitle").textContent = getSYMPTOM_NAMEN()[idx];
 document.getElementById("schwerePicker").style.display = "block"
 document.getElementById("schwereOverlay").style.display = "block"
 }
@@ -1962,7 +2809,7 @@ if (!s.symptome) { s.symptome = []; }
 s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere || "leicht"});
 });
 renderUsed();
-showToast(SYMPTOM_NAMEN[idx] + " (" + (schwere || "leicht") + ")");
+showToast(getSYMPTOM_NAMEN()[idx] + " (" + (schwere || t("leicht")) + ")");
 }
 
 function logSymptomWeg(idx) {
@@ -1971,7 +2818,7 @@ if (!s.symptome) { s.symptome = []; }
 s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
 });
 renderUsed();
-showToast(SYMPTOM_NAMEN[idx] + " weg");
+showToast(getSYMPTOM_NAMEN()[idx] + " " + t("weg"));
 }
 
 // ============================================================
