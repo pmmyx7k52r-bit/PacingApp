@@ -689,7 +689,7 @@ s.dayMinPct = 100;
 s.kurzPausen = 0;
 s.pauseBeginnTs = null;
 s.letzteLiegeZeit = Date.now();
-s.aufrechtSeitTs = Date.now();
+s.aufrechtSeitTs = null; // Tag startet liegend
 s._faktor = faktor;
 });
 showMainUI();
@@ -849,6 +849,7 @@ mutateState(function(s) {
 s.cur = Math.max(0, s.cur - loads[i].v);
 s.block += loads[i].v;
 s.used.push({n:loads[i].n, v:loads[i].v, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+if (!s.aufrechtSeitTs) { s.aufrechtSeitTs = Date.now(); }
 });
 checkPemPenalty();
 trackDayMinPct();
