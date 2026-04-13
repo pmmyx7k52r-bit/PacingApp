@@ -242,11 +242,11 @@ border-top: 2px solid #cc0000;
 <button type="button" class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn (ohne Handy!)</button>
 <button type="button" class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
 </div>
-<div id="rollingWarnBox" class="rolling-warn">Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!</div>
+<div id="rollingWarnBox" class="rolling-warn"></div>
 
 <div class="card" id="cardCheck">
 <h3>Morgen-Check</h3>
-<label style="font-weight:600;font-size:13px;margin-top:4px;display:block;">Schlafqualität</label>
+<label id="labelSchlaf" style="font-weight:600;font-size:13px;margin-top:4px;display:block;">Schlafqualität</label>
 <div class="schlaf-grid">
 <button type="button" class="schlaf-btn" data-schlaf="90">Sehr gut<span class="schlaf-val">90 Punkte</span></button>
 <button type="button" class="schlaf-btn" data-schlaf="80">Normal<span class="schlaf-val">80 Punkte</span></button>
@@ -362,9 +362,9 @@ border-top: 2px solid #cc0000;
 <h4 style="margin:0 0 12px;font-size:15px;color:#333;">Wie geht es dir gerade?</h4>
 <p style="font-size:12px;color:#666;margin:0 0 10px;">Symptome die du nicht mehr sp&uuml;rst werden als weg markiert.</p>
 <div style="display:flex;gap:8px;justify-content:center;">
-<button onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Ok</button>
-<button onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch&ouml;pft</button>
-<button onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Gar nicht gut</button>
+<button id="btnZustandOk" onclick="setZustand('stabil')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#34c759;color:#fff;cursor:pointer;">&#128522; Ok</button>
+<button id="btnZustandSchlechter" onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch&ouml;pft</button>
+<button id="btnZustandCrash" onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Gar nicht gut</button>
 </div>
 </div>
 <div id="schwereOverlay" class="schwere-overlay" style="display:none;"></div>
@@ -427,7 +427,6 @@ statusAchtsam: "Achtsam! Pausen einplanen!",
 statusLangsam: "Langsam! Nur noch Reserve!",
 statusStop: "STOP! Reserve aufgebraucht!",
 spielraum: "Spielraum",
-spielraum: "Speelruimte",
 rest: "Rest: ",
 // Warnungen
 warnNachPause: "Bitte erst den Tag starten!",
@@ -722,6 +721,7 @@ statusGut: "Alles goed! Blijf bewust!",
 statusAchtsam: "Voorzichtig! Plan pauzes!",
 statusLangsam: "Langzamer! Alleen reserve!",
 statusStop: "STOP! Energie op!",
+spielraum: "Speelruimte",
 rest: "Rest: ",
 warnNachPause: "Start eerst de dag!",
 warnSchlafAuswaehlen: "Selecteer slaapkwaliteit!",
@@ -861,6 +861,7 @@ statusGut: "Tout va bien! Restez attentif!",
 statusAchtsam: "Attention! Planifiez des pauses!",
 statusLangsam: "Ralentir! R\u00e9serve seulement!",
 statusStop: "STOP! \u00c9nergie \u00e9puis\u00e9e!",
+spielraum: "Marge",
 spielraum: "Marge",
 rest: "Reste: ",
 warnNachPause: "Veuillez d'abord d\u00e9marrer la journ\u00e9e!",
@@ -1002,6 +1003,7 @@ statusAchtsam: "\u00a1Cuidado! \u00a1Planifique descansos!",
 statusLangsam: "\u00a1M\u00e1s lento! \u00a1Solo reserva!",
 statusStop: "\u00a1STOP! \u00a1Energ\u00eda agotada!",
 spielraum: "Margen",
+spielraum: "Margen",
 rest: "Restante: ",
 warnNachPause: "\u00a1Inicie el d\u00eda primero!",
 warnSchlafAuswaehlen: "\u00a1Seleccione la calidad del sue\u00f1o!",
@@ -1119,8 +1121,8 @@ window.location.reload();
 function applyLanguageToDOM() {
 // Morgen-Check
 var el;
-el = document.querySelector("#cardCheck h3"); if(el) el.childNodes[0].nodeValue = t("morgenCheck") + " "
-el = document.querySelector("label[for=sleep]") || document.querySelector("#cardCheck label"); if(el) el.textContent = t("schlafqualitaet");
+el = document.querySelector("#cardCheck h3"); if(el) el.innerHTML = t("morgenCheck");
+el = document.getElementById("labelSchlaf"); if(el) el.textContent = t("schlafqualitaet");
 var schlafBtns = document.querySelectorAll(".schlaf-btn");
 var schlafKeys = [["sehrGut","sehrGutPunkte"],["normal","normalPunkte"],["schlecht","schlechtPunkte"],["eigenerWert","eigenerWertHint"]];
 for(var si=0;si<schlafBtns.length;si++){
@@ -1175,6 +1177,10 @@ var zpH = document.querySelector("#zustandsPicker h4"); if(zpH) zpH.textContent 
 var zpP = document.querySelector("#zustandsPicker p"); if(zpP) zpP.textContent = t("symptomeWegHinweis");
 // Energiebudget-Label
 var ebLabel = document.querySelector("#topfWrap > div:first-child"); if(ebLabel) ebLabel.textContent = t("energiebudget");
+// Zustandscheck-Buttons
+el = document.getElementById("btnZustandOk"); if(el) el.innerHTML = t("zustandOk");
+el = document.getElementById("btnZustandSchlechter"); if(el) el.innerHTML = t("zustandSchlechter");
+el = document.getElementById("btnZustandCrash"); if(el) el.innerHTML = t("zustandCrash");
 // Topf-Beschriftungen (Zeitangaben bleiben, nur Label)
 var topfLabels = ["topf0Label","topf1Label","topf2Label","topf3Label"];
 var topfKeys = ["schlafTopfFrueh","schlafTopfMorgen","schlafTopfMittag","schlafTopfAbend"];
@@ -1810,7 +1816,11 @@ if (state.max > 0 && pctH < 25) { red++; }
 var c1 = h.length >= 1 ? (typeof h[h.length-1] === "object" ? h[h.length-1].crash : h[h.length-1]) : false;
 var c2 = h.length >= 2 ? (typeof h[h.length-2] === "object" ? h[h.length-2].crash : h[h.length-2]) : false;
 var last2ok = h.length >= 2 && !c1 && !c2;
-document.getElementById("rollingWarnBox").style.display = (red >= 3 && !last2ok) ? "block" : "none"
+var rwb = document.getElementById("rollingWarnBox");
+if (rwb) {
+rwb.textContent = t("rollingPene");
+rwb.style.display = (red >= 3 && !last2ok) ? "block" : "none"
+}
 }
 
 // ============================================================
