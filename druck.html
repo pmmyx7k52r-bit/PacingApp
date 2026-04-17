@@ -191,6 +191,8 @@ border-top: 2px solid #cc0000;
 
 <div id="pacingHeader"></div>
 <div id="toast"></div>
+<div id="langePauseBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3020;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);background:#5856d6;color:#fff;cursor:pointer;" onclick="langePauseNachfragen()"></div>
+
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -260,7 +262,7 @@ border-top: 2px solid #cc0000;
 <button type="button" class="btn-reset" id="btnReset">Neuer Tag! (Reset!)</button>
 </div>
 
-<div class="card" id="cardCatalog">
+<div class="card" id="cardCatalog" style="display:none;">
 <div class="coll-header" id="btnToggleCatalog">
 <h3>Belastungskatalog <span style="font-size:11px;font-weight:400;opacity:0.6;">Tippen: auf/zu</span></h3>
 <span class="coll-chevron" id="catalogChevron">&#9660;</span>
@@ -414,11 +416,14 @@ grundkatalogWiederh: "Grundkatalog wiederherstellen",
 symptomeErfassen: "Symptome erfassen",
 // Aktivitäten
 heutigeAktivitaeten: "Heutige Aktivit\u00e4ten",
-rueckgaengig: "R\u00fckg\u00e4ngig",
+rueckgaengig: "R\u00fcck\u00e4ngig",
 historyAnzeigen: "History anzeigen",
 neuenTagStarten: "Neuen Tag starten",
 guteNacht: "Gute Nacht \uD83C\uDF19",
 // Pause
+pauseVergessen: "Pause läuft noch — vergessen zu beenden?",
+pauseVergessenHint: "Tippen um Pause jetzt zu beenden",
+pauseBeenden: "Pause jetzt beenden?",
 pausenbeginn: "Pausenbeginn (ohne Handy!)",
 pauseBeendet: "Pause beendet",
 // Status
@@ -575,6 +580,9 @@ rueckgaengig: "Undo",
 historyAnzeigen: "Show history",
 neuenTagStarten: "Start new day",
 guteNacht: "Good night \uD83C\uDF19",
+pauseVergessen: "Rest still running — forgotten to end?",
+pauseVergessenHint: "Tap to end rest now",
+pauseBeenden: "End rest now?",
 pausenbeginn: "Rest start (no phone!)",
 pauseBeendet: "Rest ended",
 statusGut: "All good! Stay mindful!",
@@ -715,6 +723,9 @@ rueckgaengig: "Ongedaan maken",
 historyAnzeigen: "Geschiedenis tonen",
 neuenTagStarten: "Nieuwe dag starten",
 guteNacht: "Goedenacht \uD83C\uDF19",
+pauseVergessen: "Rust loopt nog — vergeten te beëindigen?",
+pauseVergessenHint: "Tikken om rust nu te beëindigen",
+pauseBeenden: "Rust nu beëindigen?",
 pausenbeginn: "Rust beginnen (zonder telefoon!)",
 pauseBeendet: "Rust be\u00ebindigd",
 statusGut: "Alles goed! Blijf bewust!",
@@ -855,6 +866,9 @@ rueckgaengig: "Annuler",
 historyAnzeigen: "Afficher l'historique",
 neuenTagStarten: "Nouveau jour",
 guteNacht: "Bonne nuit \uD83C\uDF19",
+pauseVergessen: "Repos encore en cours \u2014 oubli\u00e9 de terminer?",
+pauseVergessenHint: "Appuyer pour terminer le repos maintenant",
+pauseBeenden: "Terminer le repos maintenant?",
 pausenbeginn: "D\u00e9but du repos (sans t\u00e9l\u00e9phone!)",
 pauseBeendet: "Repos termin\u00e9",
 statusGut: "Tout va bien! Restez attentif!",
@@ -996,6 +1010,9 @@ rueckgaengig: "Deshacer",
 historyAnzeigen: "Ver historial",
 neuenTagStarten: "Nuevo d\u00eda",
 guteNacht: "Buenas noches \uD83C\uDF19",
+pauseVergessen: "Descanso a\u00fan en cours \u2014 \u00bfolvidaste terminar?",
+pauseVergessenHint: "Toca para terminar el descanso ahora",
+pauseBeenden: "\u00bfTerminar el descanso ahora?",
 pausenbeginn: "Inicio del descanso (\u00a1sin tel\u00e9fono!)",
 pauseBeendet: "Descanso terminado",
 statusGut: "\u00a1Todo bien! \u00a1Mant\u00e9ngase atento!",
@@ -1203,6 +1220,7 @@ var AUFRECHT_SCHWELLE_MITTE = 35;
 var AUFRECHT_SCHWELLE_NIEDRIG = 25;
 
 var PAUSE_MINDEST_MIN = 10;
+var PAUSE_NACHFRAGE_MIN = 90; // Nach 90 Min Pause nachfragen ob vergessen
 
 var REGEN_PRO_10_MIN = 1;
 var REGEN_MAX_MIN = 120;
@@ -1362,9 +1380,39 @@ if (!lastActionTime || state.max <= 0) { return; }
 renderMainWarning();
 }
 
-// ============================================================
-// INITIALISIERUNG
-// ============================================================
+// Prüft ob Pause vergessen wurde (> PAUSE_NACHFRAGE_MIN Minuten)
+var _langePauseHingewiesen = false;
+
+function checkLangePause() {
+var bar = document.getElementById("langePauseBar");
+if (!bar || !state.pauseBeginnTs || state.max <= 0) {
+if (bar) { bar.style.display = "none" }
+_langePauseHingewiesen = false;
+return;
+}
+var minuten = Math.round((Date.now() - state.pauseBeginnTs) / 60000);
+if (minuten >= PAUSE_NACHFRAGE_MIN) {
+bar.style.display = "block"
+bar.innerHTML = minuten + " " + t("kopfAnMin").trim() + " " + t("pauseVergessen") + "<br><span style=\"font-size:11px;font-weight:400;opacity:0.85;\">" + t("pauseVergessenHint") + "</span>"
+if (!_langePauseHingewiesen) {
+_langePauseHingewiesen = true;
+}
+} else {
+bar.style.display = "none"
+_langePauseHingewiesen = false;
+}
+}
+
+function langePauseNachfragen() {
+var bar = document.getElementById("langePauseBar");
+if (bar) { bar.style.display = "none" }
+if (!state.pauseBeginnTs) { return; }
+var minuten = Math.round((Date.now() - state.pauseBeginnTs) / 60000);
+var antwort = confirm(minuten + t("kopfAnMin") + " " + t("pauseVergessen") + "\n\n" + t("pauseBeenden"));
+if (antwort) { endePause(false); }
+}
+
+
 window.onload = function() {
 // Sprache laden
 var savedLang = storeGet(STORAGE_LANG);
@@ -1398,6 +1446,7 @@ updateToepfe();
 updateAufrechtWarnung();
 checkCrashRisiko();
 checkPauseTimer();
+checkLangePause();
 if (Date.now() - _letzterZustandCheck >= ZUSTAND_CHECK_MS) {
 zeigeZustandsCheckBar();
 }
@@ -1557,6 +1606,7 @@ function showMainUI() {
 document.getElementById("statusWrap").style.display = "flex"
 document.getElementById("pauseUndWaage").style.display = "flex"
 document.getElementById("cardCheck").style.display = "none"
+document.getElementById("cardCatalog").style.display = "block"
 document.getElementById("btnToggleCheck").style.display = "inline-block"
 document.getElementById("btnGuteNacht").style.display = "inline-block"
 document.getElementById("debugBtn").style.display = "inline-block"
@@ -1730,6 +1780,11 @@ if (mwb) {
 mwb.style.display = "none"
 mwb._dismissed = false;
 }
+_lastWarnType = null;
+_lastWarnTs = 0;
+var lpb = document.getElementById("langePauseBar");
+if (lpb) { lpb.style.display = "none" }
+_langePauseHingewiesen = false;
 stopPauseTimer();
 document.getElementById("btnPauseBeginn").style.display = "none"
 document.getElementById("btnPauseEnde").style.display = "block"
@@ -1776,6 +1831,9 @@ s.kurzPausen = (s.kurzPausen || 0) + 1;
 });
 document.getElementById("btnPauseEnde").style.display = "none"
 document.getElementById("btnPauseBeginn").style.display = "block"
+var lpb2 = document.getElementById("langePauseBar");
+if (lpb2) { lpb2.style.display = "none" }
+_langePauseHingewiesen = false;
 _lastPauseEndeTs = Date.now();
 if (!auto) {
 trackDayMinPct();
@@ -2016,7 +2074,7 @@ if (!bar) { return; }
 var warn = getMainWarning();
 var typ = warn ? warn.type : null;
 
-var nichtWegdrueckbar = (typ === "PEM_ZWANG" || typ === "CRASH_HIGH" || typ === "NOTBREMSE");
+var nichtWegdrueckbar = (typ === "PEM_ZWANG" || typ === "CRASH_HIGH" || typ === "NOTBREMSE" || typ === "AUFRECHT" || typ === "TIMER_ZWANG");
 if (bar._dismissed && !nichtWegdrueckbar) { return; }
 if (nichtWegdrueckbar) { bar._dismissed = false; }
 
@@ -2737,6 +2795,7 @@ document.getElementById("btnToggleCheck").style.display = "none"
 document.getElementById("btnGuteNacht").style.display = "none"
 document.getElementById("cardUsed").style.display = "none"
 document.getElementById("cardSymptome").style.display = "none"
+document.getElementById("cardCatalog").style.display = "none"
 document.getElementById("dayList").innerHTML = ""
 document.getElementById("usedPreview").innerHTML = ""
 document.getElementById("mainBody").className = ""
@@ -2760,6 +2819,9 @@ if (mwb3) {
 mwb3.style.display = "none"
 mwb3._dismissed = false;
 }
+var lpb3 = document.getElementById("langePauseBar");
+if (lpb3) { lpb3.style.display = "none" }
+_langePauseHingewiesen = false;
 var zcb = document.getElementById("zustandsCheckBar");
 if (zcb) { zcb.style.display = "none" }
 _letzterZustandCheck = Date.now();
