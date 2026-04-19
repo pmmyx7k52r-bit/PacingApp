@@ -347,8 +347,9 @@ border-top: 2px solid #cc0000;
 <button type="button" id="btnUndo" style="background:#8e8e93;width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;color:#fff;margin-top:8px;">Rückgängig</button>
 </div>
 
-<div style="margin-top:10px;text-align:center;">
+<div style="margin-top:10px;text-align:center;display:flex;gap:8px;justify-content:center;align-items:center;">
 <button type="button" id="debugBtn" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;display:none;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;">History anzeigen</button>
+<button type="button" id="btnSprachwahl" onclick="zeigeSprachwahl()" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;">🌐</button>
 </div>
 <div style="margin-top:20px;text-align:center;display:flex;gap:10px;justify-content:center;">
 <button type="button" id="btnToggleCheck" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;">Neuen Tag starten</button>
@@ -1127,6 +1128,10 @@ var _lang = "de"
 function t(key) {
 var l = LANG[_lang] || LANG["de"];
 return l[key] !== undefined ? l[key] : (LANG["de"][key] || key);
+}
+
+function zeigeSprachwahl() {
+document.getElementById("langOverlay").style.display = "flex"
 }
 
 function waehleSpache(lang) {
