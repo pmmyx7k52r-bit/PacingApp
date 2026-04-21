@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.6</title>
+<title>PacingApp 6.0.8.4</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -350,6 +350,7 @@ input, select {
 <div style="margin-top:10px;text-align:center;display:flex;gap:8px;justify-content:center;align-items:center;">
   <button type="button" id="debugBtn" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;display:none;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;">History anzeigen</button>
   <button type="button" id="btnSprachwahl" onclick="zeigeSprachwahl()" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;">🌐</button>
+  <button type="button" id="btnNotif" onclick="requestNotificationPermission()" style="background:none;border:1px solid #ccc;color:#999;font-size:11px;width:auto;padding:6px 12px;border-radius:8px;touch-action:manipulation;" title="Benachrichtigungen">&#128276;</button>
 </div>
 <div style="margin-top:20px;text-align:center;display:flex;gap:10px;justify-content:center;">
   <button type="button" id="btnToggleCheck" style="background:#8e8e93;color:#fff;font-size:14px;font-weight:700;display:none;width:auto;padding:12px 24px;border:none;border-radius:12px;touch-action:manipulation;">Neuen Tag starten</button>
@@ -375,6 +376,33 @@ input, select {
   <div class="schwere-btns" id="schwereBtns"></div>
 </div>
 
+
+<script id="swScript" type="text/js-worker">
+
+// Service Worker für PacingApp Notifications
+self.addEventListener('install', function(e) { self.skipWaiting(); });
+self.addEventListener('activate', function(e) { e.waitUntil(clients.claim()); });
+self.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'NOTIFY') {
+        self.registration.showNotification(e.data.title, {
+            body: e.data.body,
+            icon: e.data.icon || '',
+            badge: e.data.badge || '',
+            tag: e.data.tag || 'pacing',
+            requireInteraction: e.data.requireInteraction || false,
+            silent: false
+        });
+    }
+});
+self.addEventListener('notificationclick', function(e) {
+    e.notification.close();
+    e.waitUntil(clients.matchAll({type:'window'}).then(function(cs) {
+        if (cs.length > 0) { cs[0].focus(); } 
+        else { clients.openWindow('/'); }
+    }));
+});
+
+</script>
 <script>
 // ============================================================
 // SPRACHSYSTEM
@@ -546,6 +574,13 @@ var LANG = {
     zustandsSymptomeReset: "Zustandscheck: Symptome zurückgesetzt (",
     tagGestartetEintrag: "Tag gestartet",
     pausenbeginnEintrag: "Pausenbeginn",
+        notifAktiviert: "Benachrichtigungen aktiviert ✓",
+    notifDeaktiviert: "Benachrichtigungen deaktiviert",
+    notifGesperrt: "Benachrichtigungen in Einstellungen erlauben!",
+    notifAbgelehnt: "Ohne Benachrichtigungen kein Erinnern möglich",
+    notifNichtUnterstuetzt: "Gerät unterstützt keine Benachrichtigungen",
+    notifTestTitel: "PacingApp aktiv",
+    notifTestBody: "Benachrichtigungen funktionieren!",
     rollingPene: "Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!",
     kopfAnBereich: "\uD83E\uDDE0 Kopf an"
   },
@@ -691,6 +726,13 @@ var LANG = {
     zustandsSymptomeReset: "Status check: symptoms reset (",
     tagGestartetEintrag: "Day started",
     pausenbeginnEintrag: "Rest start",
+        notifAktiviert: "Notifications enabled ✓",
+    notifDeaktiviert: "Notifications disabled",
+    notifGesperrt: "Allow notifications in settings!",
+    notifAbgelehnt: "Without notifications no reminders possible",
+    notifNichtUnterstuetzt: "Device does not support notifications",
+    notifTestTitel: "PacingApp active",
+    notifTestBody: "Notifications are working!",
     rollingPene: "Multiple red days! Watch out for rolling PEM!",
     kopfAnBereich: "\uD83E\uDDE0 Brain on",
     mittel: "mid"
@@ -837,6 +879,13 @@ var LANG = {
     zustandsSymptomeReset: "Statuscontrole: symptomen gereset (",
     tagGestartetEintrag: "Dag gestart",
     pausenbeginnEintrag: "Rust beginnen",
+        notifAktiviert: "Meldingen ingeschakeld ✓",
+    notifDeaktiviert: "Meldingen uitgeschakeld",
+    notifGesperrt: "Meldingen toestaan in instellingen!",
+    notifAbgelehnt: "Zonder meldingen geen herinneringen mogelijk",
+    notifNichtUnterstuetzt: "Apparaat ondersteunt geen meldingen",
+    notifTestTitel: "PacingApp actief",
+    notifTestBody: "Meldingen werken!",
     rollingPene: "Meerdere rode dagen! Let op rollende PEM!",
     kopfAnBereich: "\uD83E\uDDE0 Hoofd aan",
     mittel: "midden"
@@ -984,6 +1033,13 @@ var LANG = {
     zustandsSymptomeReset: "Bilan: sympt\u00f4mes r\u00e9initialis\u00e9s (",
     tagGestartetEintrag: "Journ\u00e9e d\u00e9marr\u00e9e",
     pausenbeginnEintrag: "D\u00e9but du repos",
+        notifAktiviert: "Notifications activées ✓",
+    notifDeaktiviert: "Notifications désactivées",
+    notifGesperrt: "Autoriser les notifications dans les paramètres!",
+    notifAbgelehnt: "Sans notifications pas de rappels possibles",
+    notifNichtUnterstuetzt: "L'appareil ne supporte pas les notifications",
+    notifTestTitel: "PacingApp active",
+    notifTestBody: "Les notifications fonctionnent!",
     rollingPene: "Plusieurs jours rouges! Attention au PEM cumulatif!",
     kopfAnBereich: "\uD83E\uDDE0 T\u00eate active",
     mittel: "moyen"
@@ -1131,6 +1187,13 @@ var LANG = {
     zustandsSymptomeReset: "Control: s\u00edntomas reiniciados (",
     tagGestartetEintrag: "D\u00eda iniciado",
     pausenbeginnEintrag: "Inicio del descanso",
+        notifAktiviert: "Notificaciones activadas ✓",
+    notifDeaktiviert: "Notificaciones desactivadas",
+    notifGesperrt: "\u00a1Permitir notificaciones en ajustes!",
+    notifAbgelehnt: "Sin notificaciones no es posible recordar",
+    notifNichtUnterstuetzt: "El dispositivo no admite notificaciones",
+    notifTestTitel: "PacingApp activa",
+    notifTestBody: "\u00a1Las notificaciones funcionan!",
     rollingPene: "\u00a1M\u00faltiples d\u00edas rojos! \u00a1Cuidado con el PEM acumulativo!",
     kopfAnBereich: "\uD83E\uDDE0 Mente activa",
     mittel: "medio"
@@ -1223,6 +1286,171 @@ function applyLanguageToDOM() {
     // Diese werden in updateToepfe() dynamisch gesetzt – OK
 }
 
+
+// ============================================================
+// NOTIFICATION SYSTEM
+// ============================================================
+var STORAGE_NOTIF = "pacing_notifications";
+var _swRegistration = null;
+var _notifEnabled = false;
+var _lastNotifType = null;
+var _lastNotifTs = 0;
+var NOTIF_COOLDOWN_MS = 5 * 60 * 1000; // Max 1 Notification alle 5 Min pro Typ
+
+function initNotifications() {
+    // Service Worker registrieren via Blob
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+        console.log('Notifications nicht unterstützt');
+        return;
+    }
+    navigator.serviceWorker.register('/PacingApp/sw.js').then(function(reg) {
+        _swRegistration = reg;
+        // Auf aktiven SW warten
+        if (reg.installing) {
+            reg.installing.addEventListener('statechange', function() {
+                if (reg.active) { swSendLang(); }
+            });
+        } else if (reg.active) {
+            swSendLang();
+        }
+        console.log('SW registriert');
+    }).catch(function(err) {
+        console.log('SW Fehler:', err);
+    });
+
+    // Gespeicherte Einstellung laden
+    var saved = storeGet(STORAGE_NOTIF);
+    if (saved === 'true' && Notification.permission === 'granted') {
+        _notifEnabled = true;
+    }
+    updateNotifButton();
+}
+
+function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        showToast(t('notifNichtUnterstuetzt'));
+        return;
+    }
+    if (Notification.permission === 'granted') {
+        _notifEnabled = !_notifEnabled;
+        storeSet(STORAGE_NOTIF, _notifEnabled ? 'true' : 'false');
+        updateNotifButton();
+        showToast(_notifEnabled ? t('notifAktiviert') : t('notifDeaktiviert'));
+        return;
+    }
+    if (Notification.permission === 'denied') {
+        showToast(t('notifGesperrt'));
+        return;
+    }
+    Notification.requestPermission().then(function(perm) {
+        if (perm === 'granted') {
+            _notifEnabled = true;
+            storeSet(STORAGE_NOTIF, 'true');
+            showToast(t('notifAktiviert'));
+            // Test-Notification
+            sendNotification(t('notifTestTitel'), t('notifTestBody'), 'test', false);
+        } else {
+            showToast(t('notifAbgelehnt'));
+        }
+        updateNotifButton();
+    });
+}
+
+function updateNotifButton() {
+    var btn = document.getElementById('btnNotif');
+    if (!btn) { return; }
+    var supported = ('Notification' in window);
+    var perm = supported ? Notification.permission : 'unsupported';
+    if (!supported) {
+        btn.style.opacity = '0.4';
+        btn.title = t('notifNichtUnterstuetzt');
+    } else if (perm === 'denied') {
+        btn.innerHTML = '\uD83D\uDD15'; // 🔕
+        btn.style.opacity = '0.5';
+    } else if (_notifEnabled && perm === 'granted') {
+        btn.innerHTML = '\uD83D\uDD14'; // 🔔
+        btn.style.color = '#34c759';
+        btn.style.borderColor = '#34c759';
+    } else {
+        btn.innerHTML = '\uD83D\uDD14'; // 🔔
+        btn.style.color = '#999';
+        btn.style.borderColor = '#ccc';
+    }
+}
+
+function sendNotification(title, body, tag, requireInteraction) {
+    if (!_notifEnabled || Notification.permission !== 'granted') { return; }
+    // Cooldown pro Tag prüfen
+    var now = Date.now();
+    var cooldownKey = 'notif_' + tag;
+    var lastSent = parseInt(storeGet(cooldownKey) || '0');
+    if (now - lastSent < NOTIF_COOLDOWN_MS) { return; }
+    storeSet(cooldownKey, String(now));
+
+    // Via Service Worker (funktioniert auch im Hintergrund)
+    if (_swRegistration && _swRegistration.active) {
+        _swRegistration.active.postMessage({
+            type: 'NOTIFY',
+            title: title,
+            body: body,
+            tag: tag,
+            requireInteraction: requireInteraction || false
+        });
+    } else {
+        // Fallback: direkte Notification
+        new Notification(title, {body: body, tag: tag, requireInteraction: requireInteraction || false});
+    }
+}
+
+// Notification-Triggers für alle kritischen Ereignisse
+function swSendLang() {
+    if (_swRegistration && _swRegistration.active) {
+        _swRegistration.active.postMessage({type: 'SET_LANG', lang: _lang});
+    }
+}
+
+function swPauseStart(ts) {
+    if (_swRegistration && _swRegistration.active) {
+        _swRegistration.active.postMessage({type: 'PAUSE_START', ts: ts, lang: _lang});
+    }
+}
+
+function swPauseEnd() {
+    if (_swRegistration && _swRegistration.active) {
+        _swRegistration.active.postMessage({type: 'PAUSE_END'});
+    }
+}
+
+function notifyWennNoetig(warnTyp, warnText) {
+    if (!_notifEnabled) { return; }
+    var jetzt = Date.now();
+    // Gleicher Typ: Cooldown
+    if (warnTyp === _lastNotifType && jetzt - _lastNotifTs < NOTIF_COOLDOWN_MS) { return; }
+    _lastNotifType = warnTyp;
+    _lastNotifTs = jetzt;
+
+    var titel = '\uD83E\uDDE0 PacingApp';
+    var requireInteract = false;
+
+    if (warnTyp === 'NOTBREMSE') {
+        titel = '\u26A0\uFE0F STOP!';
+        requireInteract = true;
+    } else if (warnTyp === 'CRASH_HIGH' || warnTyp === 'PEM_ZWANG') {
+        titel = '\u26A0\uFE0F PEM-Gefahr';
+        requireInteract = true;
+    } else if (warnTyp === 'TIMER_ZWANG') {
+        titel = '\uD83D\uDED1 Pause!';
+        requireInteract = false;
+    } else if (warnTyp === 'PAUSE_VERGESSEN') {
+        titel = '\uD83D\uDCA4 Pause?';
+        requireInteract = true;
+    } else if (warnTyp === 'KURZPAUSEN') {
+        titel = '\uD83D\uDECC Richtig hinlegen!';
+        requireInteract = false;
+    }
+    sendNotification(titel, warnText, warnTyp.toLowerCase(), requireInteract);
+}
+
 // ============================================================
 // KONSTANTEN
 // ============================================================
@@ -1239,7 +1467,6 @@ var AUFRECHT_SCHWELLE_MITTE = 35;
 var AUFRECHT_SCHWELLE_NIEDRIG = 25;
 
 var PAUSE_MINDEST_MIN = 10;
-var PAUSE_NACHFRAGE_MIN = 90;    // Nach 90 Min Pause nachfragen ob vergessen
 var KURZPAUSEN_GRENZE = 2;       // Ab 2 Kurzpausen in Folge: Abzug
 var KURZPAUSE_ABZUG = 3;         // Punktabzug bei zu vielen Kurzpausen
 var LIEGEPAUSE_MAX_ABSTAND = 90; // Max. Minuten ohne echte Liegepause vor Warnung
@@ -1403,7 +1630,10 @@ function checkPauseTimer() {
     renderMainWarning();
 }
 
-// Prüft ob Pause vergessen wurde (> PAUSE_NACHFRAGE_MIN Minuten)
+// Dreistufige Pause-Erinnerung: 30 / 60 / 90 Min
+var PAUSE_WARN1_MIN = 30;   // sanft, lila
+var PAUSE_WARN2_MIN = 60;   // dringend, orange, blinkt
+var PAUSE_NACHFRAGE_MIN = 90; // Confirm-Dialog, rot, blinkt
 var _langePauseHingewiesen = false;
 
 function checkLangePause() {
@@ -1414,14 +1644,39 @@ function checkLangePause() {
         return;
     }
     var minuten = Math.round((Date.now() - state.pauseBeginnTs) / 60000);
+
     if (minuten >= PAUSE_NACHFRAGE_MIN) {
+        // Stufe 3: rot, blinkt, Confirm-Dialog automatisch
         bar.style.display = "block";
-        bar.innerHTML = minuten + " " + t("kopfAnMin").trim() + " " + t("pauseVergessen") + "<br><span style=\"font-size:11px;font-weight:400;opacity:0.85;\">" + t("pauseVergessenHint") + "</span>";
+        bar.style.background = "#ff3b30";
+        bar.style.animation = "blinker 1.2s linear infinite";
+        bar.innerHTML = minuten + t("kopfAnMin") + " \u2014 " + t("pauseVergessen") +
+            "<br><span style=\"font-size:11px;font-weight:400;opacity:0.9;\">" + t("pauseVergessenHint") + "</span>";
+        notifyWennNoetig('PAUSE_VERGESSEN', minuten + t('kopfAnMin') + ' \u2014 ' + t('pauseVergessen'));
         if (!_langePauseHingewiesen) {
             _langePauseHingewiesen = true;
+            setTimeout(langePauseNachfragen, 500);
         }
+    } else if (minuten >= PAUSE_WARN2_MIN) {
+        // Stufe 2: orange, blinkt
+        bar.style.display = "block";
+        bar.style.background = "#ff9500";
+        bar.style.animation = "blinker 1.2s linear infinite";
+        bar.innerHTML = minuten + t("kopfAnMin") + " \u2014 " + t("pauseVergessen") +
+            "<br><span style=\"font-size:11px;font-weight:400;opacity:0.9;\">" + t("pauseVergessenHint") + "</span>";
+        notifyWennNoetig('PAUSE_VERGESSEN', minuten + t('kopfAnMin') + ' \u2014 ' + t('pauseVergessen'));
+        _langePauseHingewiesen = false;
+    } else if (minuten >= PAUSE_WARN1_MIN) {
+        // Stufe 1: lila, ruhig
+        bar.style.display = "block";
+        bar.style.background = "#5856d6";
+        bar.style.animation = "none";
+        bar.innerHTML = minuten + t("kopfAnMin") + " \u2014 " + t("pauseVergessen") +
+            "<br><span style=\"font-size:11px;font-weight:400;opacity:0.85;\">" + t("pauseVergessenHint") + "</span>";
+        _langePauseHingewiesen = false;
     } else {
         bar.style.display = "none";
+        bar.style.animation = "none";
         _langePauseHingewiesen = false;
     }
 }
@@ -1431,8 +1686,12 @@ function langePauseNachfragen() {
     if (bar) { bar.style.display = "none"; }
     if (!state.pauseBeginnTs) { return; }
     var minuten = Math.round((Date.now() - state.pauseBeginnTs) / 60000);
-    var antwort = confirm(minuten + t("kopfAnMin") + " " + t("pauseVergessen") + "\n\n" + t("pauseBeenden"));
+    var antwort = confirm(minuten + t("kopfAnMin") + " \u2014 " + t("pauseVergessen") + "\n\n" + t("pauseBeenden"));
     if (antwort) { endePause(false); }
+    else {
+        // Abgelehnt: Bar wieder zeigen damit Erinnerung bleibt
+        _langePauseHingewiesen = false;
+    }
 }
 
 
@@ -1461,6 +1720,7 @@ window.onload = function() {
     buildSchwereButtons();
     applyLanguageToDOM();
     verdrahteButtons();
+    initNotifications();
 
     if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
     minutenTimerInterval = setInterval(function() {
@@ -1821,6 +2081,7 @@ function doPauseBeginn() {
     stopPauseTimer();
     document.getElementById("btnPauseBeginn").style.display = "none";
     document.getElementById("btnPauseEnde").style.display = "block";
+    swPauseStart(jetzt);
     showToast(t("toastPauseBeginn"));
     updateDisplay();
 }
@@ -1867,6 +2128,7 @@ function endePause(auto) {
     var lpb2 = document.getElementById("langePauseBar");
     if (lpb2) { lpb2.style.display = "none"; }
     _langePauseHingewiesen = false;
+    swPauseEnd();
     _lastPauseEndeTs = Date.now();
     if (!auto) {
         trackDayMinPct();
@@ -2139,6 +2401,8 @@ function renderMainWarning() {
     bar.style.background = warn.bg;
     bar.style.color = warn.color;
     bar.style.animation = warn.blink ? "blinker 1.2s linear infinite" : "none";
+    // Notification bei kritischen Warnungen
+    if (warn.blink) { notifyWennNoetig(typ, warn.text.replace(/<[^>]*>/g, "")); }
     if (nichtWegdrueckbar) {
         bar.onclick = null;
         bar.style.cursor = "default";
@@ -2982,6 +3246,8 @@ function showHistory() {
     showToast(txt);
 }
 </script>
+
+
 
 </body>
 </html>
