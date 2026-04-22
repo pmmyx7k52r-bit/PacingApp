@@ -1303,7 +1303,7 @@ function initNotifications() {
         console.log('Notifications nicht unterstützt');
         return;
     }
-    navigator.serviceWorker.register('/PacingApp/sw.js').then(function(reg) {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
         _swRegistration = reg;
         // Auf aktiven SW warten
         if (reg.installing) {
