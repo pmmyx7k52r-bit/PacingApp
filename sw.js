@@ -45,8 +45,6 @@ self.addEventListener('message', function(e) {
 function showNotif(title, body, tag, requireInteraction) {
     return self.registration.showNotification(title, {
         body: body,
-        icon: '/PacingApp/icon.png',
-        badge: '/PacingApp/icon.png',
         tag: tag || 'pacing',
         requireInteraction: requireInteraction || false,
         vibrate: [200, 100, 200]
@@ -126,11 +124,11 @@ self.addEventListener('notificationclick', function(e) {
     e.waitUntil(
         clients.matchAll({type: 'window', includeUncontrolled: true}).then(function(cs) {
             for (var i = 0; i < cs.length; i++) {
-                if (cs[i].url.indexOf('PacingApp') >= 0) {
+                if (cs[i].url.indexOf('druck.html') >= 0 || cs[i].url.indexOf('PacingApp') >= 0) {
                     return cs[i].focus();
                 }
             }
-            return clients.openWindow('/PacingApp/');
+            return clients.openWindow('https://pmmyx7k52r-bit.github.io/PacingApp/druck.html');
         })
     );
 });
