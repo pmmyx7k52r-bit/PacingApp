@@ -47,7 +47,7 @@ function showNotif(title, body, tag, requireInteraction) {
         body: body,
         tag: tag || 'pacing',
         requireInteraction: requireInteraction || false,
-        vibrate: [200, 100, 200]
+        vibrate: requireInteraction ? [300, 100, 300, 100, 300] : [200, 100, 200]
     });
 }
 
@@ -110,7 +110,7 @@ function startPauseTimer() {
             showNotif(txt('t3', minuten), txt('w3', minuten), 'pause-vergessen', true);
         } else if (minuten >= 60 && !self._pauseWarn2) {
             self._pauseWarn2 = true;
-            showNotif(txt('t2', minuten), txt('w2', minuten), 'pause-lang', false);
+            showNotif(txt('t2', minuten), txt('w2', minuten), 'pause-lang', true);
         } else if (minuten >= 30 && !self._pauseWarn1) {
             self._pauseWarn1 = true;
             showNotif(txt('t1', minuten), txt('w1', minuten), 'pause-kurz', false);

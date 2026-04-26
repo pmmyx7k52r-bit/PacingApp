@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.8.4</title>
+<title>PacingApp 6.0.8.5</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -471,6 +471,8 @@ var LANG = {
     warnPemZwang: "PEM-Gefahr! Pause erzwingen!",
     warnCrashMed: "PEM-Risiko steigt - Belastung reduzieren!",
     warnAufrecht: " Min. aufrecht - Liegepause sinnvoll",
+        warnTimerVorzwang: " Min. aktiv \u2014 \u26a0 Pause jetzt notwendig! Sonst wird App gesperrt.",
+    warnTimerSperre: "\uD83D\uDED1 App gesperrt \u2014 bitte erst pausieren!",
     warnTimerZwang: " Min. ohne Pause - jetzt pausieren!",
     warnTimerWarn: " Min. aktiv - Pause einplanen",
     warnTopf: "Tagesabschnitt-Budget \u00fcberschritten!",
@@ -638,6 +640,8 @@ var LANG = {
     warnPemZwang: "PEM danger! Force a rest!",
     warnCrashMed: "PEM risk rising - reduce activity!",
     warnAufrecht: " min upright - lying rest advised",
+        warnTimerVorzwang: " min active \u2014 \u26a0 Rest needed now! App will lock otherwise.",
+    warnTimerSperre: "\uD83D\uDED1 App locked \u2014 please rest first!",
     warnTimerZwang: " min without rest - rest now!",
     warnTimerWarn: " min active - plan a rest",
     warnTopf: "Time slot budget exceeded!",
@@ -791,6 +795,8 @@ var LANG = {
     warnPemZwang: "PEM-gevaar! Rust afdwingen!",
     warnCrashMed: "PEM-risico stijgt - activiteit verminderen!",
     warnAufrecht: " min rechtop - liggend rusten aanbevolen",
+        warnTimerVorzwang: " min actief \u2014 \u26a0 Rust nu nodig! App wordt anders vergrendeld.",
+    warnTimerSperre: "\uD83D\uDED1 App vergrendeld \u2014 rust eerst!",
     warnTimerZwang: " min zonder rust - nu rusten!",
     warnTimerWarn: " min actief - plan een pauze",
     warnTopf: "Tijdslot-budget overschreden!",
@@ -945,6 +951,8 @@ var LANG = {
     warnPemZwang: "Danger PEM! Forcer un repos!",
     warnCrashMed: "Risque PEM croissant - r\u00e9duire l'activit\u00e9!",
     warnAufrecht: " min debout - repos allong\u00e9 conseill\u00e9",
+        warnTimerVorzwang: " min actif \u2014 \u26a0 Repos n\u00e9cessaire! L\u2019app sera bloqu\u00e9e sinon.",
+    warnTimerSperre: "\uD83D\uDED1 App bloqu\u00e9e \u2014 reposez-vous d\u2019abord!",
     warnTimerZwang: " min sans repos - repos maintenant!",
     warnTimerWarn: " min actif - planifier un repos",
     warnTopf: "Budget du cr\u00e9neau horaire d\u00e9pass\u00e9!",
@@ -1099,6 +1107,8 @@ var LANG = {
     warnPemZwang: "\u00a1Peligro PEM! \u00a1Forzar descanso!",
     warnCrashMed: "Riesgo PEM aumentando - \u00a1reducir actividad!",
     warnAufrecht: " min de pie - descanso acostado recomendado",
+        warnTimerVorzwang: " min activo \u2014 \u26a0 \u00a1Descanso necesario! La app se bloquear\u00e1 si no.",
+    warnTimerSperre: "\uD83D\uDED1 App bloqueada \u2014 \u00a1descansa primero!",
     warnTimerZwang: " min sin descanso - \u00a1descanse ya!",
     warnTimerWarn: " min activo - planifique un descanso",
     warnTopf: "\u00a1Presupuesto del intervalo excedido!",
@@ -1487,10 +1497,13 @@ var DICHTE_WARN = 10;
 var DICHTE_STARK = 15;
 
 var TIMER_WARN_HOCH = 45;
+var TIMER_VORZWANG_HOCH = 55;
 var TIMER_ZWANG_HOCH = 60;
 var TIMER_WARN_MITTE = 30;
+var TIMER_VORZWANG_MITTE = 40;
 var TIMER_ZWANG_MITTE = 45;
 var TIMER_WARN_NIEDRIG = 20;
+var TIMER_VORZWANG_NIEDRIG = 27;
 var TIMER_ZWANG_NIEDRIG = 30;
 
 var TOPF_ANTEIL = [0.16, 0.16, 0.32, 0.36];
@@ -2028,13 +2041,13 @@ function renderPemHeader() {
 // ============================================================
 function applyLoad(i) {
     if (state.max <= 0) { showToast(t("warnNachPause")); return; }
-    // Sperre: bei TIMER_ZWANG erst Pause erzwingen
+    // Sperre: nur bei echtem TIMER_ZWANG (nicht schon bei VORZWANG)
     if (!state.pauseBeginnTs && lastActionTime) {
-        var pct = (state.cur / state.max) * 100;
-        var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
+        var pct0 = (state.cur / state.max) * 100;
+        var erzwingen0 = pct0 >= 70 ? TIMER_ZWANG_HOCH : pct0 >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
         var minSeitAktiv = Math.floor((Date.now() - lastActionTime) / 60000);
-        if (minSeitAktiv >= erzwingen) {
-            showToast(t("warnSperreErstPause"));
+        if (minSeitAktiv >= erzwingen0) {
+            showToast(t("warnTimerSperre"));
             return;
         }
     }
@@ -2361,10 +2374,14 @@ function getMainWarning() {
     }
     if (lastActionTime) {
         var minuten = Math.floor((Date.now() - lastActionTime) / 60000);
-        var erzwingen = pct >= 70 ? TIMER_ZWANG_HOCH : pct >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
-        var empfohlen = pct >= 70 ? TIMER_WARN_HOCH : pct >= 40 ? TIMER_WARN_MITTE : TIMER_WARN_NIEDRIG;
+        var erzwingen  = pct >= 70 ? TIMER_ZWANG_HOCH    : pct >= 40 ? TIMER_ZWANG_MITTE    : TIMER_ZWANG_NIEDRIG;
+        var vorzwingen = pct >= 70 ? TIMER_VORZWANG_HOCH : pct >= 40 ? TIMER_VORZWANG_MITTE : TIMER_VORZWANG_NIEDRIG;
+        var empfohlen  = pct >= 70 ? TIMER_WARN_HOCH     : pct >= 40 ? TIMER_WARN_MITTE     : TIMER_WARN_NIEDRIG;
         if (minuten >= erzwingen) {
-            return {type:"TIMER_ZWANG", text:minuten + t("warnTimerZwang"), bg:"#ff3b30", color:"#fff", blink:true};
+            return {type:"TIMER_ZWANG", text:t("warnTimerSperre"), bg:"#ff3b30", color:"#fff", blink:true};
+        }
+        if (minuten >= vorzwingen) {
+            return {type:"TIMER_VORZWANG", text:minuten + t("warnTimerVorzwang"), bg:"#ff3b30", color:"#fff", blink:false};
         }
         if (minuten >= empfohlen) {
             return {type:"TIMER_WARN", text:minuten + t("warnTimerWarn"), bg:"#ff9500", color:"#fff", blink:false};
@@ -2382,7 +2399,7 @@ function renderMainWarning() {
     var warn = getMainWarning();
     var typ = warn ? warn.type : null;
 
-    var nichtWegdrueckbar = (typ === "PEM_ZWANG" || typ === "CRASH_HIGH" || typ === "NOTBREMSE" || typ === "AUFRECHT" || typ === "TIMER_ZWANG" || typ === "KURZPAUSEN");
+    var nichtWegdrueckbar = (typ === "PEM_ZWANG" || typ === "CRASH_HIGH" || typ === "NOTBREMSE" || typ === "TIMER_ZWANG");
     if (bar._dismissed && !nichtWegdrueckbar) { return; }
     if (nichtWegdrueckbar) { bar._dismissed = false; }
 
