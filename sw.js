@@ -1,24 +1,31 @@
-// PacingApp Service Worker 6.0.8.5
-// Liegt unter /PacingApp/sw.js
+// PacingApp Service Worker 6.0.8.6
+// Zuverlässige Pause-Notifications via IndexedDB + Sync
 
 self.addEventListener('install', function(e) { self.skipWaiting(); });
-self.addEventListener('activate', function(e) { e.waitUntil(clients.claim()); });
 
-// Pause-Zeitstempel in IndexedDB speichern (überlebt SW-Neustart)
-function dbSet(key, val) {
+self.addEventListener('activate', function(e) {
+    e.waitUntil(clients.claim().then(checkPause));
+});
+
+// IndexedDB Helfer
+function dbOp(mode, ops) {
     return new Promise(function(res, rej) {
         var req = indexedDB.open('pacing', 1);
         req.onupgradeneeded = function(e) { e.target.result.createObjectStore('kv'); };
         req.onsuccess = function(e) {
-            var tx = e.target.result.transaction('kv', 'readwrite');
-            tx.objectStore('kv').put(val, key);
-            tx.oncomplete = res;
+            var db = e.target.result;
+            var tx = db.transaction('kv', mode);
+            var store = tx.objectStore('kv');
+            var result = ops(store);
+            tx.oncomplete = function() { res(result && result._val !== undefined ? result._val : undefined); };
             tx.onerror = rej;
         };
         req.onerror = rej;
     });
 }
-
+function dbSet(key, val) {
+    return dbOp('readwrite', function(s) { s.put(val, key); });
+}
 function dbGet(key) {
     return new Promise(function(res, rej) {
         var req = indexedDB.open('pacing', 1);
@@ -27,152 +34,159 @@ function dbGet(key) {
             var tx = e.target.result.transaction('kv', 'readonly');
             var r = tx.objectStore('kv').get(key);
             r.onsuccess = function() { res(r.result); };
-            r.onerror = rej;
+            r.onerror = function() { res(undefined); };
         };
-        req.onerror = rej;
+        req.onerror = function() { res(undefined); };
     });
 }
 
 var TEXTS = {
     de: {
-        w1: 'Pause läuft seit {m} Min. — vergessen zu beenden?',
-        w2: 'Schon {m} Min.! Bitte Pause beenden.',
-        w3: '{m} Min. Pause! Sofort beenden!',
-        t1: 'PacingApp \uD83D\uDC9C',
-        t2: 'PacingApp \uD83D\uDFE0',
-        t3: 'PacingApp \uD83D\uDD34 Pause!'
+        w1: ['PacingApp \uD83D\uDC9C Pause', 'Pause l\u00e4uft {m} Min. \u2014 vergessen zu beenden?'],
+        w2: ['PacingApp \uD83D\uDFE0 Pause', 'Schon {m} Min. Pause! Bitte beenden.'],
+        w3: ['PacingApp \uD83D\uDD34 Pause!', '{m} Min. Pause! Sofort beenden!'],
+        pn: ['PacingApp \u26A0\uFE0F Pause n\u00f6tig!', 'Zu lange ohne Pause. Jetzt pausieren \u2014 sonst wird die App gesperrt!']
     },
     en: {
-        w1: 'Rest running {m} min — forgotten to end?',
-        w2: 'Already {m} min! Please end rest.',
-        w3: '{m} min rest! End immediately!',
-        t1: 'PacingApp \uD83D\uDC9C',
-        t2: 'PacingApp \uD83D\uDFE0',
-        t3: 'PacingApp \uD83D\uDD34 Rest!'
+        w1: ['PacingApp \uD83D\uDC9C Rest', 'Rest running {m} min \u2014 forgotten to end?'],
+        w2: ['PacingApp \uD83D\uDFE0 Rest', 'Already {m} min rest! Please end.'],
+        w3: ['PacingApp \uD83D\uDD34 Rest!', '{m} min rest! End immediately!'],
+        pn: ['PacingApp \u26A0\uFE0F Rest needed!', 'Too long without rest. Rest now \u2014 app will lock otherwise!']
     },
     nl: {
-        w1: 'Rust loopt al {m} min — vergeten?',
-        w2: 'Al {m} min! Beeindig de rust.',
-        w3: '{m} min rust! Direct beeindigen!',
-        t1: 'PacingApp \uD83D\uDC9C',
-        t2: 'PacingApp \uD83D\uDFE0',
-        t3: 'PacingApp \uD83D\uDD34 Rust!'
+        w1: ['PacingApp \uD83D\uDC9C Rust', 'Rust loopt {m} min \u2014 vergeten?'],
+        w2: ['PacingApp \uD83D\uDFE0 Rust', 'Al {m} min rust! Beeindig nu.'],
+        w3: ['PacingApp \uD83D\uDD34 Rust!', '{m} min rust! Direct beeindigen!'],
+        pn: ['PacingApp \u26A0\uFE0F Rust nodig!', 'Te lang actief. Rust nu \u2014 app wordt anders vergrendeld!']
     },
     fr: {
-        w1: 'Repos depuis {m} min — oublie?',
-        w2: 'Deja {m} min! Terminez le repos.',
-        w3: '{m} min de repos! Terminez!',
-        t1: 'PacingApp \uD83D\uDC9C',
-        t2: 'PacingApp \uD83D\uDFE0',
-        t3: 'PacingApp \uD83D\uDD34 Repos!'
+        w1: ['PacingApp \uD83D\uDC9C Repos', 'Repos depuis {m} min \u2014 oubli\u00e9?'],
+        w2: ['PacingApp \uD83D\uDFE0 Repos', 'D\u00e9j\u00e0 {m} min! Terminez le repos.'],
+        w3: ['PacingApp \uD83D\uDD34 Repos!', '{m} min de repos! Terminez!'],
+        pn: ['PacingApp \u26A0\uFE0F Repos n\u00e9cessaire!', 'Trop longtemps actif. Repos maintenant \u2014 l\'app sera bloqu\u00e9e sinon!']
     },
     es: {
-        w1: 'Descanso {m} min — olvidaste terminar?',
-        w2: 'Ya {m} min! Termina el descanso.',
-        w3: '{m} min! Termina ahora!',
-        t1: 'PacingApp \uD83D\uDC9C',
-        t2: 'PacingApp \uD83D\uDFE0',
-        t3: 'PacingApp \uD83D\uDD34 Descanso!'
+        w1: ['PacingApp \uD83D\uDC9C Descanso', 'Descanso {m} min \u2014 olvidaste?'],
+        w2: ['PacingApp \uD83D\uDFE0 Descanso', 'Ya {m} min! Termina el descanso.'],
+        w3: ['PacingApp \uD83D\uDD34 Descanso!', '{m} min! Termina ahora!'],
+        pn: ['PacingApp \u26A0\uFE0F Descanso necesario!', 'Demasiado activo. Descansa ahora \u2014 la app se bloquear\u00e1!']
     }
 };
 
-function txt(lang, key, m) {
-    var l = TEXTS[lang] || TEXTS['de'];
-    return (l[key] || '').replace('{m}', m);
+function T(lang, key, m) {
+    var l = TEXTS[lang] || TEXTS.de;
+    var arr = l[key] || ['PacingApp', ''];
+    return [arr[0], arr[1].replace('{m}', m || '')];
 }
 
-function showNotif(title, body, tag, req) {
+function notif(title, body, tag, req) {
     return self.registration.showNotification(title, {
-        body: body,
-        tag: tag,
-        requireInteraction: req || false,
-        vibrate: req ? [300,100,300,100,300] : [200,100,200],
-        renotify: true
+        body: body, tag: tag,
+        requireInteraction: !!req,
+        renotify: true,
+        vibrate: req ? [300,100,300,100,300] : [200,100,200]
     });
 }
 
-// Kern: periodisch prüfen via fetch+waitUntil Trick
-// Jede "Runde" plant die nächste selbst — so bleibt SW aktiv
-function scheduleCheck(delayMs) {
-    // waitUntil mit einem Promise das erst nach delayMs resolved
-    // Damit sagt der SW iOS: "ich bin noch beschäftigt"
-    self.registration.active && self.clients.matchAll().then(function() {
-        setTimeout(function() { doCheck(); }, delayMs);
+// Kern-Check: liest aus DB und sendet Notifications
+function checkPause() {
+    return Promise.all([
+        dbGet('pauseStart'), dbGet('lang'),
+        dbGet('warn1'), dbGet('warn2'), dbGet('warn3')
+    ]).then(function(vals) {
+        var startTs = vals[0], lang = vals[1] || 'de';
+        var w1 = vals[2], w2 = vals[3], w3 = vals[4];
+        if (!startTs) { return; }
+        var m = Math.round((Date.now() - startTs) / 60000);
+        var t;
+        if (m >= 90 && !w3) {
+            t = T(lang, 'w3', m);
+            return dbSet('warn3', true).then(function() { return notif(t[0], t[1], 'p90', true); });
+        } else if (m >= 60 && !w2) {
+            t = T(lang, 'w2', m);
+            return dbSet('warn2', true).then(function() { return notif(t[0], t[1], 'p60', true); });
+        } else if (m >= 30 && !w1) {
+            t = T(lang, 'w1', m);
+            return dbSet('warn1', true).then(function() { return notif(t[0], t[1], 'p30', false); });
+        }
     });
 }
 
-function doCheck() {
-    dbGet('pauseStart').then(function(startTs) {
-        if (!startTs) { return; } // Keine aktive Pause
-        
-        var minuten = Math.round((Date.now() - startTs) / 60000);
-        
-        dbGet('lang').then(function(lang) {
-            lang = lang || 'de';
-            
-            Promise.all([dbGet('warn1'), dbGet('warn2'), dbGet('warn3')]).then(function(warns) {
-                var w1 = warns[0], w2 = warns[1], w3 = warns[2];
-                
-                if (minuten >= 90 && !w3) {
-                    dbSet('warn3', true);
-                    showNotif(txt(lang,'t3',minuten), txt(lang,'w3',minuten), 'pause-90', true);
-                } else if (minuten >= 60 && !w2) {
-                    dbSet('warn2', true);
-                    showNotif(txt(lang,'t2',minuten), txt(lang,'w2',minuten), 'pause-60', true);
-                } else if (minuten >= 30 && !w1) {
-                    dbSet('warn1', true);
-                    showNotif(txt(lang,'t1',minuten), txt(lang,'w1',minuten), 'pause-30', false);
-                }
-                
-                // Nächste Prüfung in 5 Min planen — solange Pause läuft
-                scheduleCheck(5 * 60 * 1000);
-            });
+// Pause-nötig Check (Timer_Vorzwang)
+function checkPauseNoetig() {
+    return Promise.all([dbGet('pauseNoetigTs'), dbGet('lang')]).then(function(vals) {
+        var ts = vals[0], lang = vals[1] || 'de';
+        if (!ts) { return; }
+        var m = Math.round((Date.now() - ts) / 60000);
+        if (m < 1) { return; } // Zu frisch
+        var t = T(lang, 'pn', '');
+        return dbSet('pauseNoetigTs', null).then(function() {
+            return notif(t[0], t[1], 'pnoetig', true);
         });
     });
 }
 
-self.addEventListener('message', function(e) {
-    if (!e.data) { return; }
-    
-    if (e.data.type === 'PAUSE_START') {
-        var ts = e.data.ts || Date.now();
-        dbSet('pauseStart', ts);
-        dbSet('warn1', false);
-        dbSet('warn2', false);
-        dbSet('warn3', false);
-        dbSet('lang', e.data.lang || 'de');
-        // Erste Prüfung in 5 Min
-        scheduleCheck(5 * 60 * 1000);
+// Background Sync - zuverlässigste Methode
+self.addEventListener('sync', function(e) {
+    if (e.tag === 'pacing-pause-check') {
+        e.waitUntil(checkPause());
     }
-    
-    if (e.data.type === 'PAUSE_END') {
-        dbSet('pauseStart', null);
-        dbSet('warn1', false);
-        dbSet('warn2', false);
-        dbSet('warn3', false);
-    }
-    
-    if (e.data.type === 'SET_LANG') {
-        dbSet('lang', e.data.lang || 'de');
-    }
-    
-    if (e.data.type === 'NOTIFY') {
-        showNotif(e.data.title, e.data.body, e.data.tag || 'pacing', e.data.requireInteraction);
+    if (e.tag === 'pacing-pause-noetig') {
+        e.waitUntil(checkPauseNoetig());
     }
 });
 
-// Beim SW-Neustart: prüfen ob noch Pause läuft
-self.addEventListener('activate', function(e) {
-    e.waitUntil(
-        clients.claim().then(function() {
-            return dbGet('pauseStart');
-        }).then(function(startTs) {
-            if (startTs) {
-                // Pause war aktiv als SW neu gestartet wurde — sofort prüfen
-                scheduleCheck(1000);
+// Fetch - SW aktiv halten via periodischen Fetch-Trick
+self.addEventListener('fetch', function(e) {
+    // Normales Fetch durchleiten
+    e.respondWith(fetch(e.request).catch(function() {
+        return new Response('offline');
+    }));
+});
+
+self.addEventListener('message', function(e) {
+    if (!e.data) { return; }
+    var d = e.data;
+
+    if (d.type === 'PAUSE_START') {
+        var ts = d.ts || Date.now();
+        Promise.all([
+            dbSet('pauseStart', ts),
+            dbSet('warn1', false),
+            dbSet('warn2', false),
+            dbSet('warn3', false),
+            dbSet('lang', d.lang || 'de'),
+            dbSet('pauseNoetigTs', null)
+        ]).then(function() {
+            // Background Sync registrieren - iOS weckt SW bei nächster Gelegenheit
+            if (self.registration.sync) {
+                self.registration.sync.register('pacing-pause-check').catch(function(){});
             }
-        })
-    );
+        });
+    }
+
+    if (d.type === 'PAUSE_END') {
+        dbSet('pauseStart', null);
+        dbSet('pauseNoetigTs', null);
+    }
+
+    if (d.type === 'SET_LANG') {
+        dbSet('lang', d.lang || 'de');
+    }
+
+    if (d.type === 'PAUSE_NOETIG') {
+        // App sendet: Timer-Vorzwang aktiv, Notification nötig
+        dbSet('pauseNoetigTs', Date.now()).then(function() {
+            dbGet('lang').then(function(lang) {
+                var t = T(lang || 'de', 'pn', '');
+                notif(t[0], t[1], 'pnoetig', true);
+            });
+        });
+    }
+
+    if (d.type === 'NOTIFY') {
+        notif(d.title, d.body, d.tag || 'pacing', d.requireInteraction);
+    }
 });
 
 self.addEventListener('notificationclick', function(e) {

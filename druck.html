@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.8.0</title>
+<title>PacingApp 6.0.8.5</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1420,8 +1420,14 @@ function swSendLang() {
 }
 
 function swPauseStart(ts) {
-    if (_swRegistration && _swRegistration.active) {
-        _swRegistration.active.postMessage({type: 'PAUSE_START', ts: ts, lang: _lang});
+    if (!_swRegistration) { return; }
+    var msg = {type: 'PAUSE_START', ts: ts, lang: _lang};
+    if (_swRegistration.active) {
+        _swRegistration.active.postMessage(msg);
+    }
+    // Background Sync: iOS weckt SW bei naechster Netzwerkaktivitaet
+    if (_swRegistration.sync) {
+        _swRegistration.sync.register('pacing-pause-check').catch(function(){});
     }
 }
 
@@ -1434,29 +1440,33 @@ function swPauseEnd() {
 function notifyWennNoetig(warnTyp, warnText) {
     if (!_notifEnabled) { return; }
     var jetzt = Date.now();
-    // Gleicher Typ: Cooldown
     if (warnTyp === _lastNotifType && jetzt - _lastNotifTs < NOTIF_COOLDOWN_MS) { return; }
     _lastNotifType = warnTyp;
     _lastNotifTs = jetzt;
+
+    // TIMER_VORZWANG: SW sendet Pause-nötig Notification (auch im Hintergrund)
+    if (warnTyp === 'TIMER_VORZWANG') {
+        if (_swRegistration && _swRegistration.active) {
+            _swRegistration.active.postMessage({type: 'PAUSE_NOETIG', lang: _lang});
+        } else {
+            sendNotification('\u26A0\uFE0F ' + t("warnTimerVorzwang").replace(/^[0-9]+ /, ''), warnText, 'pnoetig', true);
+        }
+        return;
+    }
 
     var titel = '\uD83E\uDDE0 PacingApp';
     var requireInteract = false;
 
     if (warnTyp === 'NOTBREMSE') {
-        titel = '\u26A0\uFE0F STOP!';
-        requireInteract = true;
+        titel = '\u26A0\uFE0F STOP!'; requireInteract = true;
     } else if (warnTyp === 'CRASH_HIGH' || warnTyp === 'PEM_ZWANG') {
-        titel = '\u26A0\uFE0F PEM-Gefahr';
-        requireInteract = true;
+        titel = '\u26A0\uFE0F PEM-Gefahr'; requireInteract = true;
     } else if (warnTyp === 'TIMER_ZWANG') {
-        titel = '\uD83D\uDED1 Pause!';
-        requireInteract = false;
+        titel = '\uD83D\uDED1 Pause!'; requireInteract = true;
     } else if (warnTyp === 'PAUSE_VERGESSEN') {
-        titel = '\uD83D\uDCA4 Pause?';
-        requireInteract = true;
+        titel = '\uD83D\uDCA4 Pause?'; requireInteract = true;
     } else if (warnTyp === 'KURZPAUSEN') {
-        titel = '\uD83D\uDECC Richtig hinlegen!';
-        requireInteract = false;
+        titel = '\uD83D\uDECC Hinlegen!'; requireInteract = false;
     }
     sendNotification(titel, warnText, warnTyp.toLowerCase(), requireInteract);
 }
@@ -1610,9 +1620,9 @@ function nowTime() {
     return new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 }
 
-function showToast(msg) {
+function showToast(msg, noThumb) {
     var t = document.getElementById("toast");
-    t.textContent = (msg || "Erfasst") + " \uD83D\uDC4D";
+    t.textContent = noThumb ? (msg || "") : (msg || "Erfasst") + " \uD83D\uDC4D";
     t.style.display = "block";
     if (t._timer) { clearTimeout(t._timer); }
     t._timer = setTimeout(function() { t.style.display = "none"; }, 2500);
@@ -2047,7 +2057,7 @@ function applyLoad(i) {
         var erzwingen0 = pct0 >= 70 ? TIMER_ZWANG_HOCH : pct0 >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
         var minSeitAktiv = Math.floor((Date.now() - lastActionTime) / 60000);
         if (minSeitAktiv >= erzwingen0) {
-            showToast(t("warnTimerSperre"));
+            showToast(t("warnTimerSperre"), true);
             return;
         }
     }
@@ -2419,7 +2429,9 @@ function renderMainWarning() {
     bar.style.color = warn.color;
     bar.style.animation = warn.blink ? "blinker 1.2s linear infinite" : "none";
     // Notification bei kritischen Warnungen
-    if (warn.blink) { notifyWennNoetig(typ, warn.text.replace(/<[^>]*>/g, "")); }
+    if (warn.blink || typ === "TIMER_VORZWANG") {
+        notifyWennNoetig(typ, warn.text.replace(/<[^>]*>/g, ""));
+    }
     if (nichtWegdrueckbar) {
         bar.onclick = null;
         bar.style.cursor = "default";
