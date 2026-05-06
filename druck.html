@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9</title>
+<title>PacingApp 6.0.9.1</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -247,16 +247,16 @@ input, select {
 
 <div id="liegebalkenWrap" style="display:none;margin-bottom:8px;padding:8px 12px;background:#fff;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.15);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-    <span id="liegebalkenLabel" style="font-size:11px;font-weight:700;color:#333;">Liegen / Aufrecht</span>
-    <span id="liegebalkenWerte" style="font-size:11px;font-weight:600;color:#666;">0 / 0 Min.</span>
+    <span id="liegebalkenLabel" style="font-size:12px;font-weight:700;color:#333;"></span>
+    <span id="liegebalkenWerte" style="font-size:12px;font-weight:700;color:#333;"></span>
   </div>
-  <div style="height:10px;background:#e5e5ea;border-radius:8px;overflow:hidden;position:relative;">
+  <div style="height:12px;background:#e5e5ea;border-radius:8px;overflow:hidden;position:relative;">
     <div id="liegebalkenFill" style="height:100%;background:#34c759;border-radius:8px;transition:width 0.4s;width:0%;position:absolute;left:0;top:0;"></div>
-    <div style="position:absolute;left:75%;top:0;height:100%;width:2px;background:rgba(0,0,0,0.3);"></div>
+    <div style="position:absolute;left:75%;top:0;height:100%;width:2px;background:rgba(0,0,0,0.25);"></div>
   </div>
-  <div style="display:flex;justify-content:space-between;margin-top:2px;">
-    <span style="font-size:9px;color:#8e8e93;" id="liegebalkenTipp"></span>
-    <span style="font-size:9px;color:#8e8e93;">Ziel: 75% liegend</span>
+  <div style="display:flex;justify-content:space-between;margin-top:3px;">
+    <span style="font-size:10px;font-weight:600;" id="liegebalkenTipp"></span>
+    <span style="font-size:10px;color:#8e8e93;" id="liegebalkenZiel"></span>
   </div>
 </div>
 
@@ -2855,30 +2855,49 @@ function updateLiegebalken() {
     if (gesamt <= 0) { return; }
 
     var anteil = Math.round(lieg / gesamt * 100);
-    var fill = document.getElementById("liegebalkenFill");
+    var fill  = document.getElementById("liegebalkenFill");
     var werte = document.getElementById("liegebalkenWerte");
-    var tipp = document.getElementById("liegebalkenTipp");
+    var tipp  = document.getElementById("liegebalkenTipp");
+    var ziel  = document.getElementById("liegebalkenZiel");
+    var lbl   = document.getElementById("liegebalkenLabel");
 
     if (fill) { fill.style.width = Math.min(100, anteil) + "%"; }
 
-    // Farbe nach Ziel (75% liegend)
-    var farbe;
-    if (anteil >= 70) { farbe = "#34c759"; }
-    else if (anteil >= 50) { farbe = "#ffcc00"; }
-    else { farbe = "#ff3b30"; }
+    // Farbe
+    var farbe = anteil >= 70 ? "#34c759" : anteil >= 50 ? "#ffcc00" : "#ff3b30";
     if (fill) { fill.style.background = farbe; }
 
-    if (werte) { werte.textContent = lieg + " / " + auf + " Min."; }
+    // Label: "Liegen / Aufrecht"
+    if (lbl) { lbl.textContent = t("liegebalkenTitel"); }
+
+    // Werte: "61 Min. liegend | 75 Min. aufrecht | 45%"
+    if (werte) {
+        werte.textContent = lieg + " / " + auf + " Min. (" + anteil + "%)";
+        werte.style.color = farbe;
+    }
+
+    // Tipp links: was fehlt oder Gut
     if (tipp) {
-        if (anteil >= 75) { tipp.textContent = t("liegebalkenGut") || "Gut!"; }
-        else {
-            var fehlend = Math.round(gesamt * 0.75) - lieg;
-            tipp.textContent = (t("liegebalkenFehlt") || "Noch ") + fehlend + " Min. liegend";
+        if (anteil >= 75) {
+            tipp.textContent = t("liegebalkenGut");
+            tipp.style.color = "#34c759";
+        } else {
+            // Wieviel mehr Liegeminuten bis 75% erreicht
+            // lieg / (lieg + auf + x) = 0.75 → x = lieg/0.75 - lieg - auf
+            var noechNoetig = Math.round(lieg / 0.75) - lieg - auf;
+            if (noechNoetig < 0) { noechNoetig = 0; }
+            // Einfacher: Ziel = 3 * auf (3:1 Verhältnis)
+            var zielLieg = auf * 3;
+            var fehlend = Math.max(0, zielLieg - lieg);
+            tipp.textContent = fehlend > 0
+                ? t("liegebalkenFehlt") + fehlend + " Min."
+                : t("liegebalkenGut");
+            tipp.style.color = farbe;
         }
     }
-    // Label
-    var lbl = document.getElementById("liegebalkenLabel");
-    if (lbl) { lbl.textContent = t("liegebalkenTitel") || "Liegen / Aufrecht"; }
+
+    // Ziel rechts: "Ziel 3:1 (liegend:aufrecht)"
+    if (ziel) { ziel.textContent = "Ziel: 3\u00d71 (75%)"; }
 }
 
 function updateWaage() {
