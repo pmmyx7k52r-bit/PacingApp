@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.8.5</title>
+<title>PacingApp 6.0.9</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -193,6 +193,11 @@ input, select {
 <div id="toast"></div>
 <div id="langePauseBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3020;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);background:#5856d6;color:#fff;cursor:pointer;" onclick="langePauseNachfragen()"></div>
 
+<div id="sperrBar" style="position:fixed;bottom:0;left:0;right:0;padding:16px;background:#000;color:#ff3b30;font-weight:800;font-size:15px;display:none;z-index:3050;text-align:center;box-shadow:0 -4px 20px rgba(0,0,0,0.5);">
+  <div id="sperrBarText"></div>
+  <button type="button" onclick="document.getElementById('sperrBar').style.display='none';doPauseBeginn();" style="margin-top:10px;background:#34c759;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-weight:700;font-size:15px;cursor:pointer;width:100%;touch-action:manipulation;" id="sperrBarBtn"></button>
+</div>
+
 <div id="mainWarnBar" style="position:fixed;bottom:80px;left:12px;right:12px;padding:14px 16px;border-radius:14px;font-weight:700;font-size:14px;display:none;z-index:3010;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);cursor:pointer;" onclick="this._dismissed=true;this.style.display='none'"></div>
 
 <div id="statusWrap" class="status-wrap">
@@ -239,6 +244,21 @@ input, select {
 </div>
 
 <!-- Pause Buttons -->
+
+<div id="liegebalkenWrap" style="display:none;margin-bottom:8px;padding:8px 12px;background:#fff;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+    <span id="liegebalkenLabel" style="font-size:11px;font-weight:700;color:#333;">Liegen / Aufrecht</span>
+    <span id="liegebalkenWerte" style="font-size:11px;font-weight:600;color:#666;">0 / 0 Min.</span>
+  </div>
+  <div style="height:10px;background:#e5e5ea;border-radius:8px;overflow:hidden;position:relative;">
+    <div id="liegebalkenFill" style="height:100%;background:#34c759;border-radius:8px;transition:width 0.4s;width:0%;position:absolute;left:0;top:0;"></div>
+    <div style="position:absolute;left:75%;top:0;height:100%;width:2px;background:rgba(0,0,0,0.3);"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:2px;">
+    <span style="font-size:9px;color:#8e8e93;" id="liegebalkenTipp"></span>
+    <span style="font-size:9px;color:#8e8e93;">Ziel: 75% liegend</span>
+  </div>
+</div>
 
 <div id="pauseUndWaage" style="display:none;flex-direction:column;gap:6px;margin-bottom:8px;">
   <button type="button" class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn (ohne Handy!)</button>
@@ -583,6 +603,9 @@ var LANG = {
     notifNichtUnterstuetzt: "Gerät unterstützt keine Benachrichtigungen",
     notifTestTitel: "PacingApp aktiv",
     notifTestBody: "Benachrichtigungen funktionieren!",
+        liegebalkenTitel: "Liegen / Aufrecht",
+    liegebalkenGut: "\u2713 Gut!",
+    liegebalkenFehlt: "Noch ",
     rollingPene: "Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!",
     kopfAnBereich: "\uD83E\uDDE0 Kopf an"
   },
@@ -737,6 +760,9 @@ var LANG = {
     notifNichtUnterstuetzt: "Device does not support notifications",
     notifTestTitel: "PacingApp active",
     notifTestBody: "Notifications are working!",
+        liegebalkenTitel: "Lying / Upright",
+    liegebalkenGut: "\u2713 Good!",
+    liegebalkenFehlt: "Still ",
     rollingPene: "Multiple red days! Watch out for rolling PEM!",
     kopfAnBereich: "\uD83E\uDDE0 Brain on",
     mittel: "mid"
@@ -892,6 +918,9 @@ var LANG = {
     notifNichtUnterstuetzt: "Apparaat ondersteunt geen meldingen",
     notifTestTitel: "PacingApp actief",
     notifTestBody: "Meldingen werken!",
+        liegebalkenTitel: "Liggend / Rechtop",
+    liegebalkenGut: "\u2713 Goed!",
+    liegebalkenFehlt: "Nog ",
     rollingPene: "Meerdere rode dagen! Let op rollende PEM!",
     kopfAnBereich: "\uD83E\uDDE0 Hoofd aan",
     mittel: "midden"
@@ -1048,6 +1077,9 @@ var LANG = {
     notifNichtUnterstuetzt: "L'appareil ne supporte pas les notifications",
     notifTestTitel: "PacingApp active",
     notifTestBody: "Les notifications fonctionnent!",
+        liegebalkenTitel: "Allong\u00e9 / Debout",
+    liegebalkenGut: "\u2713 Bien!",
+    liegebalkenFehlt: "Encore ",
     rollingPene: "Plusieurs jours rouges! Attention au PEM cumulatif!",
     kopfAnBereich: "\uD83E\uDDE0 T\u00eate active",
     mittel: "moyen"
@@ -1204,6 +1236,9 @@ var LANG = {
     notifNichtUnterstuetzt: "El dispositivo no admite notificaciones",
     notifTestTitel: "PacingApp activa",
     notifTestBody: "\u00a1Las notificaciones funcionan!",
+        liegebalkenTitel: "Acostado / De pie",
+    liegebalkenGut: "\u2713 \u00a1Bien!",
+    liegebalkenFehlt: "A\u00fan ",
     rollingPene: "\u00a1M\u00faltiples d\u00edas rojos! \u00a1Cuidado con el PEM acumulativo!",
     kopfAnBereich: "\uD83E\uDDE0 Mente activa",
     mittel: "medio"
@@ -1287,6 +1322,9 @@ function applyLanguageToDOM() {
     // Energiebudget-Label
     var ebLabel = document.querySelector("#topfWrap > div:first-child"); if(ebLabel) ebLabel.textContent = t("energiebudget");
     // Zustandscheck-Buttons
+    el = document.getElementById("liegebalkenLabel"); if(el) el.textContent = t("liegebalkenTitel");
+    var sb = document.getElementById("sperrBarBtn"); if(sb) sb.textContent = t("pausenbeginn");
+    var st = document.getElementById("sperrBarText"); if(st && st.textContent) st.textContent = t("warnTimerSperre");
     el = document.getElementById("btnZustandOk"); if(el) el.innerHTML = t("zustandOk");
     el = document.getElementById("btnZustandSchlechter"); if(el) el.innerHTML = t("zustandSchlechter");
     el = document.getElementById("btnZustandCrash"); if(el) el.innerHTML = t("zustandCrash");
@@ -1749,6 +1787,7 @@ window.onload = function() {
     minutenTimerInterval = setInterval(function() {
         if (state.max > 0) {
             updateToepfe();
+            updateLiegebalken();
             updateAufrechtWarnung();
             checkCrashRisiko();
             checkPauseTimer();
@@ -1910,6 +1949,7 @@ function startDay() {
 // ============================================================
 function showMainUI() {
     document.getElementById("statusWrap").style.display = "flex";
+    document.getElementById("liegebalkenWrap").style.display = "block";
     document.getElementById("pauseUndWaage").style.display = "flex";
     document.getElementById("cardCheck").style.display = "none";
     document.getElementById("cardCatalog").style.display = "block";
@@ -1985,6 +2025,7 @@ function updateDisplay() {
     checkRollingPene();
     updateAufrechtWarnung();
     updateToepfe();
+    updateLiegebalken();
 }
 
 function renderStatus(spielraum) {
@@ -2049,15 +2090,33 @@ function renderPemHeader() {
 // ============================================================
 // AKTIVITAeT BUCHEN
 // ============================================================
+function zeigeSperrBar() {
+    var bar = document.getElementById("sperrBar");
+    var txt = document.getElementById("sperrBarText");
+    var btn = document.getElementById("sperrBarBtn");
+    if (!bar) { return; }
+    if (txt) { txt.textContent = t("warnTimerSperre"); }
+    if (btn) { btn.textContent = t("pausenbeginn"); }
+    bar.style.display = "block";
+    document.body.style.paddingBottom = "100px";
+}
+
+function versteckeSperrBar() {
+    var bar = document.getElementById("sperrBar");
+    if (bar) { bar.style.display = "none"; }
+    document.body.style.paddingBottom = "0";
+}
+
 function applyLoad(i) {
     if (state.max <= 0) { showToast(t("warnNachPause")); return; }
-    // Sperre: nur bei echtem TIMER_ZWANG (nicht schon bei VORZWANG)
+    // Sperre: nur bei echtem TIMER_ZWANG
     if (!state.pauseBeginnTs && lastActionTime) {
         var pct0 = (state.cur / state.max) * 100;
         var erzwingen0 = pct0 >= 70 ? TIMER_ZWANG_HOCH : pct0 >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
         var minSeitAktiv = Math.floor((Date.now() - lastActionTime) / 60000);
         if (minSeitAktiv >= erzwingen0) {
-            showToast(t("warnTimerSperre"), true);
+            // Sperre-Bar einblenden (nicht Toast - bleibt permanent)
+            zeigeSperrBar();
             return;
         }
     }
@@ -2105,6 +2164,7 @@ function doPauseBeginn() {
     document.getElementById("btnPauseBeginn").style.display = "none";
     document.getElementById("btnPauseEnde").style.display = "block";
     swPauseStart(jetzt);
+    versteckeSperrBar();
     showToast(t("toastPauseBeginn"));
     updateDisplay();
 }
@@ -2729,13 +2789,24 @@ function updateToepfe() {
                       stundeJetzt < TOPF_ENDE_H[1] ? 1 :
                       stundeJetzt < TOPF_ENDE_H[2] ? 2 : 3;
 
+    // Überlauf: was frühere Töpfe zu viel verbraucht haben, wird vom T3 (Abend) abgezogen
+    var gesamtOverflow = 0;
+    for (var oi = 0; oi < 3; oi++) {
+        var overflow = Math.max(0, verbrauchRaw[oi] - budgets[oi]);
+        gesamtOverflow += overflow;
+    }
+    // T3-Budget reduzieren um Gesamtüberlauf (min 0)
+    var budgetT3effektiv = Math.max(0, budgets[3] - gesamtOverflow);
+    var budgetsAngezeigt = [budgets[0], budgets[1], budgets[2], budgetT3effektiv];
+
     var ids = ["topf0", "topf1", "topf2", "topf3"];
     var hoehen = [24, 24, 50, 56];
     for (var t = 0; t < 4; t++) {
         var fill = document.getElementById(ids[t] + "Fill");
         var label = document.getElementById(ids[t] + "Label");
         if (!fill || !label) { continue; }
-        var pct = budgets[t] > 0 ? Math.min(100, Math.round(verbrauchRaw[t] / budgets[t] * 100)) : 0;
+        var budget_anz = budgetsAngezeigt[t];
+        var pct = budget_anz > 0 ? Math.min(100, Math.round(verbrauchRaw[t] / budget_anz * 100)) : 100;
         var istAktiv = (t === aktiverTopf);
         var istVergangen = (t < aktiverTopf);
 
@@ -2755,7 +2826,7 @@ function updateToepfe() {
         fill.style.top = "0";
         fill.style.background = "#aaa";
 
-        label.textContent = verbrauchRaw[t] + "/" + budgets[t];
+        label.textContent = verbrauchRaw[t] + "/" + budgetsAngezeigt[t];
         label.style.color = istAktiv ? "#000" : "#555";
         label.style.fontWeight = istAktiv ? "800" : "600";
 
@@ -2775,6 +2846,41 @@ function updateToepfe() {
 // ============================================================
 // LIEGEWAAGE
 // ============================================================
+function updateLiegebalken() {
+    var wrap = document.getElementById("liegebalkenWrap");
+    if (!wrap || state.max <= 0) { return; }
+    var gesamt = getGesamtMinuten();
+    var lieg = getLiegendMinuten();
+    var auf = Math.max(0, gesamt - lieg);
+    if (gesamt <= 0) { return; }
+
+    var anteil = Math.round(lieg / gesamt * 100);
+    var fill = document.getElementById("liegebalkenFill");
+    var werte = document.getElementById("liegebalkenWerte");
+    var tipp = document.getElementById("liegebalkenTipp");
+
+    if (fill) { fill.style.width = Math.min(100, anteil) + "%"; }
+
+    // Farbe nach Ziel (75% liegend)
+    var farbe;
+    if (anteil >= 70) { farbe = "#34c759"; }
+    else if (anteil >= 50) { farbe = "#ffcc00"; }
+    else { farbe = "#ff3b30"; }
+    if (fill) { fill.style.background = farbe; }
+
+    if (werte) { werte.textContent = lieg + " / " + auf + " Min."; }
+    if (tipp) {
+        if (anteil >= 75) { tipp.textContent = t("liegebalkenGut") || "Gut!"; }
+        else {
+            var fehlend = Math.round(gesamt * 0.75) - lieg;
+            tipp.textContent = (t("liegebalkenFehlt") || "Noch ") + fehlend + " Min. liegend";
+        }
+    }
+    // Label
+    var lbl = document.getElementById("liegebalkenLabel");
+    if (lbl) { lbl.textContent = t("liegebalkenTitel") || "Liegen / Aufrecht"; }
+}
+
 function updateWaage() {
     if (state.max <= 0) { return; }
     var gesamt = getGesamtMinuten();
@@ -3127,6 +3233,7 @@ function resetDayInternal() {
     document.getElementById("individuellRow").classList.remove("open");
     document.getElementById("sleep").value = "";
     document.getElementById("statusWrap").style.display = "none";
+    document.getElementById("liegebalkenWrap").style.display = "none";
     document.getElementById("pauseUndWaage").style.display = "none";
     document.getElementById("pacingHeader").style.display = "none";
     document.getElementById("cardCheck").style.display = "block";
@@ -3166,6 +3273,7 @@ function resetDayInternal() {
     _letzterZustandCheck = Date.now();
     _lastWarnType = null;
     _lastWarnTs = 0;
+    versteckeSperrBar();
     updatePaddingTop(); // FIX D
     showToast(t("toastNeuerTag"));
 }
