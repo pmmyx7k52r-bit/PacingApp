@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.2</title>
+<title>PacingApp 6.0.9.5</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -294,7 +294,10 @@ input, select {
       <button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
     </div>
     <!-- Kopf-an: innerhalb coll-body, nach Aktivität-Eingabe -->
-    <div id="kopfAnBereich" style="margin-top:8px;">
+    <div id="kopfAnBereich" style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">
+
+      <!-- KOGNITIV -->
+      <div style="font-size:8px;font-weight:800;color:#5856d6;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:1px;">Kognitiv</div>
       <div id="kopfAnRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
         <button id="btnKopfAn" type="button" onclick="kopfAnStart()" style="flex:0 0 68px;background:#5856d6;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#129504;<br>Kopf an</button>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
@@ -328,6 +331,72 @@ input, select {
         <div style="font-size:11px;color:#666;margin-bottom:4px;text-align:center;">Punkte: 2 / 5 / 10 / 15 / 20 (fest)</div>
         <button type="button" onclick="speichereBaseline()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
       </div>
+
+      <!-- KÖRPERLICH-GRENZEN-EDITOR -->
+      <div id="koerperEditor" style="display:none;margin-top:8px;padding:10px;background:#f2f2f7;border-radius:10px;">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px;">Körperlich Zeitgrenzen (Minuten):</div>
+        <div style="font-size:11px;color:#34c759;font-weight:600;margin-bottom:4px;">Leicht — Punkte: 1/2/5/10/15/20</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;">
+          <input id="kLeichtG0" type="number" value="1"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG1" type="number" value="3"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG2" type="number" value="10" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG3" type="number" value="20" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG4" type="number" value="30" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+        </div>
+        <div style="font-size:11px;color:#ff9500;font-weight:600;margin-bottom:4px;">Anspruchsvoll — Punkte: 2/4/8/15/20/25</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;">
+          <input id="kSchwerG0" type="number" value="1"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG1" type="number" value="3"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG2" type="number" value="10" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG3" type="number" value="20" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG4" type="number" value="30" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+        </div>
+        <button type="button" onclick="speichereKoerperGrenzen()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
+      </div>
+
+      <!-- KÖRPERLICH -->
+      <div style="font-size:10px;font-weight:800;color:#333;letter-spacing:0.5px;text-transform:uppercase;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.1);">&#127939; Körperlich</div>
+      <div style="font-size:8px;font-weight:700;color:#34c759;letter-spacing:0.3px;margin-top:2px;">Leicht</div>
+      <div id="koerperLeichtRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
+        <button type="button" onclick="koerperStart('leicht')" style="flex:0 0 68px;background:#34c759;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#127939;<br>Leicht</button>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+          <div style="font-size:8px;font-weight:700;color:#34c759;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
+          <div style="display:flex;gap:2px;">
+            <button type="button" onclick="koerperNacherfassen('leicht',0)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;1</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',1)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;3</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',2)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;10</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',3)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;20</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',4)" style="flex:1;background:#ff9500;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&gt;30</button>
+          </div>
+        </div>
+        <button type="button" onclick="zeigeKoerperEditor()" style="flex:0 0 36px;background:#c7c7cc;color:#333;padding:6px 0;border:none;border-radius:8px;font-weight:600;font-size:8px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.4;">Gren-<br>zen</button>
+      </div>
+      <div id="koerperLeichtLaeuft" class="kopf-laeuft">
+        <div style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;white-space:nowrap;">&#127939; läuft…</div>
+        <div id="koerperLeichtTimer" style="flex:1;text-align:center;font-weight:700;font-size:20px;color:#34c759;">0:00</div>
+        <button type="button" onclick="koerperStop('leicht')" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
+      </div>
+
+      <div style="font-size:8px;font-weight:700;color:#ff9500;letter-spacing:0.3px;margin-top:4px;">Anspruchsvoll</div>
+      <div id="koerperSchwerRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
+        <button type="button" onclick="koerperStart('schwer')" style="flex:0 0 68px;background:#ff9500;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#127939;<br>Schwer</button>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+          <div style="font-size:8px;font-weight:700;color:#ff9500;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
+          <div style="display:flex;gap:2px;">
+            <button type="button" onclick="koerperNacherfassen('schwer',0)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;1</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',1)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;3</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',2)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;10</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',3)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;20</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',4)" style="flex:1;background:#ff3b30;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&gt;30</button>
+          </div>
+        </div>
+      </div>
+      <div id="koerperSchwerLaeuft" class="kopf-laeuft">
+        <div style="flex:1;background:#ff9500;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;white-space:nowrap;">&#127939; läuft…</div>
+        <div id="koerperSchwerTimer" style="flex:1;text-align:center;font-weight:700;font-size:20px;color:#ff9500;">0:00</div>
+        <button type="button" onclick="koerperStop('schwer')" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
+      </div>
+
     </div>
     <div id="catalog" style="margin-top:10px;"></div>
     <button type="button" id="btnResetKatalog" style="background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:13px;font-weight:600;width:auto;padding:8px 16px;border-radius:10px;margin-top:12px;cursor:pointer;touch-action:manipulation;">Grundkatalog wiederherstellen</button>
@@ -389,6 +458,15 @@ input, select {
     <button id="btnZustandSchlechter" onclick="setZustand('schlechter')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff9500;color:#fff;cursor:pointer;">&#128528; Leicht ersch&ouml;pft</button>
     <button id="btnZustandCrash" onclick="setZustand('crash')" style="flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;background:#ff3b30;color:#fff;cursor:pointer;">&#128543; Gar nicht gut</button>
   </div>
+</div>
+
+<!-- Block-Beginn Symptom-Check -->
+<div id="blockCheckOverlay" style="position:fixed;inset:0;z-index:4100;background:rgba(0,0,0,0.45);display:none;" onclick="schliesseBlockCheck()"></div>
+<div id="blockCheckPicker" style="position:fixed;left:12px;right:12px;bottom:80px;z-index:4101;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);padding:16px;display:none;">
+  <div style="font-size:14px;font-weight:700;color:#333;margin-bottom:4px;" id="blockCheckTitel">Neuer Block</div>
+  <div style="font-size:12px;color:#666;margin-bottom:10px;" id="blockCheckHint">Wie geht es Dir? Symptome anpassen.</div>
+  <div id="blockCheckSymptome" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:12px;"></div>
+  <button type="button" onclick="schliesseBlockCheck()" style="width:100%;padding:14px;background:#34c759;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;touch-action:manipulation;" id="blockCheckOk">OK</button>
 </div>
 <div id="schwereOverlay" class="schwere-overlay" style="display:none;"></div>
 <div id="schwerePicker" class="schwere-picker" style="display:none;">
@@ -606,7 +684,11 @@ var LANG = {
         liegebalkenTitel: "Liegen / Aufrecht",
     liegebalkenGut: "\u2713 Gut!",
     liegebalkenFehlt: "Noch ",
+        blockCheckTitel: "Neuer Block — Wie geht es Dir?",
+    blockCheckHint: "Symptome anpassen, dann OK tippen.",
     rollingPene: "Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!",
+        koerperLeicht: "K\u00f6rperlich leicht",
+    koerperSchwer: "K\u00f6rperlich anspruchsvoll",
     kopfAnBereich: "\uD83E\uDDE0 Kopf an"
   },
   en: {
@@ -763,7 +845,11 @@ var LANG = {
         liegebalkenTitel: "Lying / Upright",
     liegebalkenGut: "\u2713 Good!",
     liegebalkenFehlt: "Still ",
+        blockCheckTitel: "New block — How are you?",
+    blockCheckHint: "Adjust symptoms, then tap OK.",
     rollingPene: "Multiple red days! Watch out for rolling PEM!",
+        koerperLeicht: "Physical light",
+    koerperSchwer: "Physical demanding",
     kopfAnBereich: "\uD83E\uDDE0 Brain on",
     mittel: "mid"
   },
@@ -921,7 +1007,11 @@ var LANG = {
         liegebalkenTitel: "Liggend / Rechtop",
     liegebalkenGut: "\u2713 Goed!",
     liegebalkenFehlt: "Nog ",
+        blockCheckTitel: "Nieuw blok — Hoe gaat het?",
+    blockCheckHint: "Pas symptomen aan, tik dan OK.",
     rollingPene: "Meerdere rode dagen! Let op rollende PEM!",
+        koerperLeicht: "Lichamelijk licht",
+    koerperSchwer: "Lichamelijk zwaar",
     kopfAnBereich: "\uD83E\uDDE0 Hoofd aan",
     mittel: "midden"
   },
@@ -1080,7 +1170,11 @@ var LANG = {
         liegebalkenTitel: "Allong\u00e9 / Debout",
     liegebalkenGut: "\u2713 Bien!",
     liegebalkenFehlt: "Encore ",
+        blockCheckTitel: "Nouveau bloc — Comment allez-vous?",
+    blockCheckHint: "Ajustez les symptômes, puis OK.",
     rollingPene: "Plusieurs jours rouges! Attention au PEM cumulatif!",
+        koerperLeicht: "Physique l\u00e9ger",
+    koerperSchwer: "Physique exigeant",
     kopfAnBereich: "\uD83E\uDDE0 T\u00eate active",
     mittel: "moyen"
   },
@@ -1239,7 +1333,11 @@ var LANG = {
         liegebalkenTitel: "Acostado / De pie",
     liegebalkenGut: "\u2713 \u00a1Bien!",
     liegebalkenFehlt: "A\u00fan ",
+        blockCheckTitel: "Nuevo bloque — ¿Cómo estás?",
+    blockCheckHint: "Ajusta síntomas, luego OK.",
     rollingPene: "\u00a1M\u00faltiples d\u00edas rojos! \u00a1Cuidado con el PEM acumulativo!",
+        koerperLeicht: "F\u00edsico ligero",
+    koerperSchwer: "F\u00edsico exigente",
     kopfAnBereich: "\uD83E\uDDE0 Mente activa",
     mittel: "medio"
   }
@@ -1558,9 +1656,24 @@ var TOPF_ANTEIL = [0.16, 0.16, 0.32, 0.36];
 var TOPF_ENDE_H = [9.0, 10.5, 14.0, 24.0];
 var TOPF_START_H = 5.0;
 var TOPF_ABEND_PUFFER = 15;
+// Bodensatz-Abzug durch Symptome (Index → Punkte pro Schweregrad [leicht, mittel, schwer])
+// Nur Überlastungs-Indikatoren: Erschöpfung(3), Muskel(6), Gelenk(7)
+var SYMPTOM_BODENSATZ = {
+    3: [3, 5, 8],   // Erschöpfung
+    6: [3, 6, 10],  // Muskelschmerz
+    7: [3, 6, 10]   // Gelenkschmerz
+};
 var ZUSTAND_CHECK_MS = 2 * 60 * 60 * 1000;
 var KOPFAN_GRENZEN = [3, 10, 15, 30];
 var KOPFAN_PUNKTE  = [2, 5, 10, 15, 20];
+
+// Körperlich-Timer: Grenzen in Minuten und Punkte
+// Leicht: <1 / <3 / <10 / <20 / >30
+var KOERPER_LEICHT_GRENZEN = [1, 3, 10, 20, 30];
+var KOERPER_LEICHT_PUNKTE  = [1, 2,  5, 10, 15, 20];
+// Anspruchsvoll: <1 / <3 / <10 / <20 / >30 — höhere Punkte
+var KOERPER_SCHWER_GRENZEN = [1, 3, 10, 20, 30];
+var KOERPER_SCHWER_PUNKTE  = [2, 4,  8, 15, 20, 25];
 
 // ============================================================
 // DEFAULT-KATALOG
@@ -2218,7 +2331,6 @@ function endePause(auto) {
         updateDisplay();
         startPauseTimer();
         if (minuten < PAUSE_MINDEST_MIN) {
-            // Kurzpause: Abzug wenn zu oft
             if (state.kurzPausen >= KURZPAUSEN_GRENZE) {
                 mutateState(function(s) {
                     s.cur = Math.max(0, s.cur - KURZPAUSE_ABZUG);
@@ -2230,6 +2342,8 @@ function endePause(auto) {
             }
         } else {
             showToast(t("toastPauseEnde") + minuten + t("kopfAnMin") + " - " + hinweis);
+            // Block-Beginn: Symptom-Check anzeigen (nur nach echter Pause)
+            setTimeout(zeigeBlockCheck, 600);
         }
     }
 }
@@ -2580,6 +2694,120 @@ function setZustand(zustand) {
 
 var _kopfAnInterval = null;
 
+// ============================================================
+// KÖRPERLICH-TIMER (leicht + anspruchsvoll)
+// ============================================================
+var _koerperInterval = {leicht: null, schwer: null};
+var _koerperStartTs  = {leicht: null, schwer: null};
+
+function zeigeKoerperEditor() {
+    var ed = document.getElementById("koerperEditor");
+    if (ed) { ed.style.display = ed.style.display === "none" ? "block" : "none"; }
+}
+
+function speichereKoerperGrenzen() {
+    KOERPER_LEICHT_GRENZEN = [
+        parseInt(document.getElementById("kLeichtG0").value) || 1,
+        parseInt(document.getElementById("kLeichtG1").value) || 3,
+        parseInt(document.getElementById("kLeichtG2").value) || 10,
+        parseInt(document.getElementById("kLeichtG3").value) || 20,
+        parseInt(document.getElementById("kLeichtG4").value) || 30
+    ];
+    KOERPER_SCHWER_GRENZEN = [
+        parseInt(document.getElementById("kSchwerG0").value) || 1,
+        parseInt(document.getElementById("kSchwerG1").value) || 3,
+        parseInt(document.getElementById("kSchwerG2").value) || 10,
+        parseInt(document.getElementById("kSchwerG3").value) || 20,
+        parseInt(document.getElementById("kSchwerG4").value) || 30
+    ];
+    document.getElementById("koerperEditor").style.display = "none";
+    showToast(t("toastGrenzen"));
+}
+
+function koerperStart(typ) {
+    if (state.max <= 0) { showToast(t("warnNachPause")); return; }
+    // Anderen Timer stoppen falls läuft
+    if (_koerperStartTs[typ]) { return; }
+    _koerperStartTs[typ] = Date.now();
+    var grenzen = typ === 'leicht' ? KOERPER_LEICHT_GRENZEN : KOERPER_SCHWER_GRENZEN;
+    var farbe0  = typ === 'leicht' ? "#34c759" : "#ff9500";
+    var ruheId  = typ === 'leicht' ? "koerperLeichtRuhe"   : "koerperSchwerRuhe";
+    var laeuftId= typ === 'leicht' ? "koerperLeichtLaeuft" : "koerperSchwerLaeuft";
+    var timerId = typ === 'leicht' ? "koerperLeichtTimer"  : "koerperSchwerTimer";
+    document.getElementById(ruheId).style.display = "none";
+    document.getElementById(laeuftId).classList.add("active");
+    var timerEl = document.getElementById(timerId);
+    _koerperInterval[typ] = setInterval(function() {
+        var gesamtSek = Math.floor((Date.now() - _koerperStartTs[typ]) / 1000);
+        var min = Math.floor(gesamtSek / 60);
+        var sec = gesamtSek % 60;
+        timerEl.textContent = min + ":" + (sec < 10 ? "0" : "") + sec;
+        var farbe = farbe0;
+        for (var gi = 0; gi < grenzen.length; gi++) {
+            var grenzSek = grenzen[gi] * 60;
+            if (gesamtSek >= grenzSek) { farbe = "#ff3b30"; }
+            else if (grenzSek - gesamtSek <= 20) { farbe = "#ff9500"; }
+        }
+        timerEl.style.color = farbe;
+    }, 1000);
+}
+
+function koerperStop(typ) {
+    if (!_koerperStartTs[typ]) { return; }
+    clearInterval(_koerperInterval[typ]);
+    _koerperInterval[typ] = null;
+    var sekunden = Math.floor((Date.now() - _koerperStartTs[typ]) / 1000);
+    var minuten  = Math.floor(sekunden / 60);
+    _koerperStartTs[typ] = null;
+    var ruheId  = typ === 'leicht' ? "koerperLeichtRuhe"   : "koerperSchwerRuhe";
+    var laeuftId= typ === 'leicht' ? "koerperLeichtLaeuft" : "koerperSchwerLaeuft";
+    var timerId = typ === 'leicht' ? "koerperLeichtTimer"  : "koerperSchwerTimer";
+    document.getElementById(laeuftId).classList.remove("active");
+    document.getElementById(ruheId).style.display = "flex";
+    document.getElementById(timerId).textContent = "0:00";
+    if (sekunden < 10) { showToast(t("toastAbgebrochen")); return; }
+    var grenzen = typ === 'leicht' ? KOERPER_LEICHT_GRENZEN : KOERPER_SCHWER_GRENZEN;
+    var punkte_arr = typ === 'leicht' ? KOERPER_LEICHT_PUNKTE : KOERPER_SCHWER_PUNKTE;
+    var punkte = punkte_arr[0];
+    for (var i = 0; i < grenzen.length; i++) {
+        if (minuten >= grenzen[i]) { punkte = punkte_arr[i+1]; }
+    }
+    var label = (typ === 'leicht' ? t("koerperLeicht") : t("koerperSchwer")) + " (" + minuten + t("kopfAnMin") + ")";
+    if (state.pauseBeginnTs) { endePause(true); }
+    mutateState(function(s) {
+        s.cur = Math.max(0, s.cur - punkte);
+        s.block += punkte;
+        s.used.push({n:label, v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+        if (!s.aufrechtSeitTs) { s.aufrechtSeitTs = Date.now(); }
+    });
+    checkPemPenalty();
+    trackDayMinPct();
+    updateDisplay();
+    startPauseTimer();
+    showToast(label + " = " + punkte + t("toastPunkte"));
+}
+
+function koerperNacherfassen(typ, stufe) {
+    if (state.max <= 0) { showToast(t("warnNachPause")); return; }
+    var grenzen = typ === 'leicht' ? KOERPER_LEICHT_GRENZEN : KOERPER_SCHWER_GRENZEN;
+    var punkte_arr = typ === 'leicht' ? KOERPER_LEICHT_PUNKTE : KOERPER_SCHWER_PUNKTE;
+    var s2 = Math.min(stufe, punkte_arr.length - 1);
+    var punkte = punkte_arr[s2];
+    var grenze = grenzen[Math.min(stufe, grenzen.length - 1)];
+    var label = (typ === 'leicht' ? t("koerperLeicht") : t("koerperSchwer")) + " (bis " + grenze + t("kopfAnMin") + ")";
+    mutateState(function(st) {
+        st.cur = Math.max(0, st.cur - punkte);
+        st.block += punkte;
+        st.used.push({n:label, v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+        if (!st.aufrechtSeitTs) { st.aufrechtSeitTs = Date.now(); }
+    });
+    checkPemPenalty();
+    trackDayMinPct();
+    updateDisplay();
+    showToast(t("toastNacherfasst") + punkte + t("toastPunkte"));
+}
+
+
 // stufe: 0=kurz, 1=mittel, 2=lang, 3=sehr lang → KOPFAN_PUNKTE[stufe+1]
 function kopfAnNacherfassen(stufe) {
     if (state.max <= 0) { showToast("Bitte erst den Tag starten!"); return; }
@@ -2755,6 +2983,24 @@ function getCrashScore() {
 // ============================================================
 // TAGES-TOePFE
 // ============================================================
+// Berechnet extra Bodensatz-Punkte aus aktiven Überlastungs-Symptomen
+function getSymptomBodensatz() {
+    var symp = state.symptome || [];
+    // Letzten Status pro Symptom
+    var letzter = {};
+    for (var i = 0; i < symp.length; i++) { letzter[symp[i].s] = symp[i]; }
+    var extra = 0;
+    for (var idx in SYMPTOM_BODENSATZ) {
+        var sym = letzter[parseInt(idx)];
+        if (!sym || sym.weg) { continue; }
+        var gewichte = SYMPTOM_BODENSATZ[idx];
+        if (sym.sw === "leicht") { extra += gewichte[0]; }
+        else if (sym.sw === "mittel") { extra += gewichte[1]; }
+        else if (sym.sw === "schwer") { extra += gewichte[2]; }
+    }
+    return extra;
+}
+
 function updateToepfe() {
     if (state.max <= 0) { return; }
     var jetzt = new Date();
@@ -2833,9 +3079,14 @@ function updateToepfe() {
         if (t === 3) {
             var bodensatz = document.getElementById("topf3Bodensatz");
             if (bodensatz && budgets[3] > 0) {
-                var bodensatzPct = Math.min(100, Math.round(TOPF_ABEND_PUFFER / budgets[3] * 100));
+                var sympExtra = getSymptomBodensatz();
+                var bodensatzGesamt = TOPF_ABEND_PUFFER + sympExtra;
+                var bodensatzPct = Math.min(100, Math.round(bodensatzGesamt / budgets[3] * 100));
                 bodensatz.style.height = bodensatzPct + "%";
                 bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0";
+                // Farbe dunkler wenn Symptome den Bodensatz vergrößern
+                bodensatz.style.background = sympExtra > 0 ? "#cc0000" : "#ff6b6b";
+                bodensatz.style.borderTopColor = sympExtra > 0 ? "#800000" : "#cc0000";
             }
         }
     }
@@ -3339,6 +3590,7 @@ function logSymptom(idx, schwere) {
         s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere || "leicht"});
     });
     renderUsed();
+    updateToepfe(); // Bodensatz neu berechnen
     showToast(getSYMPTOM_NAMEN()[idx] + " (" + (schwere || t("leicht")) + ")");
 }
 
@@ -3348,12 +3600,68 @@ function logSymptomWeg(idx) {
         s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
     });
     renderUsed();
+    updateToepfe(); // Bodensatz neu berechnen
     showToast(getSYMPTOM_NAMEN()[idx] + " " + t("weg"));
 }
 
 // ============================================================
-// COLLAPSIBLE CARDS
+// BLOCK-BEGINN SYMPTOM-CHECK
 // ============================================================
+function zeigeBlockCheck() {
+    var picker = document.getElementById("blockCheckPicker");
+    var overlay = document.getElementById("blockCheckOverlay");
+    if (!picker) { return; }
+
+    // Titel und Hint übersetzen
+    var titel = document.getElementById("blockCheckTitel");
+    var hint = document.getElementById("blockCheckHint");
+    if (titel) { titel.textContent = t("blockCheckTitel"); }
+    if (hint) { hint.textContent = t("blockCheckHint"); }
+    var okBtn = document.getElementById("blockCheckOk");
+    if (okBtn) { okBtn.textContent = "OK"; }
+
+    // Symptom-Buttons aufbauen
+    var container = document.getElementById("blockCheckSymptome");
+    if (container) {
+        container.innerHTML = "";
+        var namen = getSYMPTOM_NAMEN();
+        // Letzten Status pro Symptom
+        var letzter = {};
+        var symp = state.symptome || [];
+        for (var i = 0; i < symp.length; i++) { letzter[symp[i].s] = symp[i]; }
+
+        for (var si = 0; si < namen.length; si++) {
+            var sym = letzter[si];
+            var aktiv = sym && !sym.weg;
+            var sw = aktiv ? (sym.sw || "leicht") : "";
+            var farbe = sw === "schwer" ? "#ff3b30" : sw === "mittel" ? "#ff9500" : sw === "leicht" ? "#ffcc00" : "#e5e5ea";
+            var textFarbe = sw ? "#fff" : "#333";
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.style.cssText = "padding:6px 4px;border:none;border-radius:8px;font-size:10px;font-weight:600;cursor:pointer;touch-action:manipulation;background:" + farbe + ";color:" + textFarbe + ";line-height:1.2;";
+            btn.textContent = namen[si];
+            btn.addEventListener("click", machBlockSymptomHandler(si));
+            container.appendChild(btn);
+        }
+    }
+
+    overlay.style.display = "block";
+    picker.style.display = "block";
+}
+
+function machBlockSymptomHandler(idx) {
+    return function() { pickSchwere(idx); };
+}
+
+function schliesseBlockCheck() {
+    var picker = document.getElementById("blockCheckPicker");
+    var overlay = document.getElementById("blockCheckOverlay");
+    if (picker) { picker.style.display = "none"; }
+    if (overlay) { overlay.style.display = "none"; }
+    updateToepfe(); // Bodensatz nach Symptom-Änderungen neu berechnen
+}
+
+
 function toggleCatalogCard() {
     var b = document.getElementById("catalogBody");
     var c = document.getElementById("catalogChevron");
