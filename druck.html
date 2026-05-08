@@ -294,105 +294,107 @@ input, select {
       <button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
     </div>
     <!-- Kopf-an: innerhalb coll-body, nach Aktivität-Eingabe -->
-    <div id="kopfAnBereich" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+    <div id="kopfAnBereich" style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">
 
       <!-- KOGNITIV -->
-      <div style="font-size:9px;font-weight:800;color:#5856d6;letter-spacing:0.8px;text-transform:uppercase;">KOGNITIV</div>
+      <div style="font-size:8px;font-weight:800;color:#5856d6;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:1px;">Kognitiv</div>
       <div id="kopfAnRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
-        <button id="btnKopfAn" type="button" onclick="kopfAnStart()" style="flex:0 0 72px;background:#5856d6;color:#fff;padding:8px 0;border:none;border-radius:10px;font-weight:700;font-size:11px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.4;">&#129504;<br>Kopf an</button>
+        <button id="btnKopfAn" type="button" onclick="kopfAnStart()" style="flex:0 0 68px;background:#5856d6;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#129504;<br>Kopf an</button>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
           <div style="font-size:8px;font-weight:700;color:#5856d6;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
           <div style="display:flex;gap:2px;">
-            <button type="button" onclick="kopfAnNacherfassen(0)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">kurz</button>
-            <button type="button" onclick="kopfAnNacherfassen(1)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">mittel</button>
-            <button type="button" onclick="kopfAnNacherfassen(2)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">lang</button>
-            <button type="button" onclick="kopfAnNacherfassen(3)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">s.lang</button>
+            <button type="button" onclick="kopfAnNacherfassen(0)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">kurz</button>
+            <button type="button" onclick="kopfAnNacherfassen(1)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">mittel</button>
+            <button type="button" onclick="kopfAnNacherfassen(2)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">lang</button>
+            <button type="button" onclick="kopfAnNacherfassen(3)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">s.lang</button>
           </div>
         </div>
+        <button id="btnGrenzenAendern" type="button" onclick="zeigeBaselineEditor()" style="flex:0 0 36px;background:#c7c7cc;color:#333;padding:6px 0;border:none;border-radius:8px;font-weight:600;font-size:8px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.4;">Gren-<br>zen</button>
       </div>
       <div id="kopfAnLaeuft" class="kopf-laeuft">
-        <div style="flex:1;background:#5856d6;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:13px;text-align:center;white-space:nowrap;">&#129504; läuft…</div>
-        <div id="kopfAnTimer" style="flex:1;text-align:center;font-weight:700;font-size:22px;color:#5856d6;">0:00</div>
-        <button type="button" onclick="kopfAnStop()" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
+        <div style="flex:1;background:#5856d6;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;white-space:nowrap;">&#129504; läuft…</div>
+        <div id="kopfAnTimer" style="flex:1;text-align:center;font-weight:700;font-size:20px;color:#5856d6;">0:00</div>
+        <button type="button" onclick="kopfAnStop()" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
+      </div>
+      <div id="baselineEditor" style="display:none;margin-top:8px;padding:10px;background:#f2f2f7;border-radius:10px;">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px;">Kopf-an Zeitgrenzen (Minuten):</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div style="text-align:center;font-size:11px;color:#666;">Grenze 1</div>
+          <div style="text-align:center;font-size:11px;color:#666;">Grenze 2</div>
+          <div style="text-align:center;font-size:11px;color:#666;">Grenze 3</div>
+          <div style="text-align:center;font-size:11px;color:#666;">Grenze 4</div>
+          <input id="kopfGrenze0" type="number" value="3" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kopfGrenze1" type="number" value="10" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kopfGrenze2" type="number" value="15" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kopfGrenze3" type="number" value="30" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;margin:0;">
+        </div>
+        <div style="font-size:11px;color:#666;margin-bottom:4px;text-align:center;">Punkte: 2 / 5 / 10 / 15 / 20 (fest)</div>
+        <button type="button" onclick="speichereBaseline()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
       </div>
 
-      <!-- TRENNLINIE -->
-      <div style="border-top:1px solid rgba(0,0,0,0.12);margin:4px 0;"></div>
+      <!-- KÖRPERLICH-GRENZEN-EDITOR -->
+      <div id="koerperEditor" style="display:none;margin-top:8px;padding:10px;background:#f2f2f7;border-radius:10px;">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px;">Körperlich Zeitgrenzen (Minuten):</div>
+        <div style="font-size:11px;color:#34c759;font-weight:600;margin-bottom:4px;">Leicht — Punkte: 1/2/5/10/15/20</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;">
+          <input id="kLeichtG0" type="number" value="1"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG1" type="number" value="3"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG2" type="number" value="10" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG3" type="number" value="20" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kLeichtG4" type="number" value="30" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+        </div>
+        <div style="font-size:11px;color:#ff9500;font-weight:600;margin-bottom:4px;">Anspruchsvoll — Punkte: 2/4/8/15/20/25</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;">
+          <input id="kSchwerG0" type="number" value="1"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG1" type="number" value="3"  style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG2" type="number" value="10" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG3" type="number" value="20" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+          <input id="kSchwerG4" type="number" value="30" style="text-align:center;padding:5px;font-size:12px;border:1px solid #ddd;border-radius:8px;margin:0;">
+        </div>
+        <button type="button" onclick="speichereKoerperGrenzen()" style="background:#34c759;color:#fff;width:100%;padding:8px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;">Speichern</button>
+      </div>
 
       <!-- KÖRPERLICH -->
-      <div style="font-size:9px;font-weight:800;color:#333;letter-spacing:0.8px;text-transform:uppercase;">&#127939; KÖRPERLICH</div>
-
-      <!-- Leichte Bewegung -->
-      <div style="font-size:8px;font-weight:700;color:#555;letter-spacing:0.3px;margin-top:1px;">Leichte Bewegung</div>
+      <div style="font-size:10px;font-weight:800;color:#333;letter-spacing:0.5px;text-transform:uppercase;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.1);">&#127939; Körperlich</div>
+      <div style="font-size:8px;font-weight:700;color:#34c759;letter-spacing:0.3px;margin-top:2px;">Leicht</div>
       <div id="koerperLeichtRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
-        <button type="button" onclick="koerperStart('leicht')" style="flex:0 0 72px;background:#007aff;color:#fff;padding:8px 0;border:none;border-radius:10px;font-weight:700;font-size:11px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.4;">&#127939;<br>Leicht</button>
+        <button type="button" onclick="koerperStart('leicht')" style="flex:0 0 68px;background:#34c759;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#127939;<br>Leicht</button>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
-          <div style="font-size:8px;font-weight:700;color:#555;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
+          <div style="font-size:8px;font-weight:700;color:#34c759;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
           <div style="display:flex;gap:2px;">
-            <button type="button" onclick="koerperNacherfassen('leicht',0)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;1</button>
-            <button type="button" onclick="koerperNacherfassen('leicht',1)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;3</button>
-            <button type="button" onclick="koerperNacherfassen('leicht',2)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;10</button>
-            <button type="button" onclick="koerperNacherfassen('leicht',3)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;20</button>
-            <button type="button" onclick="koerperNacherfassen('leicht',4)" style="flex:1;background:#ff9500;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&gt;30</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',0)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;1</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',1)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;3</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',2)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;10</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',3)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;20</button>
+            <button type="button" onclick="koerperNacherfassen('leicht',4)" style="flex:1;background:#ff9500;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&gt;30</button>
           </div>
         </div>
+        <button type="button" onclick="zeigeKoerperEditor()" style="flex:0 0 36px;background:#c7c7cc;color:#333;padding:6px 0;border:none;border-radius:8px;font-weight:600;font-size:8px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.4;">Gren-<br>zen</button>
       </div>
       <div id="koerperLeichtLaeuft" class="kopf-laeuft">
-        <div style="flex:1;background:#007aff;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:13px;text-align:center;white-space:nowrap;">&#127939; läuft…</div>
-        <div id="koerperLeichtTimer" style="flex:1;text-align:center;font-weight:700;font-size:22px;color:#007aff;">0:00</div>
-        <button type="button" onclick="koerperStop('leicht')" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
+        <div style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;white-space:nowrap;">&#127939; läuft…</div>
+        <div id="koerperLeichtTimer" style="flex:1;text-align:center;font-weight:700;font-size:20px;color:#34c759;">0:00</div>
+        <button type="button" onclick="koerperStop('leicht')" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
       </div>
 
-      <!-- Anspruchsvolle Bewegung -->
-      <div style="font-size:8px;font-weight:700;color:#555;letter-spacing:0.3px;margin-top:2px;">Anspruchsvolle Bewegung</div>
+      <div style="font-size:8px;font-weight:700;color:#ff9500;letter-spacing:0.3px;margin-top:4px;">Anspruchsvoll</div>
       <div id="koerperSchwerRuhe" class="kopf-ruhe" style="flex-wrap:nowrap;">
-        <button type="button" onclick="koerperStart('schwer')" style="flex:0 0 72px;background:#ff9500;color:#fff;padding:8px 0;border:none;border-radius:10px;font-weight:700;font-size:11px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.4;">&#127939;<br>Schwer</button>
+        <button type="button" onclick="koerperStart('schwer')" style="flex:0 0 68px;background:#ff9500;color:#fff;padding:6px 0;border:none;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#127939;<br>Schwer</button>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
-          <div style="font-size:8px;font-weight:700;color:#555;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
+          <div style="font-size:8px;font-weight:700;color:#ff9500;text-align:center;letter-spacing:0.3px;">NACHERFASSEN</div>
           <div style="display:flex;gap:2px;">
-            <button type="button" onclick="koerperNacherfassen('schwer',0)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;1</button>
-            <button type="button" onclick="koerperNacherfassen('schwer',1)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;3</button>
-            <button type="button" onclick="koerperNacherfassen('schwer',2)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;10</button>
-            <button type="button" onclick="koerperNacherfassen('schwer',3)" style="flex:1;background:#8e8e93;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;20</button>
-            <button type="button" onclick="koerperNacherfassen('schwer',4)" style="flex:1;background:#ff3b30;color:#fff;padding:6px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&gt;30</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',0)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;1</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',1)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;3</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',2)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;10</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',3)" style="flex:1;background:#8e8e93;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&lt;20</button>
+            <button type="button" onclick="koerperNacherfassen('schwer',4)" style="flex:1;background:#ff3b30;color:#fff;padding:5px 0;border:none;border-radius:6px;font-weight:600;font-size:9px;cursor:pointer;touch-action:manipulation;text-align:center;min-width:0;">&gt;30</button>
           </div>
         </div>
       </div>
       <div id="koerperSchwerLaeuft" class="kopf-laeuft">
-        <div style="flex:1;background:#ff9500;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:13px;text-align:center;white-space:nowrap;">&#127939; läuft…</div>
-        <div id="koerperSchwerTimer" style="flex:1;text-align:center;font-weight:700;font-size:22px;color:#ff9500;">0:00</div>
-        <button type="button" onclick="koerperStop('schwer')" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
-      </div>
-
-      <!-- GRENZEN ÄNDERN — gemeinsam ganz unten -->
-      <button type="button" onclick="zeigeAlleGrenzen()" id="btnAlleGrenzen" style="width:100%;margin-top:6px;padding:8px;background:none;border:1px solid #c7c7cc;color:#555;font-size:11px;font-weight:600;border-radius:10px;cursor:pointer;touch-action:manipulation;">Grenzen \u00e4ndern</button>
-
-      <!-- ALLE-GRENZEN-EDITOR -->
-      <div id="alleGrenzenEditor" style="display:none;margin-top:6px;padding:12px;background:#f2f2f7;border-radius:12px;">
-        <div style="font-size:12px;font-weight:700;color:#5856d6;margin-bottom:6px;">&#129504; Kognitiv — Grenzen (Min.) | Punkte: 2/5/10/15/20</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;">
-          <input id="kopfGrenze0" type="number" value="3"  style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kopfGrenze1" type="number" value="10" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kopfGrenze2" type="number" value="15" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kopfGrenze3" type="number" value="30" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-        </div>
-        <div style="font-size:12px;font-weight:700;color:#007aff;margin-bottom:6px;">&#127939; Leichte Bewegung — Grenzen (Min.) | Punkte: 1/2/5/10/15/20</div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px;">
-          <input id="kLeichtG0" type="number" value="1"  style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kLeichtG1" type="number" value="3"  style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kLeichtG2" type="number" value="10" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kLeichtG3" type="number" value="20" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kLeichtG4" type="number" value="30" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-        </div>
-        <div style="font-size:12px;font-weight:700;color:#ff9500;margin-bottom:6px;">&#127939; Anspruchsvolle Bewegung — Grenzen (Min.) | Punkte: 2/4/8/15/20/25</div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px;">
-          <input id="kSchwerG0" type="number" value="1"  style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kSchwerG1" type="number" value="3"  style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kSchwerG2" type="number" value="10" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kSchwerG3" type="number" value="20" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-          <input id="kSchwerG4" type="number" value="30" style="text-align:center;padding:6px;font-size:13px;border:1px solid #ddd;border-radius:8px;">
-        </div>
-        <button type="button" onclick="speichereAlleGrenzen()" style="background:#34c759;color:#fff;width:100%;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">Speichern</button>
+        <div style="flex:1;background:#ff9500;color:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;white-space:nowrap;">&#127939; läuft…</div>
+        <div id="koerperSchwerTimer" style="flex:1;text-align:center;font-weight:700;font-size:20px;color:#ff9500;">0:00</div>
+        <button type="button" onclick="koerperStop('schwer')" style="flex:1;background:#34c759;color:#fff;padding:10px 8px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;white-space:nowrap;">Beendet</button>
       </div>
 
     </div>
@@ -2698,35 +2700,12 @@ var _kopfAnInterval = null;
 var _koerperInterval = {leicht: null, schwer: null};
 var _koerperStartTs  = {leicht: null, schwer: null};
 
-function zeigeAlleGrenzen() {
-    var ed = document.getElementById("alleGrenzenEditor");
-    if (!ed) { return; }
-    // Aktuelle Werte eintragen
-    var kg = KOPFAN_GRENZEN;
-    for (var i = 0; i < 4; i++) {
-        var el = document.getElementById("kopfGrenze" + i);
-        if (el) { el.value = kg[i] || ""; }
-    }
-    var lg = KOERPER_LEICHT_GRENZEN;
-    for (var j = 0; j < 5; j++) {
-        var el2 = document.getElementById("kLeichtG" + j);
-        if (el2) { el2.value = lg[j] || ""; }
-    }
-    var sg = KOERPER_SCHWER_GRENZEN;
-    for (var k = 0; k < 5; k++) {
-        var el3 = document.getElementById("kSchwerG" + k);
-        if (el3) { el3.value = sg[k] || ""; }
-    }
-    ed.style.display = ed.style.display === "none" ? "block" : "none";
+function zeigeKoerperEditor() {
+    var ed = document.getElementById("koerperEditor");
+    if (ed) { ed.style.display = ed.style.display === "none" ? "block" : "none"; }
 }
 
-function speichereAlleGrenzen() {
-    KOPFAN_GRENZEN = [
-        parseInt(document.getElementById("kopfGrenze0").value) || 3,
-        parseInt(document.getElementById("kopfGrenze1").value) || 10,
-        parseInt(document.getElementById("kopfGrenze2").value) || 15,
-        parseInt(document.getElementById("kopfGrenze3").value) || 30
-    ];
+function speichereKoerperGrenzen() {
     KOERPER_LEICHT_GRENZEN = [
         parseInt(document.getElementById("kLeichtG0").value) || 1,
         parseInt(document.getElementById("kLeichtG1").value) || 3,
@@ -2741,7 +2720,7 @@ function speichereAlleGrenzen() {
         parseInt(document.getElementById("kSchwerG3").value) || 20,
         parseInt(document.getElementById("kSchwerG4").value) || 30
     ];
-    document.getElementById("alleGrenzenEditor").style.display = "none";
+    document.getElementById("koerperEditor").style.display = "none";
     showToast(t("toastGrenzen"));
 }
 
@@ -2847,12 +2826,12 @@ function kopfAnNacherfassen(stufe) {
     showToast(t("toastNacherfasst") + punkte + t("toastPunkte"));
 }
 
-function zeigeBaselineEditor_alt() {
+function zeigeBaselineEditor() {
     var ed = document.getElementById("baselineEditor");
     if (ed) { ed.style.display = ed.style.display === "none" ? "block" : "none"; }
 }
 
-function speichereBaseline_alt() {
+function speichereBaseline() {
     var g0 = parseInt(document.getElementById("kopfGrenze0").value) || 3;
     var g1 = parseInt(document.getElementById("kopfGrenze1").value) || 10;
     var g2 = parseInt(document.getElementById("kopfGrenze2").value) || 15;
