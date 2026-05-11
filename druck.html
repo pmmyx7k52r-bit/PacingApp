@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.10</title>
+<title>PacingApp 6.0.9.11</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -3095,15 +3095,18 @@ function updateToepfe() {
 
         if (t === 3) {
             var bodensatz = document.getElementById("topf3Bodensatz");
-            if (bodensatz && budgets[3] > 0) {
+            if (bodensatz && budgetsAngezeigt[3] > 0) {
                 var sympExtra = getSymptomBodensatz();
                 var bodensatzGesamt = TOPF_ABEND_PUFFER + sympExtra;
-                var bodensatzPct = Math.min(100, Math.round(bodensatzGesamt / budgets[3] * 100));
+                // Bodensatz als Anteil des angezeigten (reduzierten) Budgets
+                var bodensatzPct = Math.min(100, Math.round(bodensatzGesamt / budgetsAngezeigt[3] * 100));
                 bodensatz.style.height = bodensatzPct + "%";
                 bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0";
-                // Farbe dunkler wenn Symptome den Bodensatz vergrößern
                 bodensatz.style.background = sympExtra > 0 ? "#cc0000" : "#ff6b6b";
                 bodensatz.style.borderTopColor = sympExtra > 0 ? "#800000" : "#cc0000";
+                // Label: Budget minus Bodensatz als "verfügbar"
+                var verfuegbar = Math.max(0, budgetsAngezeigt[3] - bodensatzGesamt);
+                label.textContent = verbrauchRaw[3] + "/" + budgetsAngezeigt[3] + " (" + verfuegbar + ")";
             }
         }
     }
