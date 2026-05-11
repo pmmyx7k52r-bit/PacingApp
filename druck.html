@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.12</title>
+<title>PacingApp 6.0.9.13</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -3091,7 +3091,7 @@ function updateToepfe() {
 
         fill.style.height = ueberschritten ? "100%" : pct + "%";
         fill.style.top = "0";
-        fill.style.background = ueberschritten ? "#800000" : "#aaa"; // Dunkelrot bei Überschreitung
+        fill.style.background = "#aaa";
 
         label.textContent = verbrauchRaw[t] + "/" + budgetsAngezeigt[t];
         label.style.color = ueberschritten ? "#ff3b30" : (istAktiv ? "#000" : "#555");
@@ -3100,17 +3100,11 @@ function updateToepfe() {
         if (t === 3) {
             var bodensatz = document.getElementById("topf3Bodensatz");
             if (bodensatz && budgetsAngezeigt[3] > 0) {
-                var sympExtra = getSymptomBodensatz();
-                var bodensatzGesamt = TOPF_ABEND_PUFFER + sympExtra;
-                // Bodensatz als Anteil des angezeigten (reduzierten) Budgets
-                var bodensatzPct = Math.min(100, Math.round(bodensatzGesamt / budgetsAngezeigt[3] * 100));
+                var bodensatzPct = Math.min(100, Math.round(TOPF_ABEND_PUFFER / budgetsAngezeigt[3] * 100));
                 bodensatz.style.height = bodensatzPct + "%";
                 bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0";
-                bodensatz.style.background = sympExtra > 0 ? "#cc0000" : "#ff6b6b";
-                bodensatz.style.borderTopColor = sympExtra > 0 ? "#800000" : "#cc0000";
-                // Label: Budget minus Bodensatz als "verfügbar"
-                var verfuegbar = Math.max(0, budgetsAngezeigt[3] - bodensatzGesamt);
-                label.textContent = verbrauchRaw[3] + "/" + budgetsAngezeigt[3] + " (" + verfuegbar + ")";
+                bodensatz.style.background = "#ff6b6b";
+                bodensatz.style.borderTopColor = "#cc0000";
             }
         }
     }
@@ -3621,22 +3615,44 @@ function logSymptomMitSchwere(schwere) {
 }
 
 function logSymptom(idx, schwere) {
+    // Vorherigen Wert für dieses Symptom prüfen (für Differenz)
+    var altExtra = getSymptomBodensatz();
     mutateState(function(s) {
         if (!s.symptome) { s.symptome = []; }
         s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), sw:schwere || "leicht"});
     });
+    var neuExtra = getSymptomBodensatz();
+    var diff = neuExtra - altExtra;
+    if (diff > 0) {
+        // Symptom-Abzug direkt von cur
+        mutateState(function(s) {
+            s.cur = Math.max(0, s.cur - diff);
+            s.used.push({n:getSYMPTOM_NAMEN()[idx] + " (" + (schwere || t("leicht")) + ") -" + diff, v:diff, ts:Date.now(), t:nowTime(), pos:"liegend"});
+        });
+    }
     renderUsed();
-    updateToepfe(); // Bodensatz neu berechnen
+    updateDisplay();
     showToast(getSYMPTOM_NAMEN()[idx] + " (" + (schwere || t("leicht")) + ")");
 }
 
 function logSymptomWeg(idx) {
+    // Vorherigen Wert merken
+    var altExtra = getSymptomBodensatz();
     mutateState(function(s) {
         if (!s.symptome) { s.symptome = []; }
         s.symptome.push({s:idx, t:nowTime(), ts:Date.now(), weg:true});
     });
+    var neuExtra = getSymptomBodensatz();
+    var diff = altExtra - neuExtra;
+    if (diff > 0) {
+        // Symptom-Rückgabe: cur wieder erhöhen (max: state.max)
+        mutateState(function(s) {
+            s.cur = Math.min(s.max, s.cur + diff);
+            s.used.push({n:getSYMPTOM_NAMEN()[idx] + " " + t("weg") + " +" + diff, v:0, ts:Date.now(), t:nowTime(), pos:"liegend"});
+        });
+    }
     renderUsed();
-    updateToepfe(); // Bodensatz neu berechnen
+    updateDisplay();
     showToast(getSYMPTOM_NAMEN()[idx] + " " + t("weg"));
 }
 
