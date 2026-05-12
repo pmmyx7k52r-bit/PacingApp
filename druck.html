@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.15</title>
+<title>PacingApp 6.0.9.16</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -2251,6 +2251,8 @@ function applyLoad(i) {
     if (!state.pauseBeginnTs && lastActionTime) {
         var pct0 = (state.cur / state.max) * 100;
         var erzwingen0 = pct0 >= 70 ? TIMER_ZWANG_HOCH : pct0 >= 40 ? TIMER_ZWANG_MITTE : TIMER_ZWANG_NIEDRIG;
+        var liegeAnteil0 = getGesamtMinuten() > 0 ? getLiegendMinuten() / getGesamtMinuten() : 0;
+        erzwingen0 += liegeAnteil0 >= 0.25 ? 10 : liegeAnteil0 >= 0.15 ? 0 : -5;
         var minSeitAktiv = Math.floor((Date.now() - lastActionTime) / 60000);
         if (minSeitAktiv >= erzwingen0) {
             // Sperre-Bar einblenden (nicht Toast - bleibt permanent)
@@ -2587,6 +2589,13 @@ function getMainWarning() {
         var erzwingen  = pct >= 70 ? TIMER_ZWANG_HOCH    : pct >= 40 ? TIMER_ZWANG_MITTE    : TIMER_ZWANG_NIEDRIG;
         var vorzwingen = pct >= 70 ? TIMER_VORZWANG_HOCH : pct >= 40 ? TIMER_VORZWANG_MITTE : TIMER_VORZWANG_NIEDRIG;
         var empfohlen  = pct >= 70 ? TIMER_WARN_HOCH     : pct >= 40 ? TIMER_WARN_MITTE     : TIMER_WARN_NIEDRIG;
+
+        // Liegebalken-Korrektur: wer genug liegt bekommt mehr Zeit, wer zu wenig liegt weniger
+        var liegeAnteil = getGesamtMinuten() > 0 ? getLiegendMinuten() / getGesamtMinuten() : 0;
+        var liegeBonus = liegeAnteil >= 0.25 ? 10 : liegeAnteil >= 0.15 ? 0 : -5;
+        erzwingen  += liegeBonus;
+        vorzwingen += liegeBonus;
+        empfohlen  += liegeBonus;
         if (minuten >= erzwingen) {
             return {type:"TIMER_ZWANG", text:t("warnTimerSperre"), bg:"#ff3b30", color:"#fff", blink:true};
         }
