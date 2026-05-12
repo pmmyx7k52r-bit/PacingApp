@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.14</title>
+<title>PacingApp 6.0.9.15</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1731,6 +1731,29 @@ function neuerLeerenState() {
     };
 }
 
+// Berechnet state.cur live aus used[] - keine separate Buchführung mehr
+function berechneCur() {
+    if (!state || state.max <= 0) { return 0; }
+    var verbrauch = 0;
+    var regen = 0;
+    var used = state.used || [];
+    for (var i = 0; i < used.length; i++) {
+        var u = used[i];
+        if (u.v && u.v > 0) { verbrauch += u.v; }
+        if (u.regen && u.regen > 0) { regen += u.regen; }
+    }
+    return Math.max(0, Math.min(state.max, state.max - verbrauch + regen));
+}
+
+// Synchronisiert state.cur mit berechneCur()
+function syncCur() {
+    var berechnet = berechneCur();
+    if (state.cur !== berechnet) {
+        state.cur = berechnet;
+    }
+    return berechnet;
+}
+
 function mutateState(fn) {
     fn(state);
     storeSet(STORAGE_STATE, JSON.stringify(state));
@@ -2109,7 +2132,7 @@ function endePauseStill() {
     var hinweis = (minuten >= PAUSE_MINDEST_MIN && pauseWarLiegend) ? "Prima!" :
                   (minuten >= PAUSE_MINDEST_MIN) ? "Liegepause w\u00e4re besser." : "Auf l\u00e4ngere Pausen achten.";
     mutateState(function(s) {
-        if (regen > 0) { s.cur = Math.min(s.max, s.cur + regen); }
+        // cur wird live durch berechneCur() berechnet
         s.used.push({n:"Pause beendet (" + minuten + " Min.) - " + hinweis, v:0, ts:jetzt, t:nowTime(), pos:"aufrecht", regen:regen});
         s.pauseBeginnTs = null;
         s.aufrechtSeitTs = jetzt;
@@ -2129,6 +2152,7 @@ function trackDayMinPct() {
 
 function updateDisplay() {
     if (state.max <= 0) { return; }
+    syncCur(); // Spielraum live aus used[] berechnen
     var grenze = Math.ceil(state.max * GRENZE_ROT);
     var spielraum = Math.max(0, state.cur - grenze);
     document.getElementById("valSpielraum").textContent = spielraum;
@@ -2174,7 +2198,6 @@ function checkPemPenalty() {
     var blockPauseSchwelle = Math.round(state.max * BLOCK_PAUSE);
     if (state.block >= blockPauseSchwelle && !state.pene) {
         mutateState(function(s) {
-            s.cur = Math.max(0, s.cur - 1);
             s.used.push({n:t("strafe"), v:1, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
             s.pene = true;
         });
@@ -2237,7 +2260,6 @@ function applyLoad(i) {
     }
     if (state.pauseBeginnTs) { endePause(true); }
     mutateState(function(s) {
-        s.cur = Math.max(0, s.cur - loads[i].v);
         s.block += loads[i].v;
         s.used.push({n:loads[i].n, v:loads[i].v, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
         if (!s.aufrechtSeitTs) { s.aufrechtSeitTs = Date.now(); }
@@ -2310,7 +2332,7 @@ function endePause(auto) {
     else { hinweis = t("toastLaengere"); }
     var label = "Pause beendet (" + minuten + " Min.) - " + hinweis;
     mutateState(function(s) {
-        if (regen > 0) { s.cur = Math.min(s.max, s.cur + regen); }
+        // cur wird live durch berechneCur() berechnet
         s.used.push({n:label, v:0, ts:jetzt, t:nowTime(), pos:"aufrecht", regen:regen});
         s.pauseBeginnTs = null;
         s.aufrechtSeitTs = jetzt;
@@ -2338,8 +2360,7 @@ function endePause(auto) {
         if (minuten < PAUSE_MINDEST_MIN) {
             if (state.kurzPausen >= KURZPAUSEN_GRENZE) {
                 mutateState(function(s) {
-                    s.cur = Math.max(0, s.cur - KURZPAUSE_ABZUG);
-                    s.used.push({n:t("strafe") + ": " + t("toastKurzpausenAbzug"), v:KURZPAUSE_ABZUG, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+                        s.used.push({n:t("strafe") + ": " + t("toastKurzpausenAbzug"), v:KURZPAUSE_ABZUG, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
                 });
                 showToast(t("toastKurzpausenAbzug") + " -" + KURZPAUSE_ABZUG);
             } else {
@@ -2416,7 +2437,7 @@ function togglePosition(idx) {
     mutateState(function(s) {
         s.used[idx].pos = neuePos;
         if (diff !== 0 && pIdx >= 0) {
-            s.cur = Math.min(s.max, Math.max(0, s.cur + diff));
+            // cur wird live durch berechneCur() berechnet
             s.used[pIdx].regen = neuerRegen;
         }
         if (neuePos === "liegend") {
@@ -2795,7 +2816,6 @@ function koerperStop(typ) {
     var label = (typ === 'leicht' ? t("koerperLeicht") : t("koerperSchwer")) + " (" + minuten + t("kopfAnMin") + ")";
     if (state.pauseBeginnTs) { endePause(true); }
     mutateState(function(s) {
-        s.cur = Math.max(0, s.cur - punkte);
         s.block += punkte;
         s.used.push({n:label, v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
         if (!s.aufrechtSeitTs) { s.aufrechtSeitTs = Date.now(); }
@@ -2904,7 +2924,7 @@ function kopfAnStop() {
     }
     if (state.pauseBeginnTs) { endePause(true); }
     mutateState(function(s) {
-        s.cur = Math.max(0, s.cur - punkte);
+        // cur wird live durch berechneCur() berechnet
         s.block += punkte;
         s.used.push({n:t("kopfAnTimer") + minuten + t("kopfAnMin") + ")", v:punkte, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
         if (!s.aufrechtSeitTs) { s.aufrechtSeitTs = Date.now(); }
@@ -3477,8 +3497,7 @@ function undoLast() {
             // Strafe hatte v:1 (positiver Wert = Abzug), also cur um 1 erhoehen
             mutateState(function(s) {
                 s.used.pop();
-                s.cur = Math.min(s.max, s.cur + 1);
-                s.pene = false;
+                        s.pene = false;
                 s.block = Math.round(s.max * BLOCK_PAUSE) - 1;
             });
         } else if (last.n.indexOf("Pause beendet") === 0) {
@@ -3492,8 +3511,7 @@ function undoLast() {
             }
             mutateState(function(s) {
                 s.used.pop();
-                if (regen > 0) { s.cur = Math.max(0, s.cur - regen); }
-                s.pauseBeginnTs = vorherigerPauseBeginnTs;
+                        s.pauseBeginnTs = vorherigerPauseBeginnTs;
             });
             if (vorherigerPauseBeginnTs) {
                 document.getElementById("btnPauseBeginn").style.display = "none";
@@ -3502,14 +3520,12 @@ function undoLast() {
         } else if (last.v < 0) {
             mutateState(function(s) {
                 s.used.pop();
-                s.cur = Math.max(0, s.cur + last.v);
-                s.block = 0;
+                        s.block = 0;
             });
         } else {
             mutateState(function(s) {
                 s.used.pop();
-                s.cur = Math.min(s.max, s.cur + last.v);
-                s.block = Math.max(0, s.block - last.v);
+                        s.block = Math.max(0, s.block - last.v);
             });
         }
         updateDisplay();
@@ -3635,7 +3651,6 @@ function logSymptom(idx, schwere) {
     if (diff > 0) {
         // Symptom-Abzug direkt von cur
         mutateState(function(s) {
-            s.cur = Math.max(0, s.cur - diff);
             s.used.push({n:getSYMPTOM_NAMEN()[idx] + " (" + (schwere || t("leicht")) + ") -" + diff, v:diff, ts:Date.now(), t:nowTime(), pos:"liegend"});
         });
     }
@@ -3656,7 +3671,6 @@ function logSymptomWeg(idx) {
     if (diff > 0) {
         // Symptom-Rückgabe: cur wieder erhöhen (max: state.max)
         mutateState(function(s) {
-            s.cur = Math.min(s.max, s.cur + diff);
             s.used.push({n:getSYMPTOM_NAMEN()[idx] + " " + t("weg") + " +" + diff, v:0, ts:Date.now(), t:nowTime(), pos:"liegend"});
         });
     }
