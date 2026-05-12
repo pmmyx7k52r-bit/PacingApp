@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.13</title>
+<title>PacingApp 6.0.9.14</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -2588,7 +2588,7 @@ function renderMainWarning() {
     var warn = getMainWarning();
     var typ = warn ? warn.type : null;
 
-    var nichtWegdrueckbar = (typ === "PEM_ZWANG" || typ === "CRASH_HIGH" || typ === "NOTBREMSE" || typ === "TIMER_ZWANG");
+    var nichtWegdrueckbar = (typ === "PEM_ZWANG" || typ === "CRASH_HIGH" || typ === "NOTBREMSE" || typ === "TIMER_ZWANG" || typ === "TOPF");
     if (bar._dismissed && !nichtWegdrueckbar) { return; }
     if (nichtWegdrueckbar) { bar._dismissed = false; }
 
@@ -2607,6 +2607,7 @@ function renderMainWarning() {
     bar.style.background = warn.bg;
     bar.style.color = warn.color;
     bar.style.animation = warn.blink ? "blinker 1.2s linear infinite" : "none";
+    bar._currentType = typ;
     // Notification bei kritischen Warnungen
     if (warn.blink || typ === "TIMER_VORZWANG") {
         notifyWennNoetig(typ, warn.text.replace(/<[^>]*>/g, ""));
@@ -3110,11 +3111,19 @@ function updateToepfe() {
     }
 
     renderMainWarning();
-}
 
-// ============================================================
-// LIEGEWAAGE
-// ============================================================
+    // TOPF-Warnung: automatisch verstecken sobald kein Topf mehr überschritten
+    var aktWarn = getMainWarning();
+    if (!aktWarn || aktWarn.type !== "TOPF") {
+        var mwb2 = document.getElementById("mainWarnBar");
+        if (mwb2 && mwb2._currentType === "TOPF") {
+            mwb2.style.display = "none";
+            mwb2._dismissed = false;
+            mwb2._currentType = null;
+            _lastWarnType = null;
+        }
+    }
+}
 function updateLiegebalken() {
     var wrap = document.getElementById("liegebalkenWrap");
     if (!wrap || state.max <= 0) { return; }
