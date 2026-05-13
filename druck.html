@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.18</title>
+<title>PacingApp 6.0.9.19</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -608,7 +608,7 @@ var LANG = {
     statusLangsam: "Langsam! Nur noch Reserve!",
     statusStop: "STOP! Reserve aufgebraucht!",
     spielraum: "Spielraum",
-        rest: "Rest: ",
+        rest: "Reserve: ",
     // Warnungen
     warnNachPause: "Bitte erst den Tag starten!",
     warnSchlafAuswaehlen: "Bitte Schlafqualit\u00e4t ausw\u00e4hlen!",
@@ -786,7 +786,7 @@ var LANG = {
     statusLangsam: "Slow down! Reserve only!",
     statusStop: "STOP! Energy depleted!",
     spielraum: "Headroom",
-    rest: "Left: ",
+    rest: "Reserve: ",
     warnNachPause: "Please start the day first!",
     warnSchlafAuswaehlen: "Please select sleep quality!",
     warnSchlafWert: "Please enter sleep value!",
@@ -949,7 +949,7 @@ var LANG = {
     statusLangsam: "Langzamer! Alleen reserve!",
     statusStop: "STOP! Energie op!",
     spielraum: "Speelruimte",
-    rest: "Rest: ",
+    rest: "Reserve: ",
     warnNachPause: "Start eerst de dag!",
     warnSchlafAuswaehlen: "Selecteer slaapkwaliteit!",
     warnSchlafWert: "Voer slaapwaarde in!",
@@ -1113,7 +1113,7 @@ var LANG = {
     statusStop: "STOP! \u00c9nergie \u00e9puis\u00e9e!",
     spielraum: "Marge",
     spielraum: "Marge",
-    rest: "Reste: ",
+    rest: "Réserve: ",
     warnNachPause: "Veuillez d'abord d\u00e9marrer la journ\u00e9e!",
     warnSchlafAuswaehlen: "Veuillez s\u00e9lectionner la qualit\u00e9 du sommeil!",
     warnSchlafWert: "Veuillez entrer la valeur de sommeil!",
@@ -1277,7 +1277,7 @@ var LANG = {
     statusStop: "\u00a1STOP! \u00a1Energ\u00eda agotada!",
     spielraum: "Margen",
     spielraum: "Margen",
-    rest: "Restante: ",
+    rest: "Reserva: ",
     warnNachPause: "\u00a1Inicie el d\u00eda primero!",
     warnSchlafAuswaehlen: "\u00a1Seleccione la calidad del sue\u00f1o!",
     warnSchlafWert: "\u00a1Ingrese el valor del sue\u00f1o!",
@@ -2210,7 +2210,7 @@ function updateDisplay() {
     var spielraum = Math.max(0, state.cur - grenze);
     document.getElementById("valSpielraum").textContent = spielraum;
     var restEl = document.getElementById("restAnzeige");
-    if (restEl) { restEl.textContent = t("rest") + spielraum; }
+    if (restEl) { restEl.textContent = t("rest") + state.cur; }
     renderStatus(spielraum);
     renderPemHeader();
     renderUsed();
