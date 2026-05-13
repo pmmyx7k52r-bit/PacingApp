@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.19</title>
+<title>PacingApp 6.0.9.20</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -2660,7 +2660,7 @@ function getMainWarning() {
         }
     }
     if (isTopfKritisch()) {
-        return {type:"TOPF", text:"Tagesabschnitt-Budget \u00fcberschritten!", bg:"#b8860b", color:"#fff", blink:false};
+        return {type:"TOPF", text:t("warnTopf"), bg:"#b8860b", color:"#fff", blink:false};
     }
     return null;
 }
