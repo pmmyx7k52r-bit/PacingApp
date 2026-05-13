@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.17</title>
+<title>PacingApp 6.0.9.18</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -2210,7 +2210,7 @@ function updateDisplay() {
     var spielraum = Math.max(0, state.cur - grenze);
     document.getElementById("valSpielraum").textContent = spielraum;
     var restEl = document.getElementById("restAnzeige");
-    if (restEl) { restEl.textContent = t("rest") + state.cur; }
+    if (restEl) { restEl.textContent = t("rest") + spielraum; }
     renderStatus(spielraum);
     renderPemHeader();
     renderUsed();
