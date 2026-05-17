@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.26</title>
+<title>PacingApp 6.0.9.28</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -300,6 +300,11 @@ input, select {
     </div>
     <!-- Kopf-an: innerhalb coll-body, nach Aktivität-Eingabe -->
     <div id="kopfAnBereich" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+      <div style="display:flex;gap:6px;margin-bottom:4px;">
+        <button type="button" onclick="schnellErfassen('eigen')" style="flex:1;background:#fff;border:2px solid #5856d6;color:#5856d6;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#43;<br>Eigene<br>Aktivit&#228;t</button>
+        <button type="button" onclick="schnellErfassen('toxisch')" style="flex:1;background:#ff3b30;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128272;<br>Giftige<br>Umgebung</button>
+        <button type="button" onclick="schnellErfassen('emotion')" style="flex:1;background:#ff9500;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128171;<br>Emotion/<br>Stress</button>
+      </div>
 
       <!-- KOGNITIV -->
       <div style="font-size:9px;font-weight:800;color:#5856d6;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">&#129504; KOGNITIV</div>
@@ -634,7 +639,7 @@ var LANG = {
     tagStarten: "Tag starten",
     neuerTagReset: "Neuer Tag! (Reset!)",
     // Katalog
-    belastungskatalog: "Belastungskatalog",
+    belastungskatalog: "Belastungen",
     tippenAufZu: "Tippen: auf/zu",
     aktivitaet: "Aktivit\u00e4t",
     punkte: "Pkt.",
@@ -647,6 +652,9 @@ var LANG = {
     aendern: "\u00c4ndern",
     loeschen: "L\u00f6schen",
     kurz: "kurz",
+        schnellEigenAktiv: "Eigene Aktivität",
+    schnellToxisch: "Giftige Umgebung",
+    schnellEmotion: "Emotion",
     mittel: "mittel",
     lang: "lang",
     sehrLang: "s.lang",
@@ -818,7 +826,7 @@ var LANG = {
     eigenerWertHint: "e.g. sleep tracker",
     tagStarten: "Start day",
     neuerTagReset: "New day! (Reset!)",
-    belastungskatalog: "Activity catalog",
+    belastungskatalog: "Activities",
     tippenAufZu: "Tap: open/close",
     aktivitaet: "Activity",
     punkte: "Pts.",
@@ -831,6 +839,9 @@ var LANG = {
     aendern: "Edit",
     loeschen: "Delete",
     kurz: "short",
+        schnellEigenAktiv: "Own activity",
+    schnellToxisch: "Toxic environment",
+    schnellEmotion: "Emotion",
     mittel: "mid",
     lang: "long",
     sehrLang: "v.long",
@@ -983,7 +994,7 @@ var LANG = {
     eigenerWertHint: "bijv. slaaptracker",
     tagStarten: "Dag starten",
     neuerTagReset: "Nieuwe dag! (Reset!)",
-    belastungskatalog: "Activiteitencatalogus",
+    belastungskatalog: "Belastingen",
     tippenAufZu: "Tikken: open/dicht",
     aktivitaet: "Activiteit",
     punkte: "Ptn.",
@@ -996,6 +1007,9 @@ var LANG = {
     aendern: "Wijzigen",
     loeschen: "Verwijderen",
     kurz: "kort",
+        schnellEigenAktiv: "Eigen activiteit",
+    schnellToxisch: "Giftige omgeving",
+    schnellEmotion: "Emotie",
     mittel: "midden",
     lang: "lang",
     sehrLang: "z.lang",
@@ -1148,7 +1162,7 @@ var LANG = {
     eigenerWertHint: "ex. tracker de sommeil",
     tagStarten: "D\u00e9marrer la journ\u00e9e",
     neuerTagReset: "Nouveau jour! (R\u00e9init.!)",
-    belastungskatalog: "Catalogue d'activit\u00e9s",
+    belastungskatalog: "Activités",
     tippenAufZu: "Appuyer: ouvrir/fermer",
     aktivitaet: "Activit\u00e9",
     punkte: "Pts.",
@@ -1161,6 +1175,9 @@ var LANG = {
     aendern: "Modifier",
     loeschen: "Supprimer",
     kurz: "court",
+        schnellEigenAktiv: "Activité propre",
+    schnellToxisch: "Environnement toxique",
+    schnellEmotion: "Émotion",
     mittel: "moyen",
     lang: "long",
     sehrLang: "t.long",
@@ -1314,7 +1331,7 @@ var LANG = {
     eigenerWertHint: "ej. rastreador de sue\u00f1o",
     tagStarten: "Iniciar d\u00eda",
     neuerTagReset: "\u00a1Nuevo d\u00eda! (\u00a1Reiniciar!)",
-    belastungskatalog: "Cat\u00e1logo de actividades",
+    belastungskatalog: "Actividades",
     tippenAufZu: "Tocar: abrir/cerrar",
     aktivitaet: "Actividad",
     punkte: "Pts.",
@@ -1327,6 +1344,9 @@ var LANG = {
     aendern: "Editar",
     loeschen: "Eliminar",
     kurz: "corto",
+        schnellEigenAktiv: "Actividad propia",
+    schnellToxisch: "Entorno tóxico",
+    schnellEmotion: "Emoción",
     mittel: "medio",
     lang: "largo",
     sehrLang: "m.largo",
@@ -3010,6 +3030,38 @@ function kopfAnNacherfassen(stufe, typ) {
 // ============================================================
 var _koerperInterval = {leicht: null, schwer: null};
 var _koerperStartTs  = {leicht: null, schwer: null};
+
+function schnellErfassen(typ) {
+    if (state.max <= 0) { showToast(t("warnNachPause")); return; }
+    if (typ === 'eigen') {
+        // Katalog aufklappen und Eingabefeld fokussieren
+        var catalogBody = document.getElementById("catalogBody");
+        var catalogChevron = document.getElementById("catalogChevron");
+        if (catalogBody && catalogBody.className.indexOf("open") < 0) {
+            toggleSection("catalogBody", "catalogChevron");
+        }
+        var cardCatalog = document.getElementById("cardCatalog");
+        if (cardCatalog) {
+            setTimeout(function() {
+                cardCatalog.scrollIntoView({behavior:"smooth", block:"start"});
+                var inp = document.getElementById("loadName");
+                if (inp) { inp.focus(); inp.value = ""; }
+                var pkt = document.getElementById("loadVal");
+                if (pkt) { pkt.value = ""; }
+            }, 300);
+        }
+        return;
+    }
+    var pkt2 = typ === 'toxisch' ? 10 : 15;
+    var label = typ === 'toxisch' ? t("schnellToxisch") : t("schnellEmotion");
+    if (state.pauseBeginnTs) { endePause(true); }
+    mutateState(function(s) {
+        s.block += pkt2;
+        s.used.push({n:label, v:pkt2, ts:Date.now(), t:nowTime(), pos:"aufrecht"});
+    });
+    checkPemPenalty(); trackDayMinPct(); updateDisplay();
+    showToast(label + " -" + pkt2);
+}
 
 function zeigeAlleGrenzen() {
     var ed = document.getElementById("alleGrenzenEditor");
