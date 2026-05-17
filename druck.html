@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.28</title>
+<title>PacingApp 6.0.9.29</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -293,7 +293,7 @@ input, select {
     <span class="coll-chevron" id="catalogChevron">&#9660;</span>
   </div>
   <div class="coll-body" id="catalogBody">
-    <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;">
+    <div id="eigenEingabe" style="display:none;gap:6px;align-items:flex-end;margin-top:8px;">
       <input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
       <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
       <button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
@@ -3034,21 +3034,18 @@ var _koerperStartTs  = {leicht: null, schwer: null};
 function schnellErfassen(typ) {
     if (state.max <= 0) { showToast(t("warnNachPause")); return; }
     if (typ === 'eigen') {
-        // Katalog aufklappen und Eingabefeld fokussieren
-        var catalogBody = document.getElementById("catalogBody");
-        var catalogChevron = document.getElementById("catalogChevron");
-        if (catalogBody && catalogBody.className.indexOf("open") < 0) {
-            toggleSection("catalogBody", "catalogChevron");
-        }
-        var cardCatalog = document.getElementById("cardCatalog");
-        if (cardCatalog) {
+        var eingabe = document.getElementById("eigenEingabe");
+        if (!eingabe) { return; }
+        if (eingabe.style.display === "none" || eingabe.style.display === "") {
+            eingabe.style.display = "flex";
             setTimeout(function() {
-                cardCatalog.scrollIntoView({behavior:"smooth", block:"start"});
                 var inp = document.getElementById("loadName");
                 if (inp) { inp.focus(); inp.value = ""; }
                 var pkt = document.getElementById("loadVal");
                 if (pkt) { pkt.value = ""; }
-            }, 300);
+            }, 100);
+        } else {
+            eingabe.style.display = "none";
         }
         return;
     }
@@ -3674,6 +3671,7 @@ function addCatalogEntry() {
     renderCatalog();
     document.getElementById("loadName").value = "";
     document.getElementById("loadVal").value = "";
+    var ee = document.getElementById("eigenEingabe"); if(ee) { ee.style.display = "none"; }
     showToast(t("toastGespeichert"));
 }
 
