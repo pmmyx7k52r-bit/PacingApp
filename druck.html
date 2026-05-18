@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.29</title>
+<title>PacingApp 6.0.9.31</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -293,18 +293,8 @@ input, select {
     <span class="coll-chevron" id="catalogChevron">&#9660;</span>
   </div>
   <div class="coll-body" id="catalogBody">
-    <div id="eigenEingabe" style="display:none;gap:6px;align-items:flex-end;margin-top:8px;">
-      <input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
-      <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
-      <button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
-    </div>
     <!-- Kopf-an: innerhalb coll-body, nach Aktivität-Eingabe -->
     <div id="kopfAnBereich" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
-      <div style="display:flex;gap:6px;margin-bottom:4px;">
-        <button type="button" onclick="schnellErfassen('eigen')" style="flex:1;background:#fff;border:2px solid #5856d6;color:#5856d6;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#43;<br>Eigene<br>Aktivit&#228;t</button>
-        <button type="button" onclick="schnellErfassen('toxisch')" style="flex:1;background:#ff3b30;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128272;<br>Giftige<br>Umgebung</button>
-        <button type="button" onclick="schnellErfassen('emotion')" style="flex:1;background:#ff9500;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128171;<br>Emotion/<br>Stress</button>
-      </div>
 
       <!-- KOGNITIV -->
       <div style="font-size:9px;font-weight:800;color:#5856d6;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">&#129504; KOGNITIV</div>
@@ -410,6 +400,18 @@ input, select {
       </div>
 
       <!-- GRENZEN ÄNDERN — gemeinsam ganz unten -->
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button type="button" onclick="schnellErfassen('eigen')" style="flex:1;background:#fff;border:2px solid #5856d6;color:#5856d6;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#43;<br>Eigene<br>Aktivit&#228;t</button>
+        <button type="button" onclick="schnellErfassen('toxisch')" style="flex:1;background:#ff3b30;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128272;<br>Giftige<br>Umgebung</button>
+        <button type="button" onclick="schnellErfassen('emotion')" style="flex:1;background:#ff9500;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128171;<br>Emotion/<br>Stress</button>
+      </div>
+      <div id="eigenEingabe" style="display:none;flex-direction:column;gap:6px;margin-bottom:6px;padding:10px;background:rgba(255,255,255,0.15);border-radius:12px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input id="loadName" style="flex:2;margin-top:0;" placeholder="Aktivität">
+          <input id="loadVal" style="flex:0.8;margin-top:0;" type="number" placeholder="Pkt.">
+          <button type="button" class="btn-add" style="flex:0.5" id="btnAddCatalog">Neu</button>
+        </div>
+      </div>
       <button type="button" onclick="zeigeAlleGrenzen()" id="btnAlleGrenzen" style="width:100%;margin-top:6px;padding:8px;background:none;border:1px solid #c7c7cc;color:#555;font-size:11px;font-weight:600;border-radius:10px;cursor:pointer;touch-action:manipulation;">Grenzen ändern</button>
 
       <!-- ALLE-GRENZEN-EDITOR -->
@@ -1829,17 +1831,8 @@ var KOERPER_SCHWER_PUNKTE  = [2, 4,  8, 15, 20, 25];
 // ============================================================
 // DEFAULT-KATALOG
 // ============================================================
-var STANDARD_KATALOG = [
-    {n:t("katPuls"), v:1},
-    {n:t("kat3Min"), v:2},
-    {n:t("katAufstehen"), v:3},
-    {n:t("katLeicht"), v:2},
-    {n:t("kat30Bew"), v:5},
-    {n:t("katLaengLeicht"), v:10},
-    {n:t("katAergern"), v:10},
-    {n:t("katProblem"), v:10},
-    {n:t("katKonzentration"), v:10}
-];
+var STANDARD_KATALOG = [];
+// Katalog-Einträge werden manuell angelegt, Timer übernehmen die Erfassung
 
 function getSYMPTOM_NAMEN() { return [t("symptomKopfDruck"),t("symptomAugen"),t("symptomBrainFog"),t("symptomErschoepfung"),t("symptomPfeifen"),t("symptomUnruhe"),t("symptomMuskel"),t("symptomGelenk")]; }
 var SYMPTOM_NAMEN = getSYMPTOM_NAMEN();
@@ -2100,18 +2093,8 @@ window.onload = function() {
     }
     // Standard-Katalog in gewaehlter Sprache neu aufbauen (falls kein gespeicherter)
     if (!storeGet(STORAGE_LOADS)) {
-        STANDARD_KATALOG = [
-            {n:t("katPuls"), v:1},
-            {n:t("kat3Min"), v:2},
-            {n:t("katAufstehen"), v:3},
-            {n:t("katLeicht"), v:2},
-            {n:t("kat30Bew"), v:5},
-            {n:t("katLaengLeicht"), v:10},
-            {n:t("katAergern"), v:10},
-            {n:t("katProblem"), v:10},
-            {n:t("katKonzentration"), v:10}
-        ];
-        loads = STANDARD_KATALOG.slice();
+        STANDARD_KATALOG = [];
+        loads = [];
     }
     buildSchwereButtons();
     applyLanguageToDOM();
