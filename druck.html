@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.32</title>
+<title>PacingApp 6.0.9.31</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1805,8 +1805,7 @@ var TIMER_ZWANG_NIEDRIG = 30;
 var TOPF_ANTEIL = [0.16, 0.16, 0.32, 0.36];
 var TOPF_ENDE_H = [9.0, 10.5, 14.0, 24.0];
 var TOPF_START_H = 5.0;
-var TOPF_ABEND_PUFFER = 15; // Fallback
-var NOTSTROM_ANTEIL = 0.25; // 2/8 = 25% von T3 als Notstrom
+var TOPF_ABEND_PUFFER = 15;
 // Bodensatz-Abzug durch Symptome (Index → Punkte pro Schweregrad [leicht, mittel, schwer])
 // Nur Überlastungs-Indikatoren: Erschöpfung(3), Muskel(6), Gelenk(7)
 var SYMPTOM_BODENSATZ = {
@@ -1922,8 +1921,7 @@ function berechneEchteReserve() {
         gesamtOverflow += Math.max(0, verbrauchRaw[oi] - budgets[oi]);
     }
     var budgetT3eff = Math.max(0, budgets[3] - gesamtOverflow);
-    var budgetT3raw = Math.round(state.max * TOPF_ANTEIL[3]);
-    var bodensatz = Math.round(budgetT3raw * NOTSTROM_ANTEIL);
+    var bodensatz = TOPF_ABEND_PUFFER;
     // Nur noch nicht abgelaufene Töpfe zählen
     var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 :
                       stundeJetzt < TOPF_ENDE_H[1] ? 1 :
@@ -2342,8 +2340,7 @@ function updateDisplay() {
     var echteReserve = berechneEchteReserve();
     document.getElementById("valSpielraum").textContent = spielraum;
     var restEl = document.getElementById("restAnzeige");
-    var notstromAnzeige = Math.round(Math.max(0, state.max * TOPF_ANTEIL[3] * NOTSTROM_ANTEIL) - Math.max(0, gesamtOverflow || 0));
-    if (restEl) { restEl.textContent = "Notstrom: " + Math.max(0, notstromAnzeige); }
+    if (restEl) { restEl.textContent = t("rest") + echteReserve; }
     renderStatus(spielraum);
     renderPemHeader();
     renderUsed();
@@ -3495,8 +3492,7 @@ function updateToepfe() {
         if (t === 3) {
             var bodensatz = document.getElementById("topf3Bodensatz");
             if (bodensatz && budgetsAngezeigt[3] > 0) {
-                var notstrom = Math.round(budgetsAngezeigt[3] * NOTSTROM_ANTEIL);
-                var bodensatzPct = Math.min(100, Math.round(notstrom / budgetsAngezeigt[3] * 100));
+                var bodensatzPct = Math.min(100, Math.round(TOPF_ABEND_PUFFER / budgetsAngezeigt[3] * 100));
                 bodensatz.style.height = bodensatzPct + "%";
                 bodensatz.style.zIndex = pct < (100 - bodensatzPct) ? "1" : "0";
                 bodensatz.style.background = "#ff6b6b";
@@ -4227,23 +4223,12 @@ function toggleUsedCard() {
 // ============================================================
 function showHistory() {
     var h = state.history || [];
-    // Migration: alte Zahlen-Einträge in Objekte umwandeln
-    var migriert = false;
-    for (var mi = 0; mi < h.length; mi++) {
-        if (typeof h[mi] !== "object") {
-            h[mi] = {crash: !!h[mi], minPct: 0};
-            migriert = true;
-        }
-    }
-    if (migriert) { mutateState(function(s) { s.history = h; }); }
-
-    var txt = h.length + t("historyTage");
+    var txt = h.length + " Tage: ";
     for (var i = 0; i < h.length; i++) {
-        var crash = h[i].crash;
-        var pct = h[i].minPct || 0;
-        txt += (crash ? "\uD83D\uDD34" : "\uD83D\uDFE2") + (pct > 0 ? pct + "%" : "") + (i < h.length-1 ? " " : "");
+        var crash = typeof h[i] === "object" ? h[i].crash : h[i];
+        txt += (crash ? "R" : "o") + (i < h.length-1 ? "," : "");
     }
-    if (h.length === 0) { txt = t("historyLeer"); }
+    if (h.length === 0) { txt = "History leer"; }
     showToast(txt);
 }
 </script>
