@@ -164,6 +164,7 @@ input, select {
           <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 9:00</div>
           <div style="width:26px;height:24px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
             <div id="topf0Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
+            <div id="topf0Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
           </div>
           <div id="topf0Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;">Fr&uuml;h</div>
         </div>
@@ -171,6 +172,7 @@ input, select {
           <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 10:30</div>
           <div style="width:26px;height:24px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
             <div id="topf1Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
+            <div id="topf1Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
           </div>
           <div id="topf1Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;">Morgen</div>
         </div>
@@ -179,6 +181,7 @@ input, select {
         <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 14:00</div>
         <div style="width:26px;height:50px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
           <div id="topf2Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
+          <div id="topf2Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
         </div>
         <div id="topf2Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Mittag</div>
       </div>
@@ -429,7 +432,7 @@ var TIMER_WARN_NIEDRIG = 20; var TIMER_VORZWANG_NIEDRIG = 27; var TIMER_ZWANG_NI
 var TOPF_ANTEIL = [0.16, 0.16, 0.32, 0.36];
 var TOPF_ENDE_H = [9.0, 10.5, 14.0, 24.0];
 var TOPF_START_H = 5.0;
-var NOTSTROM_ANTEIL = 0.25;
+var NOTSTROM_ANTEIL = 0.10;
 var SYMPTOM_BODENSATZ = { 3:[3,5,8], 6:[3,6,10], 7:[3,6,10] };
 var ZUSTAND_CHECK_MS = 2 * 60 * 60 * 1000;
 var KOPFAN_GRENZEN = [3,10,15,30];
@@ -1105,6 +1108,35 @@ function setZustand(zustand) {
 // ============================================================
 // KOGNITIV-TIMER — eine Definition, parametrisiert
 // ============================================================
+// ============================================================
+// AUDIO — Web Audio API, wird beim ersten Timer-Start freigeschaltet
+// ============================================================
+var _audioCtx = null;
+
+function initAudio() {
+  if (_audioCtx) { return; }
+  try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+}
+
+function beepWarnung(anzahl) {
+  if (!_audioCtx) { return; }
+  // anzahl: 1 = eine Stufe vorher (sanft), 2 = Grenze erreicht (dringend)
+  var now = _audioCtx.currentTime;
+  for (var i = 0; i < anzahl; i++) {
+    var osc = _audioCtx.createOscillator();
+    var gain = _audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(_audioCtx.destination);
+    osc.type = "sine";
+    osc.frequency.value = anzahl === 1 ? 660 : 880;
+    gain.gain.setValueAtTime(0, now + i * 0.25);
+    gain.gain.linearRampToValueAtTime(0.4, now + i * 0.25 + 0.02);
+    gain.gain.linearRampToValueAtTime(0, now + i * 0.25 + 0.18);
+    osc.start(now + i * 0.25);
+    osc.stop(now + i * 0.25 + 0.2);
+  }
+}
+
 function kopfAnStart(typ) {
   typ=typ||'leicht'; if(state.max<=0){showToast("Bitte erst den Tag starten!");return;}
   var isK=(typ==='komplex');
@@ -1114,6 +1146,7 @@ function kopfAnStart(typ) {
   var farbe=isK?"#3a0ca3":"#5856d6";
   if (isK) { if(_kopfAnKomplexStartTs){return;} _kopfAnKomplexStartTs=Date.now(); }
   else { if(_kopfAnStartTs){return;} _kopfAnStartTs=Date.now(); }
+  initAudio();
   document.getElementById(ruheId).classList.add("hidden");
   document.getElementById(laeuftId).classList.add("active");
   var timerEl=document.getElementById(timerId);
@@ -1124,7 +1157,12 @@ function kopfAnStart(typ) {
     var sek=Math.floor((Date.now()-startTs)/1000), min=Math.floor(sek/60), sec=sek%60;
     timerEl.textContent=min+":"+(sec<10?"0":"")+sec;
     var f=farbe;
-    for(var gi=0;gi<grenzen.length;gi++){if(sek>=grenzen[gi]*60){f="#ff3b30";}else if(sek>=grenzen[gi]*60-20){f="#ff9500";}}
+    for(var gi=0;gi<grenzen.length;gi++){
+      var grenzSek=grenzen[gi]*60;
+      if(sek===grenzSek-10){beepWarnung(1);}   // 10 Sek Vorwarnung: 1 Ton
+      if(sek===grenzSek){beepWarnung(2);}       // Grenze erreicht: 2 Töne
+      if(sek>=grenzSek){f="#ff3b30";}else if(sek>=grenzSek-20){f="#ff9500";}
+    }
     timerEl.style.color=f;
   },1000);
   if (isK) { _kopfAnKomplexInterval=interval; } else { _kopfAnInterval=interval; }
@@ -1317,6 +1355,7 @@ function koerperStart(typ) {
   if (state.max<=0){showToast("Bitte erst den Tag starten!");return;}
   if (_koerperStartTs[typ]){return;}
   _koerperStartTs[typ]=Date.now();
+  initAudio();
   var grenzen=typ==='leicht'?KOERPER_LEICHT_GRENZEN:KOERPER_SCHWER_GRENZEN;
   var farbe0=typ==='leicht'?"#007aff":"#ff9500";
   var ruheId=typ==='leicht'?"koerperLeichtRuhe":"koerperSchwerRuhe";
@@ -1329,7 +1368,12 @@ function koerperStart(typ) {
     var gs=Math.floor((Date.now()-_koerperStartTs[typ])/1000), min=Math.floor(gs/60), sec=gs%60;
     timerEl.textContent=min+":"+(sec<10?"0":"")+sec;
     var farbe=farbe0;
-    for(var gi=0;gi<grenzen.length;gi++){var gs2=grenzen[gi]*60;if(gs>=gs2){farbe="#ff3b30";}else if(gs2-gs<=20){farbe="#ff9500";}}
+    for(var gi=0;gi<grenzen.length;gi++){
+      var grenzSek=grenzen[gi]*60;
+      if(gs===grenzSek-10){beepWarnung(1);}
+      if(gs===grenzSek){beepWarnung(2);}
+      if(gs>=grenzSek){farbe="#ff3b30";}else if(grenzSek-gs<=20){farbe="#ff9500";}
+    }
     timerEl.style.color=farbe;
   },1000);
 }
@@ -1622,40 +1666,118 @@ function renderAktiveSymptome() {
 function updateToepfe() {
   if(state.max<=0){return;}
   var stundeJetzt=new Date().getHours()+new Date().getMinutes()/60;
-  var budgets=[Math.round(state.max*TOPF_ANTEIL[0]),Math.round(state.max*TOPF_ANTEIL[1]),Math.round(state.max*TOPF_ANTEIL[2]),Math.round(state.max*TOPF_ANTEIL[3])];
   var heute=new Date(); heute.setHours(0,0,0,0);
-  var grenzen=[heute.getTime()+TOPF_ENDE_H[0]*3600000,heute.getTime()+TOPF_ENDE_H[1]*3600000,heute.getTime()+TOPF_ENDE_H[2]*3600000,Infinity];
+  var grenzen=[
+    heute.getTime()+TOPF_ENDE_H[0]*3600000,
+    heute.getTime()+TOPF_ENDE_H[1]*3600000,
+    heute.getTime()+TOPF_ENDE_H[2]*3600000,
+    Infinity
+  ];
   var startTs=heute.getTime()+TOPF_START_H*3600000;
+
+  // Rohbudgets
+  var budgets=[
+    Math.round(state.max*TOPF_ANTEIL[0]),
+    Math.round(state.max*TOPF_ANTEIL[1]),
+    Math.round(state.max*TOPF_ANTEIL[2]),
+    Math.round(state.max*TOPF_ANTEIL[3])
+  ];
+  // Notstrom pro Topf (je 10%)
+  var notstrom=[
+    Math.round(budgets[0]*NOTSTROM_ANTEIL),
+    Math.round(budgets[1]*NOTSTROM_ANTEIL),
+    Math.round(budgets[2]*NOTSTROM_ANTEIL),
+    Math.round(budgets[3]*NOTSTROM_ANTEIL)
+  ];
+  // Nutzbares Budget pro Topf (ohne Notstrom)
+  var nutzbar=[
+    budgets[0]-notstrom[0],
+    budgets[1]-notstrom[1],
+    budgets[2]-notstrom[2],
+    budgets[3]-notstrom[3]
+  ];
+
+  // Verbrauch pro Topf
   var vr=[0,0,0,0];
   for(var i=0;i<state.used.length;i++){
     var u=state.used[i]; if(u.v<=0||!u.ts||u.ts<startTs){continue;}
-    if(u.ts<grenzen[0]){vr[0]+=u.v;}else if(u.ts<grenzen[1]){vr[1]+=u.v;}else if(u.ts<grenzen[2]){vr[2]+=u.v;}else{vr[3]+=u.v;}
+    if(u.ts<grenzen[0]){vr[0]+=u.v;}
+    else if(u.ts<grenzen[1]){vr[1]+=u.v;}
+    else if(u.ts<grenzen[2]){vr[2]+=u.v;}
+    else{vr[3]+=u.v;}
   }
+
+  // Overflow der ersten 3 Töpfe geht vom letzten Topf ab
+  var gesamtOverflow=0;
+  for(var oi=0;oi<3;oi++){
+    gesamtOverflow+=Math.max(0, vr[oi]-nutzbar[oi]);
+  }
+  // Effektives Budget T3 (Notstrom bleibt, aber Overflow reduziert es)
+  var budgetT3eff=Math.max(0, budgets[3]-gesamtOverflow);
+  var notstromT3eff=Math.min(notstrom[3], budgetT3eff);
+  var nutzbarT3eff=Math.max(0, budgetT3eff-notstromT3eff);
+
+  var budgetsAnz=[budgets[0],budgets[1],budgets[2],budgetT3eff];
+  var nutzbarAnz=[nutzbar[0],nutzbar[1],nutzbar[2],nutzbarT3eff];
+  var notstromAnz=[notstrom[0],notstrom[1],notstrom[2],notstromT3eff];
+
   var aktiverTopf=stundeJetzt<TOPF_ENDE_H[0]?0:stundeJetzt<TOPF_ENDE_H[1]?1:stundeJetzt<TOPF_ENDE_H[2]?2:3;
-  var overflow=0; for(var oi=0;oi<3;oi++){overflow+=Math.max(0,vr[oi]-budgets[oi]);}
-  var bT3eff=Math.max(0,budgets[3]-overflow);
-  var budgetsAnz=[budgets[0],budgets[1],budgets[2],bT3eff];
   var ids=["topf0","topf1","topf2","topf3"], hoehen=[24,24,50,56];
+
   for(var tt=0;tt<4;tt++){
-    var fill=document.getElementById(ids[tt]+"Fill"), lbl=document.getElementById(ids[tt]+"Label");
+    var fill=document.getElementById(ids[tt]+"Fill");
+    var bod=document.getElementById(ids[tt]+"Bodensatz");
+    var lbl=document.getElementById(ids[tt]+"Label");
     if(!fill||!lbl){continue;}
-    var ba=budgetsAnz[tt], ueb=vr[tt]>ba;
-    var pct=ba>0?Math.min(100,Math.round(vr[tt]/ba*100)):100;
+
+    var ba=budgetsAnz[tt];
+    var nu=nutzbarAnz[tt];
+    var ns=notstromAnz[tt];
+    var verbrauch=vr[tt];
+    var uebNutzbar=(verbrauch>nu);   // nutzbares Budget überschritten
+    var uebGesamt=(verbrauch>ba);    // sogar Notstrom angetastet
+
+    // Füllstand relativ zum Gesamtbudget
+    var pct=ba>0?Math.min(100,Math.round(verbrauch/ba*100)):100;
+    // Notstrom-Anteil in % des Gesamtbudgets
+    var bodPct=ba>0?Math.round(ns/ba*100):0;
+
     var istAktiv=(tt===aktiverTopf), istVerg=(tt<aktiverTopf);
-    var bgFarbe=ueb?"#ff3b30":pct>=90?"#ff3b30":pct>=70?"#ffcc00":"#34c759";
+
+    // Hintergrundfarbe des Topfes
+    var bgFarbe=uebGesamt?"#ff3b30":uebNutzbar?"#ff9500":pct>=(100-bodPct)*0.9?"#ffcc00":"#34c759";
+
     var cont=fill.parentElement;
-    cont.style.background=bgFarbe; cont.style.height=hoehen[tt]+"px";
-    cont.style.opacity=istVerg?"0.75":"1"; cont.style.outline=istAktiv?"2px solid #000":"none"; cont.style.borderRadius="6px";
-    fill.style.height=ueb?"100%":pct+"%"; fill.style.top="0"; fill.style.background="#aaa";
-    lbl.textContent=vr[tt]+"/"+budgetsAnz[tt]; lbl.style.color=ueb?"#ff3b30":istAktiv?"#000":"#555"; lbl.style.fontWeight="800";
-    if(tt===3){
-      var bod=document.getElementById("topf3Bodensatz");
-      if(bod&&budgetsAnz[3]>0){var ns=Math.round(budgetsAnz[3]*NOTSTROM_ANTEIL);var bp=Math.min(100,Math.round(ns/budgetsAnz[3]*100));bod.style.height=bp+"%";bod.style.zIndex=pct<(100-bp)?"1":"0";}
+    cont.style.background=bgFarbe;
+    cont.style.height=hoehen[tt]+"px";
+    cont.style.opacity=istVerg?"0.75":"1";
+    cont.style.outline=istAktiv?"2px solid #000":"none";
+    cont.style.borderRadius="6px";
+
+    fill.style.height=uebGesamt?"100%":pct+"%";
+    fill.style.top="0";
+    fill.style.background="#aaa";
+
+    // Bodensatz (Notstrom) in allen Töpfen anzeigen
+    if(bod && ba>0){
+      bod.style.height=bodPct+"%";
+      bod.style.background="#ff6b6b";
+      bod.style.borderTopColor="#cc0000";
+      // Hinter Fill verstecken wenn schon verbraucht
+      bod.style.zIndex=(pct<(100-bodPct))?"1":"0";
     }
+
+    lbl.textContent=verbrauch+"/"+nu; // zeigt verbrauch / nutzbares Budget
+    lbl.style.color=uebNutzbar?"#ff3b30":istAktiv?"#000":"#555";
+    lbl.style.fontWeight="800";
   }
+
   renderMainWarning();
   var aktWarn=getMainWarning();
-  if(!aktWarn||aktWarn.type!=="TOPF"){var mwb2=document.getElementById("mainWarnBar");if(mwb2&&mwb2._currentType==="TOPF"){mwb2.style.display="none";mwb2._dismissed=false;mwb2._currentType=null;_lastWarnType=null;}}
+  if(!aktWarn||aktWarn.type!=="TOPF"){
+    var mwb2=document.getElementById("mainWarnBar");
+    if(mwb2&&mwb2._currentType==="TOPF"){mwb2.style.display="none";mwb2._dismissed=false;mwb2._currentType=null;_lastWarnType=null;}
+  }
 }
 
 function updateLiegebalken() {
