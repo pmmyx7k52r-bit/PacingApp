@@ -151,10 +151,13 @@ input, select {
 
 <div id="statusWrap" class="status-wrap">
   <div class="status bg-green" id="boxSpielraum" style="flex:2;">
-    <span id="labelSpielraum">Spielraum</span>
-    <span id="valSpielraum" class="big">0</span>
+    <span id="labelSpielraum" style="font-size:0.7rem;font-weight:600;opacity:0.85;">Spielraum</span>
+    <span id="valTopfRest" class="big">0</span>
     <span id="statusMsg" class="status-msg"></span>
-    <span id="restAnzeige" style="font-size:0.7rem;font-weight:600;margin-top:3px;display:block;opacity:0.85;">Notstrom: 0</span>
+    <span id="topfInfo" style="font-size:0.7rem;font-weight:700;margin-top:4px;display:block;line-height:1.6;">
+      <span id="topfNotstrom" style="opacity:0.75;"></span><br>
+      <span id="valSpielraum" style="opacity:0.7;font-size:0.65rem;"></span>
+    </span>
   </div>
   <div id="topfWrap" style="display:flex;flex-direction:column;align-items:center;padding:4px 4px;">
     <div style="font-size:8px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:0.5px;">Energiebudget</div>
@@ -432,7 +435,7 @@ var TIMER_WARN_NIEDRIG = 20; var TIMER_VORZWANG_NIEDRIG = 27; var TIMER_ZWANG_NI
 var TOPF_ANTEIL = [0.25, 0.25, 0.25, 0.25];
 var TOPF_ENDE_H = [9.0, 12.0, 15.0, 24.0];
 var TOPF_START_H = 5.0;
-var NOTSTROM_ANTEIL = 0.10;
+var NOTSTROM_ANTEIL = 0.20;
 var SYMPTOM_BODENSATZ = { 3:[3,5,8], 6:[3,6,10], 7:[3,6,10] };
 var ZUSTAND_CHECK_MS = 2 * 60 * 60 * 1000;
 var KOPFAN_GRENZEN = [3,10,15,30];
@@ -777,8 +780,43 @@ function updateDisplay() {
   var grenze=Math.ceil(state.max*GRENZE_ROT);
   var spielraum=Math.max(0, state.cur-grenze);
   document.getElementById("valSpielraum").textContent=spielraum;
-  var restEl=document.getElementById("restAnzeige");
-  if (restEl) { restEl.textContent="Notstrom: "+Math.round(Math.max(0,state.max*TOPF_ANTEIL[3]*NOTSTROM_ANTEIL)); }
+
+  // Aktuellen Topf berechnen
+  var stundeJetzt=new Date().getHours()+new Date().getMinutes()/60;
+  var aktiverTopf=stundeJetzt<TOPF_ENDE_H[0]?0:stundeJetzt<TOPF_ENDE_H[1]?1:stundeJetzt<TOPF_ENDE_H[2]?2:3;
+  var topfNamen=["bis 9:00","bis 12:00","bis 15:00","ab 15:00"];
+
+  // Budget und Verbrauch des aktiven Topfes
+  var budgetTopf=Math.round(state.max*TOPF_ANTEIL[aktiverTopf]);
+  var notstromTopf=Math.round(budgetTopf*NOTSTROM_ANTEIL);
+  var nutzbarTopf=budgetTopf-notstromTopf;
+  // Verbrauch im aktiven Topf
+  var heute=new Date(); heute.setHours(0,0,0,0);
+  var grenzenTs=[
+    heute.getTime()+TOPF_ENDE_H[0]*3600000,
+    heute.getTime()+TOPF_ENDE_H[1]*3600000,
+    heute.getTime()+TOPF_ENDE_H[2]*3600000,
+    Infinity
+  ];
+  var startTs=heute.getTime()+TOPF_START_H*3600000;
+  var verbrauchTopf=0;
+  for (var i=0; i<state.used.length; i++) {
+    var u=state.used[i]; if(!u.v||u.v<=0||!u.ts||u.ts<startTs){continue;}
+    var ti=u.ts<grenzenTs[0]?0:u.ts<grenzenTs[1]?1:u.ts<grenzenTs[2]?2:3;
+    if(ti===aktiverTopf){verbrauchTopf+=u.v;}
+  }
+  var restTopf=Math.max(0, nutzbarTopf-verbrauchTopf);
+
+  var lbl=document.getElementById("labelSpielraum");
+  var topfRest=document.getElementById("topfRest");
+  var topfNotstrom=document.getElementById("topfNotstrom");
+  if(lbl){lbl.textContent="Spielraum bis "+topfNamen[aktiverTopf];}
+  var valTopfRest=document.getElementById("valTopfRest");
+  if(valTopfRest){valTopfRest.textContent=restTopf;}
+  var valSp=document.getElementById("valSpielraum");
+  if(valSp){valSp.textContent="Gesamt: "+spielraum+" Pkt.";}
+  if(topfNotstrom){topfNotstrom.textContent="Notstrom: "+notstromTopf+" Pkt.";}
+
   renderStatus(spielraum); renderPemHeader(); renderUsed(); checkRollingPene();
   updateToepfe(); updateLiegebalken();
 }
@@ -864,6 +902,21 @@ function doPauseBeginn() {
   document.getElementById("btnPauseBeginn").style.display="none";
   document.getElementById("btnPauseEnde").style.display="block";
   versteckeSperrBar();
+  // Kurz positive Meldung zeigen, dann erst wieder Warnungen erlauben
+  var mwbPos=document.getElementById("mainWarnBar");
+  if (mwbPos) {
+    mwbPos.style.display="block";
+    mwbPos.style.background="#34c759";
+    mwbPos.style.color="#fff";
+    mwbPos.style.animation="none";
+    mwbPos.style.cursor="pointer";
+    mwbPos.innerHTML="&#128564; Pause l\u00e4uft \u2014 sehr gut!<br><span style=\"font-size:11px;font-weight:400;opacity:0.8;\">Tippen zum Schlie\u00dfen</span>";
+    mwbPos.onclick=function(){this._dismissed=true;this.style.display="none";};
+    mwbPos._dismissed=false;
+    mwbPos._currentType=null;
+    _lastWarnType=null;
+    _lastWarnTs=Date.now()+15000; // 15 Sek Sperrfrist für neue Warnungen
+  }
   showToast("Pausenbeginn erfasst");
   updateDisplay();
 }
