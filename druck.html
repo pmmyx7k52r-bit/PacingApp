@@ -169,7 +169,7 @@ input, select {
           <div id="topf0Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;">Fr&uuml;h</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-          <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 10:30</div>
+          <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 12:00</div>
           <div style="width:26px;height:24px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
             <div id="topf1Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
             <div id="topf1Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
@@ -178,7 +178,7 @@ input, select {
         </div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 14:00</div>
+        <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">bis 15:00</div>
         <div style="width:26px;height:50px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
           <div id="topf2Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
           <div id="topf2Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
@@ -186,7 +186,7 @@ input, select {
         <div id="topf2Label" style="font-size:7px;font-weight:700;color:#000;text-align:center;line-height:1.2;">Mittag</div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">ab 14:00</div>
+        <div style="font-size:7px;font-weight:600;color:#000;opacity:0.7;">ab 15:00</div>
         <div style="width:26px;height:56px;background:#34c759;border-radius:6px;overflow:hidden;position:relative;">
           <div id="topf3Fill" style="width:100%;background:#aaa;transition:height 0.4s;height:0%;position:absolute;top:0;left:0;"></div>
           <div id="topf3Bodensatz" class="topf-bodensatz" style="height:0%;"></div>
@@ -429,8 +429,8 @@ var CRASH_AUFRECHT_MAX = 90;
 var TIMER_WARN_HOCH = 45; var TIMER_VORZWANG_HOCH = 55; var TIMER_ZWANG_HOCH = 60;
 var TIMER_WARN_MITTE = 30; var TIMER_VORZWANG_MITTE = 40; var TIMER_ZWANG_MITTE = 45;
 var TIMER_WARN_NIEDRIG = 20; var TIMER_VORZWANG_NIEDRIG = 27; var TIMER_ZWANG_NIEDRIG = 30;
-var TOPF_ANTEIL = [0.16, 0.16, 0.32, 0.36];
-var TOPF_ENDE_H = [9.0, 10.5, 14.0, 24.0];
+var TOPF_ANTEIL = [0.25, 0.25, 0.25, 0.25];
+var TOPF_ENDE_H = [9.0, 12.0, 15.0, 24.0];
 var TOPF_START_H = 5.0;
 var NOTSTROM_ANTEIL = 0.10;
 var SYMPTOM_BODENSATZ = { 3:[3,5,8], 6:[3,6,10], 7:[3,6,10] };
@@ -1838,7 +1838,7 @@ function resetSymptomeTopf() {
 function zeigeTopfWechsel(topfNr) {
   var bar=document.getElementById("topfWechselBar"), txt=document.getElementById("topfWechselText");
   if(!bar||!txt){return;}
-  var namen=["bis 9:00","bis 10:30","bis 14:00","ab 14:00"];
+  var namen=["bis 9:00","bis 12:00","bis 15:00","ab 15:00"];
   txt.innerHTML="\uD83D\uDD14 Neuer Block: <strong>"+(namen[topfNr]||"")+"</strong> \u2014 "+berechneEchteReserve()+" Punkte verf\u00fcgbar<br><span style='font-size:12px;font-weight:400;'>Symptome pr\u00fcfen!</span>";
   bar.style.display="block"; updatePaddingTop();
 }
