@@ -566,6 +566,7 @@ var _kopfAnInterval = null, _kopfAnKomplexInterval = null;
 var _kopfAnStartTs = null, _kopfAnKomplexStartTs = null;
 var _lastWarnType = null, _lastWarnTs = 0, _lastPauseEndeTs = 0;
 var _langePauseHingewiesen = false;
+var _t3warn = null;
 var _koerperInterval = {leicht:null, schwer:null};
 var _koerperStartTs  = {leicht:null, schwer:null};
 
@@ -648,6 +649,7 @@ window.onload = function() {
   if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
   minutenTimerInterval = setInterval(function() {
     if (state.max > 0) {
+      trackDayMinPct();
       updateToepfe(); updateLiegebalken(); renderMainWarning();
       checkLangePause(); checkTopfWechsel();
       if (Date.now()-_letzterZustandCheck >= ZUSTAND_CHECK_MS) { zeigeZustandsCheckBar(); }
@@ -864,7 +866,7 @@ function updateDisplay() {
   var valTopfRest=document.getElementById("valTopfRest");
   if(valTopfRest){valTopfRest.textContent=restTopf;}
   var valSp=document.getElementById("valSpielraum");
-  if(valSp){valSp.textContent="Gesamt: "+spielraum+" Pkt.";}
+  if(valSp){valSp.textContent="Energie: "+state.cur+" Pkt.";}
   var topfNotstrom=document.getElementById("topfNotstrom");
   if(topfNotstrom){
     if(restTopf>0){
@@ -1184,8 +1186,34 @@ function getMainWarning() {
   var bP=Math.round(state.max*BLOCK_PAUSE);
   if (pct<20) { return {type:"NOTBREMSE",text:"STOP! Energie kritisch - sofort hinlegen!",bg:"#000",color:"#ff3b30",blink:true}; }
   if (sc>=CRASH_SCORE_HOCH) { return {type:"CRASH_HIGH",text:"PEM-Risiko hoch! Sofort pausieren!",bg:"#ff3b30",color:"#fff",blink:true}; }
+
+  // Letzter Topf (T3) Überwachung — gleichmäßige Overflow-Verteilung
+  (function() {
+    var heute=new Date(); heute.setHours(0,0,0,0);
+    var startTs=heute.getTime()+TOPF_START_H*3600000;
+    var grenzenTs=[heute.getTime()+TOPF_ENDE_H[0]*3600000,heute.getTime()+TOPF_ENDE_H[1]*3600000,heute.getTime()+TOPF_ENDE_H[2]*3600000,Infinity];
+    var vr=[0,0,0,0];
+    for (var i=0;i<state.used.length;i++){var u=state.used[i];if(!u.v||u.v<=0||!u.ts||u.ts<startTs){continue;}var ti=u.ts<grenzenTs[0]?0:u.ts<grenzenTs[1]?1:u.ts<grenzenTs[2]?2:3;vr[ti]+=u.v;}
+    var budgets=[Math.round(state.max*TOPF_ANTEIL[0]),Math.round(state.max*TOPF_ANTEIL[1]),Math.round(state.max*TOPF_ANTEIL[2]),Math.round(state.max*TOPF_ANTEIL[3])];
+    var nutzbar=[budgets[0]-Math.round(budgets[0]*NOTSTROM_ANTEIL),budgets[1]-Math.round(budgets[1]*NOTSTROM_ANTEIL),budgets[2]-Math.round(budgets[2]*NOTSTROM_ANTEIL),budgets[3]-Math.round(budgets[3]*NOTSTROM_ANTEIL)];
+    var budgetsEff=[budgets[0],budgets[1],budgets[2],budgets[3]];
+    var notstromEff=[Math.round(budgets[0]*NOTSTROM_ANTEIL),Math.round(budgets[1]*NOTSTROM_ANTEIL),Math.round(budgets[2]*NOTSTROM_ANTEIL),Math.round(budgets[3]*NOTSTROM_ANTEIL)];
+    var nutzbarEff=[nutzbar[0],nutzbar[1],nutzbar[2],nutzbar[3]];
+    for (var oi=0;oi<3;oi++){var ovfl=Math.max(0,vr[oi]-nutzbarEff[oi]);if(ovfl<=0){continue;}var vbl=3-oi,abzug=Math.round(ovfl/vbl);for(var ri=oi+1;ri<4;ri++){budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug);notstromEff[ri]=Math.min(notstromEff[ri],budgetsEff[ri]);nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-notstromEff[ri]);}}
+    var restT3=Math.max(0,nutzbarEff[3]-vr[3]);
+    var nsT3=notstromEff[3];
+    // Warnung wenn letzter Topf in Notstrom-Nähe
+    if (restT3<=nsT3 && restT3>0) {
+      _t3warn={type:"T3_NOTSTROM",text:"Achtung! Letztes Tagesbudget fast aufgebraucht \u2014 PEM-Risiko!",bg:"#ff3b30",color:"#fff",blink:true};
+    } else if (restT3<=nsT3*2 && restT3>0) {
+      _t3warn={type:"T3_WARN",text:"Tagesbudget knapp \u2014 bitte hinlegen!",bg:"#ff9500",color:"#fff",blink:false};
+    } else {
+      _t3warn=null;
+    }
+  })();
   if (state.block>=bP) { return {type:"PEM_ZWANG",text:"PEM-Gefahr! Pause erzwingen!",bg:"#ff3b30",color:"#fff",blink:true}; }
   if (sc>=CRASH_SCORE_MITTEL) { return {type:"CRASH_MED",text:"PEM-Risiko steigt - Belastung reduzieren!",bg:"#ff9500",color:"#fff",blink:false}; }
+  if (_t3warn) { return _t3warn; }
   if (state.kurzPausen>=KURZPAUSEN_GRENZE) { return {type:"KURZPAUSEN",text:state.kurzPausen+"x kurze Pausen \u2014 jetzt richtig hinlegen!",bg:"#ff9500",color:"#fff",blink:false}; }
   if (auf>schwelle&&state.letzteLiegeZeit) { return {type:"AUFRECHT",text:auf+" Min. aufrecht - Liegepause sinnvoll",bg:"#ff9500",color:"#fff",blink:false}; }
   if (lastActionTime) {
@@ -1207,7 +1235,7 @@ function getMainWarning() {
 function renderMainWarning() {
   var bar=document.getElementById("mainWarnBar"); if (!bar) { return; }
   var warn=getMainWarning(), typ=warn?warn.type:null;
-  var nwD=(typ==="PEM_ZWANG"||typ==="CRASH_HIGH"||typ==="NOTBREMSE"||typ==="TIMER_ZWANG"||typ==="TOPF");
+  var nwD=(typ==="PEM_ZWANG"||typ==="CRASH_HIGH"||typ==="NOTBREMSE"||typ==="TIMER_ZWANG"||typ==="TOPF"||typ==="T3_NOTSTROM");
   if (bar._dismissed&&!nwD) { return; }
   if (nwD) { bar._dismissed=false; }
   if (typ!==_lastWarnType) {
