@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.37</title>
+<title>PacingApp 6.0.9.41</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -483,6 +483,33 @@ function storeSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
   } catch(e) {}
 })();
 
+// Systemgrenzen aus localStorage laden
+(function() {
+  var g; try { g = localStorage.getItem("pacing_sys_grenzen"); } catch(e) { return; }
+  if (!g) { return; }
+  try {
+    var d = JSON.parse(g);
+    if (d.notstrom   != null) { NOTSTROM_ANTEIL          = d.notstrom; }
+    if (d.blockWarn  != null) { BLOCK_WARN                = d.blockWarn; }
+    if (d.blockPause != null) { BLOCK_PAUSE               = d.blockPause; }
+    if (d.regenPkt   != null) { REGEN_PRO_10_MIN          = d.regenPkt; }
+    if (d.regenMax   != null) { REGEN_MAX_ANTEIL          = d.regenMax; }
+    if (d.kpGrenze   != null) { KURZPAUSEN_GRENZE         = d.kpGrenze; }
+    if (d.kpAbzug    != null) { KURZPAUSE_ABZUG           = d.kpAbzug; }
+    if (d.crashHoch  != null) { CRASH_SCORE_HOCH          = d.crashHoch; }
+    if (d.crashMit   != null) { CRASH_SCORE_MITTEL        = d.crashMit; }
+    if (d.crashBelH  != null) { CRASH_BELASTUNG_HOCH      = d.crashBelH; }
+    if (d.crashBelM  != null) { CRASH_BELASTUNG_MITTEL    = d.crashBelM; }
+    if (d.crashAufr  != null) { CRASH_AUFRECHT_MAX        = d.crashAufr; }
+    if (d.aufrHoch   != null) { AUFRECHT_SCHWELLE_HOCH    = d.aufrHoch; }
+    if (d.aufrMitte  != null) { AUFRECHT_SCHWELLE_MITTE   = d.aufrMitte; }
+    if (d.aufrNiedr  != null) { AUFRECHT_SCHWELLE_NIEDRIG = d.aufrNiedr; }
+    if (d.zuvielPkt  != null) { ZUVIEL_PUNKTE             = d.zuvielPkt; }
+    if (d.zuvielFen  != null) { ZUVIEL_FENSTER_MS         = d.zuvielFen * 60 * 1000; }
+    if (d.zuvielPau  != null) { ZUVIEL_PAUSE_MIN          = d.zuvielPau; }
+  } catch(e) {}
+})();
+
 // ============================================================
 // STATE
 // ============================================================
@@ -868,8 +895,24 @@ function updateDisplay() {
   if(lbl){lbl.textContent="Spielraum "+topfPre[aktiverTopf]+topfNamen[aktiverTopf];}
   var valTopfRest=document.getElementById("valTopfRest");
   if(valTopfRest){valTopfRest.textContent=restTopf;}
+
+  // Echte verbleibende Reserve über alle noch kommenden Töpfe (Overflow-bereinigt)
+  var echteReserve = berechneEchteReserve();
+  // Gesamter noch verfügbarer Notstrom über alle verbleibenden Töpfe
+  var notstromGesamt = 0;
+  for (var nti = aktiverTopf; nti < 4; nti++) { notstromGesamt += notstromEff[nti]; }
+  var gesamtVerfuegbar = echteReserve + notstromGesamt;
+
   var valSp=document.getElementById("valSpielraum");
-  if(valSp){valSp.textContent="Energie: "+state.cur+" Pkt.";}
+  if(valSp){
+    if (gesamtVerfuegbar < state.cur) {
+      // Overflow hat Energie geschrumpft — erklären
+      valSp.textContent="Noch verf\u00fcgbar: "+gesamtVerfuegbar+" Pkt. (Rohwert "+state.cur+" \u2192 Overflow in fr\u00fcheren Bl\u00f6cken)";
+    } else {
+      valSp.textContent="Noch verf\u00fcgbar: "+gesamtVerfuegbar+" Pkt.";
+    }
+  }
+
   var topfNotstrom=document.getElementById("topfNotstrom");
   if(topfNotstrom){
     if(restTopf>0){
@@ -882,29 +925,32 @@ function updateDisplay() {
   var gesamt=getGesamtMinuten();
   var liegeAnteil=gesamt>0?getLiegendMinuten()/gesamt:0;
 
-  renderStatus(restTopf, notstromTopf, liegeAnteil);
+  renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil);
   renderPemHeader(); renderUsed(); checkRollingPene();
   updateToepfe(); updateLiegebalken();
 }
 
-function renderStatus(restTopf, notstromTopf, liegeAnteil) {
+function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil) {
   var body=document.getElementById("mainBody"), bS=document.getElementById("boxSpielraum"), msg=document.getElementById("statusMsg");
   body.className=""; bS.className="status";
 
   var liegeWarn = liegeAnteil < 0.15 ? 2 : liegeAnteil < 0.25 ? 1 : 0;
 
-  var schwelleRot    = notstromTopf;
-  var schwelleOrange = notstromTopf * 2;
-  var schwelleGelb   = notstromTopf * 3;
+  // Schwellen prozentual vom nutzbaren Topf-Budget
+  // >60% grün, 30-60% gelb, 10-30% orange, <10% oder Notstrom rot
+  var basis = nutzbarTopf > 0 ? nutzbarTopf : 1;
+  var pctRest = restTopf / basis;
 
   var farbe, meldung;
   if (restTopf <= 0) {
     farbe = "red"; meldung = "STOP! Notstrom aufgebraucht!";
-  } else if (restTopf <= schwelleRot) {
+  } else if (restTopf <= notstromTopf) {
     farbe = "red"; meldung = "STOP! Im Notstrom-Bereich!";
-  } else if (restTopf <= schwelleOrange) {
+  } else if (pctRest <= 0.10) {
+    farbe = "red"; meldung = liegeWarn > 0 ? "Kritisch! Sofort hinlegen!" : "Kritisch! Kaum noch Reserve!";
+  } else if (pctRest <= 0.30) {
     farbe = "orange"; meldung = liegeWarn > 0 ? "Langsam! Zu wenig gelegen!" : "Langsam! Nur noch Reserve!";
-  } else if (restTopf <= schwelleGelb) {
+  } else if (pctRest <= 0.60) {
     farbe = "yellow"; meldung = liegeWarn > 0 ? "Achtsam! Mehr hinlegen!" : "Achtsam! Pausen einplanen!";
   } else {
     if (liegeWarn >= 2) { farbe = "orange"; meldung = "Gut \u2014 aber jetzt hinlegen!"; }
@@ -912,10 +958,10 @@ function renderStatus(restTopf, notstromTopf, liegeAnteil) {
     else { farbe = "green"; meldung = "Alles gut! Achtsam bleiben!"; }
   }
 
-  if (farbe==="red")    { body.classList.add("mode-red");    bS.classList.add("bg-red"); }
+  if (farbe==="red")         { body.classList.add("mode-red");    bS.classList.add("bg-red"); }
   else if (farbe==="orange") { body.classList.add("mode-orange"); bS.classList.add("bg-orange"); }
   else if (farbe==="yellow") { body.classList.add("mode-yellow"); bS.classList.add("bg-yellow"); }
-  else                  { body.classList.add("mode-green");  bS.classList.add("bg-green"); }
+  else                       { body.classList.add("mode-green");  bS.classList.add("bg-green"); }
   msg.textContent = meldung;
 }
 
@@ -1350,6 +1396,42 @@ function kopfAnStart(typ) {
   if (isK) { _kopfAnKomplexInterval=interval; } else { _kopfAnInterval=interval; }
 }
 
+// Hilfsfunktion: Topf-Split bei Timer-Stopp
+// Gibt Array von Eintraegen zurueck — einen wenn gleicher Topf, zwei wenn Topfgrenze ueberschritten
+function berechneTopfSplit(startTs, jetztTs, basisLabel, grenzen, pa) {
+  var heute = new Date(); heute.setHours(0,0,0,0);
+  var topfGrenzenTs = [
+    heute.getTime() + TOPF_ENDE_H[0]*3600000,
+    heute.getTime() + TOPF_ENDE_H[1]*3600000,
+    heute.getTime() + TOPF_ENDE_H[2]*3600000,
+    Infinity
+  ];
+  function topfFuer(ts) {
+    return ts < topfGrenzenTs[0] ? 0 : ts < topfGrenzenTs[1] ? 1 : ts < topfGrenzenTs[2] ? 2 : 3;
+  }
+  function punkteFuer(minuten) {
+    var p = pa[pa.length-1];
+    for (var i=0; i<grenzen.length; i++) { if (minuten < grenzen[i]) { p = pa[i]; break; } }
+    return p;
+  }
+  var topfStart = topfFuer(startTs);
+  var topfEnde  = topfFuer(jetztTs);
+  var gesamtMin = Math.floor((jetztTs - startTs) / 60000);
+  if (topfStart === topfEnde) {
+    return [{ts: jetztTs, punkte: punkteFuer(gesamtMin), label: basisLabel + " (" + gesamtMin + " Min.)"}];
+  }
+  var grenzTs = topfGrenzenTs[topfStart];
+  var minAlt  = Math.floor((grenzTs - startTs) / 60000);
+  var minNeu  = Math.floor((jetztTs - grenzTs) / 60000);
+  var gesamtPunkte = punkteFuer(gesamtMin);
+  var pktAlt = gesamtMin > 0 ? Math.round(gesamtPunkte * minAlt / gesamtMin) : 0;
+  var pktNeu = gesamtPunkte - pktAlt;
+  return [
+    {ts: grenzTs - 1000, punkte: pktAlt, label: basisLabel + " (" + minAlt + " Min., Topf 1/2)"},
+    {ts: jetztTs,        punkte: pktNeu, label: basisLabel + " (" + minNeu + " Min., Topf 2/2)"}
+  ];
+}
+
 function kopfAnStop(typ) {
   typ=typ||'leicht'; var isK=(typ==='komplex');
   var startTs=isK?_kopfAnKomplexStartTs:_kopfAnStartTs;
@@ -1365,20 +1447,26 @@ function kopfAnStop(typ) {
   document.getElementById(ruheId).classList.remove("hidden");
   document.getElementById(timerId).textContent="0:00";
   document.getElementById(timerId).style.color=farbe;
-  var sek=Math.floor((Date.now()-startTs)/1000), min=Math.floor(sek/60);
+  var jetztTs=Date.now();
+  var sek=Math.floor((jetztTs-startTs)/1000);
   if (sek<10) { showToast("Abgebrochen"); return; }
   var grenzen=isK?KOPFAN_KOMPLEX_GRENZEN:KOPFAN_GRENZEN;
   var pa=isK?KOPFAN_KOMPLEX_PUNKTE:KOPFAN_PUNKTE;
-  var punkte=pa[pa.length-1];
-  for (var i=0;i<grenzen.length;i++){if(min<grenzen[i]){punkte=pa[i];break;}}
-  var label=(isK?"Kognitiv komplex":"Kognitiv leicht")+" ("+min+" Min.)";
+  var basisLabel=isK?"Kognitiv komplex":"Kognitiv leicht";
+  var splits=berechneTopfSplit(startTs, jetztTs, basisLabel, grenzen, pa);
   if (state.pauseBeginnTs){endePause(true);}
+  var gesamtPunkte=0;
   mutateState(function(s){
-    s.block+=punkte; s.used.push({n:label,v:punkte,ts:Date.now(),t:nowTime(),pos:"aufrecht"});
-    if(!s.aufrechtSeitTs){s.aufrechtSeitTs=Date.now();}
+    for (var i=0; i<splits.length; i++) {
+      var sp=splits[i];
+      s.block+=sp.punkte; gesamtPunkte+=sp.punkte;
+      s.used.push({n:sp.label, v:sp.punkte, ts:sp.ts, t:new Date(sp.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}), pos:"aufrecht"});
+    }
+    if(!s.aufrechtSeitTs){s.aufrechtSeitTs=jetztTs;}
   });
   checkPemPenalty(); trackDayMinPct(); updateDisplay(); startPauseTimer();
-  showToast(label+" = "+punkte+" Punkte");
+  var gesamtMin=Math.floor(sek/60);
+  showToast(basisLabel+" ("+gesamtMin+" Min.) = "+gesamtPunkte+" Pkt."+(splits.length>1?" [2 T\u00f6pfe]":""));
 }
 
 function kopfAnNacherfassen(stufe, typ) {
@@ -1463,6 +1551,53 @@ function renderGrenzenEditor() {
     html += "</div>";
   }
   html += "<button type=\"button\" onclick=\"speichereAlleGrenzen()\" style=\"background:#34c759;color:#fff;width:100%;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:8px;\">Speichern</button>";
+
+  // ---- Systemgrenzen ----
+  html += "<div style=\"border-top:2px solid #e5e5ea;margin:14px 0 10px;\"></div>";
+  html += "<div style=\"font-weight:800;color:#333;font-size:12px;letter-spacing:0.5px;margin-bottom:10px;\">&#9881;&#65039; SYSTEMGRENZEN</div>";
+
+  function sysRow(label, idVal, val, einheit) {
+    return "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">"
+      + "<span style=\"font-size:11px;color:#444;flex:1;\">" + label + "</span>"
+      + "<div style=\"display:flex;align-items:center;gap:4px;\">"
+      + "<input id=\"" + idVal + "\" type=\"number\" value=\"" + val + "\" step=\"any\" style=\"width:60px;text-align:center;padding:5px 4px;font-size:12px;border:1px solid #ddd;border-radius:6px;margin-top:0;\">"
+      + "<span style=\"font-size:10px;color:#888;white-space:nowrap;\">" + einheit + "</span>"
+      + "</div></div>";
+  }
+
+  html += "<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:6px 0 4px;\">ENERGIE-PUFFER</div>";
+  html += sysRow("Notstrom-Anteil", "sg_notstrom", Math.round(NOTSTROM_ANTEIL*100), "%");
+  html += sysRow("Block-Warn ab", "sg_blockWarn", Math.round(BLOCK_WARN*100), "% des Max");
+  html += sysRow("Block-Pause ab", "sg_blockPause", Math.round(BLOCK_PAUSE*100), "% des Max");
+
+  html += "<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">REGENERATION</div>";
+  html += sysRow("Regen pro 10 Min. Liegen", "sg_regenPkt", REGEN_PRO_10_MIN, "Pkt.");
+  html += sysRow("Regen max. Anteil/Tag", "sg_regenMax", Math.round(REGEN_MAX_ANTEIL*100), "%");
+
+  html += "<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">KURZPAUSEN-STRAFE</div>";
+  html += sysRow("Kurzpausen-Grenze", "sg_kpGrenze", KURZPAUSEN_GRENZE, "x");
+  html += sysRow("Strafabzug", "sg_kpAbzug", KURZPAUSE_ABZUG, "Pkt.");
+
+  html += "<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">ZU-VIEL-WARNUNG</div>";
+  html += sysRow("Schwelle", "sg_zuvielPkt", ZUVIEL_PUNKTE, "Pkt. / 30 Min.");
+  html += sysRow("Zeitfenster", "sg_zuvielFen", Math.round(ZUVIEL_FENSTER_MS/60000), "Min.");
+  html += sysRow("Pause zum Reset", "sg_zuvielPau", ZUVIEL_PAUSE_MIN, "Min.");
+
+  html += "<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">CRASH-SCORE</div>";
+  html += sysRow("Score Hoch (sofort Pause)", "sg_crashHoch", CRASH_SCORE_HOCH, "Pkt.");
+  html += sysRow("Score Mittel (Warnung)", "sg_crashMit", CRASH_SCORE_MITTEL, "Pkt.");
+  html += sysRow("Belastung Hoch (2h)", "sg_crashBelH", CRASH_BELASTUNG_HOCH, "Pkt.");
+  html += sysRow("Belastung Mittel (2h)", "sg_crashBelM", CRASH_BELASTUNG_MITTEL, "Pkt.");
+  html += sysRow("Aufrecht-Max (2h)", "sg_crashAufr", CRASH_AUFRECHT_MAX, "Min.");
+
+  html += "<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">AUFRECHT-SCHWELLEN</div>";
+  html += sysRow("Schwelle Hoch (Energie \u226550%)", "sg_aufrHoch", AUFRECHT_SCHWELLE_HOCH, "Min.");
+  html += sysRow("Schwelle Mitte (25\u201349%)", "sg_aufrMitte", AUFRECHT_SCHWELLE_MITTE, "Min.");
+  html += sysRow("Schwelle Niedrig (&lt;25%)", "sg_aufrNiedr", AUFRECHT_SCHWELLE_NIEDRIG, "Min.");
+
+  html += "<button type=\"button\" onclick=\"speichereSysGrenzen()\" style=\"background:#5856d6;color:#fff;width:100%;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:10px;\">Systemgrenzen speichern</button>";
+  html += "<button type=\"button\" onclick=\"resetSysGrenzen()\" style=\"background:none;border:1px solid #c7c7cc;color:#6e6e73;width:100%;padding:8px;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;margin-top:6px;\">Systemgrenzen zur\u00fccksetzen</button>";
+
   ed.innerHTML = html;
 }
 
@@ -1523,6 +1658,70 @@ function speichereAlleGrenzen() {
   showToast("Grenzen gespeichert");
 }
 
+function leseNumFeld(id, fallback) {
+  var el = document.getElementById(id);
+  if (!el) { return fallback; }
+  var v = parseFloat(el.value);
+  return isNaN(v) ? fallback : v;
+}
+
+function speichereSysGrenzen() {
+  NOTSTROM_ANTEIL          = leseNumFeld("sg_notstrom",   20) / 100;
+  BLOCK_WARN               = leseNumFeld("sg_blockWarn",  25) / 100;
+  BLOCK_PAUSE              = leseNumFeld("sg_blockPause", 33) / 100;
+  REGEN_PRO_10_MIN         = leseNumFeld("sg_regenPkt",   1);
+  REGEN_MAX_ANTEIL         = leseNumFeld("sg_regenMax",   20) / 100;
+  KURZPAUSEN_GRENZE        = leseNumFeld("sg_kpGrenze",   2);
+  KURZPAUSE_ABZUG          = leseNumFeld("sg_kpAbzug",    3);
+  ZUVIEL_PUNKTE            = leseNumFeld("sg_zuvielPkt",  10);
+  ZUVIEL_FENSTER_MS        = leseNumFeld("sg_zuvielFen",  30) * 60 * 1000;
+  ZUVIEL_PAUSE_MIN         = leseNumFeld("sg_zuvielPau",  20);
+  CRASH_SCORE_HOCH         = leseNumFeld("sg_crashHoch",  4);
+  CRASH_SCORE_MITTEL       = leseNumFeld("sg_crashMit",   2);
+  CRASH_BELASTUNG_HOCH     = leseNumFeld("sg_crashBelH",  18);
+  CRASH_BELASTUNG_MITTEL   = leseNumFeld("sg_crashBelM",  12);
+  CRASH_AUFRECHT_MAX       = leseNumFeld("sg_crashAufr",  90);
+  AUFRECHT_SCHWELLE_HOCH   = leseNumFeld("sg_aufrHoch",   45);
+  AUFRECHT_SCHWELLE_MITTE  = leseNumFeld("sg_aufrMitte",  35);
+  AUFRECHT_SCHWELLE_NIEDRIG= leseNumFeld("sg_aufrNiedr",  25);
+  storeSet("pacing_sys_grenzen", JSON.stringify({
+    notstrom:  Math.round(NOTSTROM_ANTEIL*100),
+    blockWarn: Math.round(BLOCK_WARN*100),
+    blockPause:Math.round(BLOCK_PAUSE*100),
+    regenPkt:  REGEN_PRO_10_MIN,
+    regenMax:  Math.round(REGEN_MAX_ANTEIL*100),
+    kpGrenze:  KURZPAUSEN_GRENZE,
+    kpAbzug:   KURZPAUSE_ABZUG,
+    zuvielPkt: ZUVIEL_PUNKTE,
+    zuvielFen: Math.round(ZUVIEL_FENSTER_MS/60000),
+    zuvielPau: ZUVIEL_PAUSE_MIN,
+    crashHoch: CRASH_SCORE_HOCH,
+    crashMit:  CRASH_SCORE_MITTEL,
+    crashBelH: CRASH_BELASTUNG_HOCH,
+    crashBelM: CRASH_BELASTUNG_MITTEL,
+    crashAufr: CRASH_AUFRECHT_MAX,
+    aufrHoch:  AUFRECHT_SCHWELLE_HOCH,
+    aufrMitte: AUFRECHT_SCHWELLE_MITTE,
+    aufrNiedr: AUFRECHT_SCHWELLE_NIEDRIG
+  }));
+  document.getElementById("alleGrenzenEditor").style.display = "none";
+  showToast("Systemgrenzen gespeichert");
+}
+
+function resetSysGrenzen() {
+  if (!confirm("Alle Systemgrenzen auf Standardwerte zur\u00fccksetzen?")) { return; }
+  try { localStorage.removeItem("pacing_sys_grenzen"); } catch(e) {}
+  NOTSTROM_ANTEIL=0.20; BLOCK_WARN=0.25; BLOCK_PAUSE=0.33;
+  REGEN_PRO_10_MIN=1; REGEN_MAX_ANTEIL=0.2;
+  KURZPAUSEN_GRENZE=2; KURZPAUSE_ABZUG=3;
+  ZUVIEL_PUNKTE=10; ZUVIEL_FENSTER_MS=30*60*1000; ZUVIEL_PAUSE_MIN=20;
+  CRASH_SCORE_HOCH=4; CRASH_SCORE_MITTEL=2;
+  CRASH_BELASTUNG_HOCH=18; CRASH_BELASTUNG_MITTEL=12; CRASH_AUFRECHT_MAX=90;
+  AUFRECHT_SCHWELLE_HOCH=45; AUFRECHT_SCHWELLE_MITTE=35; AUFRECHT_SCHWELLE_NIEDRIG=25;
+  document.getElementById("alleGrenzenEditor").style.display = "none";
+  showToast("Systemgrenzen zur\u00fcckgesetzt");
+}
+
 function koerperStart(typ) {
   if (state.max<=0){showToast("Bitte erst den Tag starten!");return;}
   if (_koerperStartTs[typ]){return;}
@@ -1553,7 +1752,7 @@ function koerperStart(typ) {
 function koerperStop(typ) {
   if (!_koerperStartTs[typ]){return;}
   clearInterval(_koerperInterval[typ]); _koerperInterval[typ]=null;
-  var sek=Math.floor((Date.now()-_koerperStartTs[typ])/1000), min=Math.floor(sek/60);
+  var startTs=_koerperStartTs[typ];
   _koerperStartTs[typ]=null;
   var ruheId=typ==='leicht'?"koerperLeichtRuhe":"koerperSchwerRuhe";
   var laeuftId=typ==='leicht'?"koerperLeichtLaeuft":"koerperSchwerLaeuft";
@@ -1562,19 +1761,26 @@ function koerperStop(typ) {
   document.getElementById(ruheId).style.display="flex";
   document.getElementById(timerId).textContent="0:00";
   document.getElementById(timerId).style.color=typ==='leicht'?"#007aff":"#ff9500";
+  var jetztTs=Date.now();
+  var sek=Math.floor((jetztTs-startTs)/1000);
   if (sek<10){showToast("Abgebrochen");return;}
   var grenzen=typ==='leicht'?KOERPER_LEICHT_GRENZEN:KOERPER_SCHWER_GRENZEN;
   var pa=typ==='leicht'?KOERPER_LEICHT_PUNKTE:KOERPER_SCHWER_PUNKTE;
-  var punkte=pa[pa.length-1];
-  for(var i=0;i<grenzen.length;i++){if(min<grenzen[i]){punkte=pa[i];break;}}
-  var label=(typ==='leicht'?"K\u00f6rperlich leicht":"K\u00f6rperlich anspruchsvoll")+" ("+min+" Min.)";
+  var basisLabel=typ==='leicht'?"K\u00f6rperlich leicht":"K\u00f6rperlich anspruchsvoll";
+  var splits=berechneTopfSplit(startTs, jetztTs, basisLabel, grenzen, pa);
   if (state.pauseBeginnTs){endePause(true);}
+  var gesamtPunkte=0;
   mutateState(function(s){
-    s.block+=punkte; s.used.push({n:label,v:punkte,ts:Date.now(),t:nowTime(),pos:"aufrecht"});
-    if(!s.aufrechtSeitTs){s.aufrechtSeitTs=Date.now();}
+    for (var i=0; i<splits.length; i++) {
+      var sp=splits[i];
+      s.block+=sp.punkte; gesamtPunkte+=sp.punkte;
+      s.used.push({n:sp.label, v:sp.punkte, ts:sp.ts, t:new Date(sp.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}), pos:"aufrecht"});
+    }
+    if(!s.aufrechtSeitTs){s.aufrechtSeitTs=jetztTs;}
   });
   checkPemPenalty(); trackDayMinPct(); updateDisplay(); startPauseTimer();
-  showToast(label+" = "+punkte+" Punkte");
+  var gesamtMin=Math.floor(sek/60);
+  showToast(basisLabel+" ("+gesamtMin+" Min.) = "+gesamtPunkte+" Pkt."+(splits.length>1?" [2 T\u00f6pfe]":""));
 }
 
 function koerperNacherfassen(typ, stufe) {
@@ -1979,6 +2185,13 @@ function checkTopfWechsel() {
   if(state.letzterTopf<0){mutateState(function(s){s.letzterTopf=aktiverTopf;});return;}
   if(aktiverTopf>state.letzterTopf){
     mutateState(function(s){s.letzterTopf=aktiverTopf;});
+    // Pause-Timer auf Topfgrenz-Zeitpunkt zurücksetzen, damit neuer Topf sauber zählt
+    if (lastActionTime) {
+      var heute2=new Date(); heute2.setHours(0,0,0,0);
+      var grenzTs=heute2.getTime()+TOPF_ENDE_H[aktiverTopf-1]*3600000;
+      lastActionTime=grenzTs;
+      storeSet("pacing_timer_start", String(lastActionTime));
+    }
     resetSymptomeTopf(); zeigeTopfWechsel(aktiverTopf);
   }
 }
