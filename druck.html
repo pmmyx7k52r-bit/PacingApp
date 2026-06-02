@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.35</title>
+<title>PacingApp 6.0.9.37</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -447,6 +447,11 @@ var KOERPER_LEICHT_PUNKTE  = [1,2,5,10,15,20];
 var KOERPER_SCHWER_GRENZEN = [1,3,10,20,30];
 var KOERPER_SCHWER_PUNKTE  = [2,4,8,15,20,25];
 
+// Zu-viel-Warnung: Schwelle und Zeitfenster
+var ZUVIEL_PUNKTE = 10;
+var ZUVIEL_FENSTER_MS = 30 * 60 * 1000;
+var ZUVIEL_PAUSE_MIN = 20;
+
 var PAUSE_WARN1_MIN = 30; var PAUSE_WARN2_MIN = 60; var PAUSE_NACHFRAGE_MIN = 90;
 var WARN_HYSTERESE_MS = 8000;
 var SYMPTOM_SCORE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -533,7 +538,6 @@ function berechneEchteReserve() {
   var bT3 = Math.max(0, budgets[3]-overflow);
   var bodensatz = Math.round(bT3 * NOTSTROM_ANTEIL);
   var aktiverTopf = stundeJetzt < TOPF_ENDE_H[0] ? 0 : stundeJetzt < TOPF_ENDE_H[1] ? 1 : stundeJetzt < TOPF_ENDE_H[2] ? 2 : 3;
-  // Gleichmäßige Verteilung
   var nutzbarR=[budgets[0]-Math.round(budgets[0]*NOTSTROM_ANTEIL),budgets[1]-Math.round(budgets[1]*NOTSTROM_ANTEIL),budgets[2]-Math.round(budgets[2]*NOTSTROM_ANTEIL),budgets[3]-Math.round(budgets[3]*NOTSTROM_ANTEIL)];
   var budgetsR=[budgets[0],budgets[1],budgets[2],budgets[3]];
   var notstromR=[Math.round(budgets[0]*NOTSTROM_ANTEIL),Math.round(budgets[1]*NOTSTROM_ANTEIL),Math.round(budgets[2]*NOTSTROM_ANTEIL),Math.round(budgets[3]*NOTSTROM_ANTEIL)];
@@ -567,6 +571,7 @@ var _kopfAnStartTs = null, _kopfAnKomplexStartTs = null;
 var _lastWarnType = null, _lastWarnTs = 0, _lastPauseEndeTs = 0;
 var _langePauseHingewiesen = false;
 var _t3warn = null;
+var _zuvielAktiv = false; // NEU: Zu-viel-Warnung aktiv bis Pause >= 20 Min.
 var _koerperInterval = {leicht:null, schwer:null};
 var _koerperStartTs  = {leicht:null, schwer:null};
 
@@ -734,6 +739,7 @@ function startDay() {
     s.kurzPausen=0; s.pauseBeginnTs=null; s.letzteLiegeZeit=Date.now();
     s.aufrechtSeitTs=null; s._faktor=faktor;
   });
+  _zuvielAktiv = false; // NEU: Zu-viel-Flag bei Tagesstart zurücksetzen
   showMainUI(); updateDisplay();
   if (faktor<1) { showToast("Limit -10% wegen Crash-Vortage"); }
   else if (faktor>1) { showToast("Limit +5% wegen stabiler Vortage!"); }
@@ -772,6 +778,9 @@ function endePauseStill() {
   for (var pi=state.used.length-1; pi>=0; pi--) { if(state.used[pi].n==="Pausenbeginn"){liegend=(state.used[pi].pos==="liegend");break;} }
   var regen=0;
   if (liegend && min>0) { var rm=Math.min(min,REGEN_MAX_MIN); regen=Math.floor(rm/10)*REGEN_PRO_10_MIN; regen=Math.min(regen,Math.floor(state.max*REGEN_MAX_ANTEIL)); }
+  // NEU: Zu-viel-Flag löschen + 2 Punkte Bonus wenn Pause >= 20 Min.
+  if (min >= ZUVIEL_PAUSE_MIN && liegend) { _zuvielAktiv = false; }
+  if (min >= ZUVIEL_PAUSE_MIN) { regen += 2; }
   mutateState(function(s) {
     s.used.push({n:"Pause beendet ("+min+" Min.)",v:0,ts:jetzt,t:nowTime(),pos:"aufrecht",regen:regen});
     s.pauseBeginnTs=null; s.aufrechtSeitTs=jetzt;
@@ -794,13 +803,11 @@ function updateDisplay() {
   var spielraum=Math.max(0, state.cur-grenze);
   document.getElementById("valSpielraum").textContent=spielraum;
 
-  // Aktuellen Topf berechnen
   var stundeJetzt=new Date().getHours()+new Date().getMinutes()/60;
   var aktiverTopf=stundeJetzt<TOPF_ENDE_H[0]?0:stundeJetzt<TOPF_ENDE_H[1]?1:stundeJetzt<TOPF_ENDE_H[2]?2:3;
   var topfNamen=["9:00","12:00","15:00","15:00"];
   var topfPre=["bis ","bis ","bis ","ab "];
 
-  // Verbrauch aller Töpfe berechnen (für Overflow)
   var heute=new Date(); heute.setHours(0,0,0,0);
   var grenzenTs=[
     heute.getTime()+TOPF_ENDE_H[0]*3600000,
@@ -816,7 +823,6 @@ function updateDisplay() {
     vrAlle[ti]+=u.v;
   }
 
-  // Budgets und Notstrom
   var budgets=[
     Math.round(state.max*TOPF_ANTEIL[0]),
     Math.round(state.max*TOPF_ANTEIL[1]),
@@ -836,7 +842,6 @@ function updateDisplay() {
     budgets[3]-notstromArr[3]
   ];
 
-  // Overflow gleichmäßig auf verbleibende Töpfe verteilen
   var nutzbarEff=[nutzbarArr[0],nutzbarArr[1],nutzbarArr[2],nutzbarArr[3]];
   var notstromEff=[notstromArr[0],notstromArr[1],notstromArr[2],notstromArr[3]];
   var budgetsEff=[budgets[0],budgets[1],budgets[2],budgets[3]];
@@ -852,13 +857,11 @@ function updateDisplay() {
     }
   }
 
-  // Werte für aktiven Topf
   var budgetTopf  = budgetsEff[aktiverTopf];
   var notstromTopf= notstromEff[aktiverTopf];
   var nutzbarTopf = nutzbarEff[aktiverTopf];
   var verbrauchTopf = vrAlle[aktiverTopf];
   var restTopf = Math.max(0, nutzbarTopf - verbrauchTopf);
-  // Notstrom-Rest: wie viel vom Notstrom noch übrig
   var notstromRest = Math.max(0, budgetTopf - Math.max(verbrauchTopf, nutzbarTopf));
 
   var lbl=document.getElementById("labelSpielraum");
@@ -876,7 +879,6 @@ function updateDisplay() {
     }
   }
 
-  // Liegeanteil für Farbkorrektur
   var gesamt=getGesamtMinuten();
   var liegeAnteil=gesamt>0?getLiegendMinuten()/gesamt:0;
 
@@ -891,7 +893,6 @@ function renderStatus(restTopf, notstromTopf, liegeAnteil) {
 
   var liegeWarn = liegeAnteil < 0.15 ? 2 : liegeAnteil < 0.25 ? 1 : 0;
 
-  // Farbschwellen fix auf Notstrom-Vielfachen — kein Liege-Einfluss auf Farbe
   var schwelleRot    = notstromTopf;
   var schwelleOrange = notstromTopf * 2;
   var schwelleGelb   = notstromTopf * 3;
@@ -906,7 +907,6 @@ function renderStatus(restTopf, notstromTopf, liegeAnteil) {
   } else if (restTopf <= schwelleGelb) {
     farbe = "yellow"; meldung = liegeWarn > 0 ? "Achtsam! Mehr hinlegen!" : "Achtsam! Pausen einplanen!";
   } else {
-    // Grün — aber Liegewarnung kann auf Gelb/Orange hochstufen
     if (liegeWarn >= 2) { farbe = "orange"; meldung = "Gut \u2014 aber jetzt hinlegen!"; }
     else if (liegeWarn >= 1) { farbe = "yellow"; meldung = "Gut \u2014 aber mehr hinlegen!"; }
     else { farbe = "green"; meldung = "Alles gut! Achtsam bleiben!"; }
@@ -991,7 +991,6 @@ function doPauseBeginn() {
   document.getElementById("btnPauseBeginn").style.display="none";
   document.getElementById("btnPauseEnde").style.display="block";
   versteckeSperrBar();
-  // Kurz positive Meldung zeigen, dann erst wieder Warnungen erlauben
   var mwbPos=document.getElementById("mainWarnBar");
   if (mwbPos) {
     mwbPos.style.display="block";
@@ -1004,7 +1003,7 @@ function doPauseBeginn() {
     mwbPos._dismissed=false;
     mwbPos._currentType=null;
     _lastWarnType=null;
-    _lastWarnTs=Date.now()+15000; // 15 Sek Sperrfrist für neue Warnungen
+    _lastWarnTs=Date.now()+15000;
   }
   showToast("Pausenbeginn erfasst");
   updateDisplay();
@@ -1023,6 +1022,11 @@ function endePause(auto) {
     var rm=auto?Math.min(min,PAUSE_MINDEST_MIN):Math.min(min,REGEN_MAX_MIN);
     regen=Math.floor(rm/10)*REGEN_PRO_10_MIN;
     regen=Math.min(regen,Math.floor(state.max*REGEN_MAX_ANTEIL));
+  }
+  // NEU: Zu-viel-Flag löschen + 2 Punkte Bonus wenn Pause >= 20 Min.
+  if (min >= ZUVIEL_PAUSE_MIN) {
+    _zuvielAktiv = false;
+    regen += 2;
   }
   var hinweis = min>=PAUSE_MINDEST_MIN&&liegend ? "Prima!" : min>=PAUSE_MINDEST_MIN ? "Liegepause w\u00e4re besser." : "Auf l\u00e4ngere Pausen achten.";
   mutateState(function(s) {
@@ -1184,10 +1188,24 @@ function getMainWarning() {
   var pct=(state.cur/state.max)*100, sc=getCrashScore(), auf=getAufrechtMinuten();
   var schwelle=pct>=50?AUFRECHT_SCHWELLE_HOCH:pct>=25?AUFRECHT_SCHWELLE_MITTE:AUFRECHT_SCHWELLE_NIEDRIG;
   var bP=Math.round(state.max*BLOCK_PAUSE);
+
+  // NEU: Zu-viel-Warnung — gleitendes 30-Min-Fenster, bleibt bis Pause >= 20 Min.
+  if (!_zuvielAktiv) {
+    var fenster30 = Date.now() - ZUVIEL_FENSTER_MS;
+    var last30 = 0;
+    for (var zi = 0; zi < state.used.length; zi++) {
+      var zu = state.used[zi];
+      if (zu.v > 0 && zu.ts && zu.ts >= fenster30) { last30 += zu.v; }
+    }
+    if (last30 >= ZUVIEL_PUNKTE) { _zuvielAktiv = true; }
+  }
+  if (_zuvielAktiv) {
+    return {type:"ZUVIEL", text:"Zu viel! Achtung! Dringend mindestens 20 Minuten Pause!", bg:"#ff3b30", color:"#fff", blink:true};
+  }
+
   if (pct<20) { return {type:"NOTBREMSE",text:"STOP! Energie kritisch - sofort hinlegen!",bg:"#000",color:"#ff3b30",blink:true}; }
   if (sc>=CRASH_SCORE_HOCH) { return {type:"CRASH_HIGH",text:"PEM-Risiko hoch! Sofort pausieren!",bg:"#ff3b30",color:"#fff",blink:true}; }
 
-  // Letzter Topf (T3) Überwachung — gleichmäßige Overflow-Verteilung
   (function() {
     var heute=new Date(); heute.setHours(0,0,0,0);
     var startTs=heute.getTime()+TOPF_START_H*3600000;
@@ -1202,7 +1220,6 @@ function getMainWarning() {
     for (var oi=0;oi<3;oi++){var ovfl=Math.max(0,vr[oi]-nutzbarEff[oi]);if(ovfl<=0){continue;}var vbl=3-oi,abzug=Math.round(ovfl/vbl);for(var ri=oi+1;ri<4;ri++){budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug);notstromEff[ri]=Math.min(notstromEff[ri],budgetsEff[ri]);nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-notstromEff[ri]);}}
     var restT3=Math.max(0,nutzbarEff[3]-vr[3]);
     var nsT3=notstromEff[3];
-    // Warnung wenn letzter Topf in Notstrom-Nähe
     if (restT3<=nsT3 && restT3>0) {
       _t3warn={type:"T3_NOTSTROM",text:"Achtung! Letztes Tagesbudget fast aufgebraucht \u2014 PEM-Risiko!",bg:"#ff3b30",color:"#fff",blink:true};
     } else if (restT3<=nsT3*2 && restT3>0) {
@@ -1235,7 +1252,8 @@ function getMainWarning() {
 function renderMainWarning() {
   var bar=document.getElementById("mainWarnBar"); if (!bar) { return; }
   var warn=getMainWarning(), typ=warn?warn.type:null;
-  var nwD=(typ==="PEM_ZWANG"||typ==="CRASH_HIGH"||typ==="NOTBREMSE"||typ==="TIMER_ZWANG"||typ==="TOPF"||typ==="T3_NOTSTROM");
+  // NEU: ZUVIEL ist nicht dismissbar
+  var nwD=(typ==="PEM_ZWANG"||typ==="CRASH_HIGH"||typ==="NOTBREMSE"||typ==="TIMER_ZWANG"||typ==="TOPF"||typ==="T3_NOTSTROM"||typ==="ZUVIEL");
   if (bar._dismissed&&!nwD) { return; }
   if (nwD) { bar._dismissed=false; }
   if (typ!==_lastWarnType) {
@@ -1274,10 +1292,7 @@ function setZustand(zustand) {
 }
 
 // ============================================================
-// KOGNITIV-TIMER — eine Definition, parametrisiert
-// ============================================================
-// ============================================================
-// AUDIO — Web Audio API, wird beim ersten Timer-Start freigeschaltet
+// KOGNITIV-TIMER
 // ============================================================
 var _audioCtx = null;
 
@@ -1288,7 +1303,6 @@ function initAudio() {
 
 function beepWarnung(anzahl) {
   if (!_audioCtx) { return; }
-  // anzahl: 1 = eine Stufe vorher (sanft), 2 = Grenze erreicht (dringend)
   var now = _audioCtx.currentTime;
   for (var i = 0; i < anzahl; i++) {
     var osc = _audioCtx.createOscillator();
@@ -1327,8 +1341,8 @@ function kopfAnStart(typ) {
     var f=farbe;
     for(var gi=0;gi<grenzen.length;gi++){
       var grenzSek=grenzen[gi]*60;
-      if(sek===grenzSek-10){beepWarnung(1);}   // 10 Sek Vorwarnung: 1 Ton
-      if(sek===grenzSek){beepWarnung(2);}       // Grenze erreicht: 2 Töne
+      if(sek===grenzSek-10){beepWarnung(1);}
+      if(sek===grenzSek){beepWarnung(2);}
       if(sek>=grenzSek){f="#ff3b30";}else if(sek>=grenzSek-20){f="#ff9500";}
     }
     timerEl.style.color=f;
@@ -1367,7 +1381,6 @@ function kopfAnStop(typ) {
   showToast(label+" = "+punkte+" Punkte");
 }
 
-// EINZIGE kopfAnNacherfassen-Definition (parametrisiert mit typ)
 function kopfAnNacherfassen(stufe, typ) {
   if (state.max<=0) { showToast("Bitte erst den Tag starten!"); return; }
   typ=typ||'leicht'; var isK=(typ==='komplex');
@@ -1386,7 +1399,7 @@ function kopfAnNacherfassen(stufe, typ) {
 }
 
 // ============================================================
-// KÖRPERLICH-TIMER — eine Definition, parametrisiert
+// KÖRPERLICH-TIMER
 // ============================================================
 function schnellErfassen(typ) {
   if (state.max<=0) { showToast("Bitte erst den Tag starten!"); return; }
@@ -1430,22 +1443,19 @@ function renderGrenzenEditor() {
   var html = "";
   for (var si = 0; si < sektionen.length; si++) {
     var s = sektionen[si];
-    var n = s.grenzen.length; // Anzahl Grenzen → n+1 Spalten
+    var n = s.grenzen.length;
     html += "<div style=\"font-weight:700;color:" + s.farbe + ";margin-bottom:6px;margin-top:" + (si > 0 ? "12px" : "0") + ";\">" + s.titel + "</div>";
     html += "<div style=\"display:grid;grid-template-columns:auto repeat(" + (n+1) + ",1fr);gap:4px;margin-bottom:4px;align-items:center;\">";
-    // Überschriften-Zeile
     html += "<div></div>";
     for (var gi = 0; gi < n; gi++) {
       html += "<div style=\"text-align:center;color:#666;font-size:10px;\">&lt;" + s.grenzen[gi] + "</div>";
     }
     html += "<div style=\"text-align:center;color:#666;font-size:10px;\">&gt;" + s.grenzen[n-1] + "</div>";
-    // Min-Zeile
     html += "<div style=\"color:#666;font-size:10px;\">Min.</div>";
     for (var gi2 = 0; gi2 < n; gi2++) {
       html += "<input id=\"" + s.gPre + gi2 + "\" type=\"number\" value=\"" + s.grenzen[gi2] + "\" style=\"text-align:center;padding:5px 2px;font-size:12px;border:1px solid #ddd;border-radius:6px;width:100%;box-sizing:border-box;\">";
     }
     html += "<div style=\"text-align:center;color:#aaa;\">&#8734;</div>";
-    // Pkt-Zeile
     html += "<div style=\"color:#666;font-size:10px;\">Pkt.</div>";
     for (var pi = 0; pi <= n; pi++) {
       html += "<input id=\"" + s.pPre + pi + "\" type=\"number\" value=\"" + s.punkte[pi] + "\" style=\"text-align:center;padding:5px 2px;font-size:12px;border:1px solid " + s.farbe + ";border-radius:6px;width:100%;box-sizing:border-box;\">";
@@ -1456,18 +1466,13 @@ function renderGrenzenEditor() {
   ed.innerHTML = html;
 }
 
-// Nacherfassen-Buttons dynamisch aus den Grenzen-Arrays rendern
 function renderNacherfassenButtons() {
-  // Kognitiv Leicht: 4 Grenzen → 5 Buttons (letzter ist >Grenze[3])
   renderNachBtns("nacherfassenKopfLeicht", KOPFAN_GRENZEN, "#8e8e93", "#ff9500",
     function(i){ return function(){ kopfAnNacherfassen(i,'leicht'); }; });
-  // Kognitiv Komplex
   renderNachBtns("nacherfassenKopfKomplex", KOPFAN_KOMPLEX_GRENZEN, "#8e8e93", "#ff3b30",
     function(i){ return function(){ kopfAnNacherfassen(i,'komplex'); }; });
-  // Körperlich Leicht: 5 Grenzen → 6 Buttons
   renderNachBtns("nacherfassenKoerperLeicht", KOERPER_LEICHT_GRENZEN, "#8e8e93", "#ff9500",
     function(i){ return function(){ koerperNacherfassen('leicht',i); }; });
-  // Körperlich Schwer
   renderNachBtns("nacherfassenKoerperSchwer", KOERPER_SCHWER_GRENZEN, "#8e8e93", "#ff3b30",
     function(i){ return function(){ koerperNacherfassen('schwer',i); }; });
 }
@@ -1476,7 +1481,6 @@ function renderNachBtns(containerId, grenzen, bgNormal, bgLetzt, handlerFn) {
   var container = document.getElementById(containerId);
   if (!container) { return; }
   container.innerHTML = "";
-  // Buttons <G[0], <G[1], ... <G[n-1], >G[n-1]
   for (var i = 0; i <= grenzen.length; i++) {
     var btn = document.createElement("button");
     btn.type = "button";
@@ -1573,7 +1577,6 @@ function koerperStop(typ) {
   showToast(label+" = "+punkte+" Punkte");
 }
 
-// EINZIGE koerperNacherfassen-Definition — kein direktes s.cur mehr
 function koerperNacherfassen(typ, stufe) {
   if (state.max<=0){showToast("Bitte erst den Tag starten!");return;}
   var grenzen=typ==='leicht'?KOERPER_LEICHT_GRENZEN:KOERPER_SCHWER_GRENZEN;
@@ -1731,6 +1734,7 @@ function resetDayInternal() {
   state=neuerLeerenState(); state.history=sh;
   storeSet(STORAGE_STATE,JSON.stringify(state)); storeSet(STORAGE_LOADS,JSON.stringify(loads));
   schlafWert=null; schlafMode=null;
+  _zuvielAktiv = false; // NEU: Flag beim Reset löschen
   var btns=document.querySelectorAll(".schlaf-btn"); for(var i=0;i<btns.length;i++){btns[i].classList.remove("selected");}
   document.getElementById("individuellRow").classList.remove("open");
   document.getElementById("sleep").value="";
@@ -1843,21 +1847,18 @@ function updateToepfe() {
   ];
   var startTs=heute.getTime()+TOPF_START_H*3600000;
 
-  // Rohbudgets
   var budgets=[
     Math.round(state.max*TOPF_ANTEIL[0]),
     Math.round(state.max*TOPF_ANTEIL[1]),
     Math.round(state.max*TOPF_ANTEIL[2]),
     Math.round(state.max*TOPF_ANTEIL[3])
   ];
-  // Notstrom pro Topf (je 10%)
   var notstrom=[
     Math.round(budgets[0]*NOTSTROM_ANTEIL),
     Math.round(budgets[1]*NOTSTROM_ANTEIL),
     Math.round(budgets[2]*NOTSTROM_ANTEIL),
     Math.round(budgets[3]*NOTSTROM_ANTEIL)
   ];
-  // Nutzbares Budget pro Topf (ohne Notstrom)
   var nutzbar=[
     budgets[0]-notstrom[0],
     budgets[1]-notstrom[1],
@@ -1865,7 +1866,6 @@ function updateToepfe() {
     budgets[3]-notstrom[3]
   ];
 
-  // Verbrauch pro Topf
   var vr=[0,0,0,0];
   for(var i=0;i<state.used.length;i++){
     var u=state.used[i]; if(u.v<=0||!u.ts||u.ts<startTs){continue;}
@@ -1875,16 +1875,13 @@ function updateToepfe() {
     else{vr[3]+=u.v;}
   }
 
-  // Overflow gleichmäßig auf verbleibende Töpfe verteilen
-  // Pro Topf: wenn er sein nutzbares Budget überschreitet, wird der Überschuss
-  // gleichmäßig auf alle noch kommenden Töpfe aufgeteilt
   var budgetsEff = [budgets[0], budgets[1], budgets[2], budgets[3]];
   var nutzbarEff = [nutzbar[0], nutzbar[1], nutzbar[2], nutzbar[3]];
   var notstromEff = [notstrom[0], notstrom[1], notstrom[2], notstrom[3]];
   for (var oi = 0; oi < 3; oi++) {
     var ovfl = Math.max(0, vr[oi] - nutzbar[oi]);
     if (ovfl <= 0) { continue; }
-    var verbleibend = 3 - oi; // Anzahl der noch folgenden Töpfe
+    var verbleibend = 3 - oi;
     var abzugProTopf = Math.round(ovfl / verbleibend);
     for (var ri = oi + 1; ri < 4; ri++) {
       budgetsEff[ri] = Math.max(0, budgetsEff[ri] - abzugProTopf);
@@ -1910,17 +1907,14 @@ function updateToepfe() {
     var nu=nutzbarAnz[tt];
     var ns=notstromAnz[tt];
     var verbrauch=vr[tt];
-    var uebNutzbar=(verbrauch>nu);   // nutzbares Budget überschritten
-    var uebGesamt=(verbrauch>ba);    // sogar Notstrom angetastet
+    var uebNutzbar=(verbrauch>nu);
+    var uebGesamt=(verbrauch>ba);
 
-    // Füllstand relativ zum Gesamtbudget
     var pct=ba>0?Math.min(100,Math.round(verbrauch/ba*100)):100;
-    // Notstrom-Anteil in % des Gesamtbudgets
     var bodPct=ba>0?Math.round(ns/ba*100):0;
 
     var istAktiv=(tt===aktiverTopf), istVerg=(tt<aktiverTopf);
 
-    // Hintergrundfarbe des Topfes
     var bgFarbe=uebGesamt?"#ff3b30":uebNutzbar?"#ff9500":pct>=(100-bodPct)*0.9?"#ffcc00":"#34c759";
 
     var cont=fill.parentElement;
@@ -1934,16 +1928,14 @@ function updateToepfe() {
     fill.style.top="0";
     fill.style.background="#aaa";
 
-    // Bodensatz (Notstrom) in allen Töpfen anzeigen
     if(bod && ba>0){
       bod.style.height=bodPct+"%";
       bod.style.background="#ff6b6b";
       bod.style.borderTopColor="#cc0000";
-      // Hinter Fill verstecken wenn schon verbraucht
       bod.style.zIndex=(pct<(100-bodPct))?"1":"0";
     }
 
-    lbl.textContent=verbrauch+"/"+nu; // zeigt verbrauch / nutzbares Budget
+    lbl.textContent=verbrauch+"/"+nu;
     lbl.style.color=uebNutzbar?"#ff3b30":istAktiv?"#000":"#555";
     lbl.style.fontWeight="800";
   }
