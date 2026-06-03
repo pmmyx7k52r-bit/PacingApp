@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.41</title>
+<title>PacingApp 6.0.9.43</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1178,8 +1178,16 @@ function getLiegendMinuten() {
 }
 
 function getAufrechtMinuten() {
-  if (!state.aufrechtSeitTs) { return 0; }
-  return Math.floor((Date.now()-state.aufrechtSeitTs)/60000);
+  if (state.aufrechtSeitTs) {
+    return Math.floor((Date.now()-state.aufrechtSeitTs)/60000);
+  }
+  // Fallback: erste Aktivität mit v>0 als Startpunkt nehmen
+  for (var i=0; i<state.used.length; i++) {
+    if (state.used[i].v > 0 && state.used[i].ts) {
+      return Math.floor((Date.now()-state.used[i].ts)/60000);
+    }
+  }
+  return 0;
 }
 
 // ============================================================
