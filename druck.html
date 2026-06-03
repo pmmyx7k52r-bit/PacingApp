@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.43</title>
+<title>PacingApp 6.0.9.44</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1242,6 +1242,7 @@ function getMainWarning() {
   var pct=(state.cur/state.max)*100, sc=getCrashScore(), auf=getAufrechtMinuten();
   var schwelle=pct>=50?AUFRECHT_SCHWELLE_HOCH:pct>=25?AUFRECHT_SCHWELLE_MITTE:AUFRECHT_SCHWELLE_NIEDRIG;
   var bP=Math.round(state.max*BLOCK_PAUSE);
+  var pauseLaeuft = !!state.pauseBeginnTs;
 
   // NEU: Zu-viel-Warnung — gleitendes 30-Min-Fenster, bleibt bis Pause >= 20 Min.
   if (!_zuvielAktiv) {
@@ -1253,7 +1254,8 @@ function getMainWarning() {
     }
     if (last30 >= ZUVIEL_PUNKTE) { _zuvielAktiv = true; }
   }
-  if (_zuvielAktiv) {
+  // Zu-viel nur zeigen wenn NICHT gerade pausiert
+  if (_zuvielAktiv && !pauseLaeuft) {
     return {type:"ZUVIEL", text:"Zu viel! Achtung! Dringend mindestens 20 Minuten Pause!", bg:"#ff3b30", color:"#fff", blink:true};
   }
 
@@ -1282,24 +1284,30 @@ function getMainWarning() {
       _t3warn=null;
     }
   })();
-  if (state.block>=bP) { return {type:"PEM_ZWANG",text:"PEM-Gefahr! Pause erzwingen!",bg:"#ff3b30",color:"#fff",blink:true}; }
+
+  // Ab hier: Warnungen die während einer laufenden Pause sinnlos sind → unterdrücken
+  if (!pauseLaeuft) {
+    if (state.block>=bP) { return {type:"PEM_ZWANG",text:"PEM-Gefahr! Pause erzwingen!",bg:"#ff3b30",color:"#fff",blink:true}; }
+  }
   if (sc>=CRASH_SCORE_MITTEL) { return {type:"CRASH_MED",text:"PEM-Risiko steigt - Belastung reduzieren!",bg:"#ff9500",color:"#fff",blink:false}; }
   if (_t3warn) { return _t3warn; }
-  if (state.kurzPausen>=KURZPAUSEN_GRENZE) { return {type:"KURZPAUSEN",text:state.kurzPausen+"x kurze Pausen \u2014 jetzt richtig hinlegen!",bg:"#ff9500",color:"#fff",blink:false}; }
-  if (auf>schwelle&&state.letzteLiegeZeit) { return {type:"AUFRECHT",text:auf+" Min. aufrecht - Liegepause sinnvoll",bg:"#ff9500",color:"#fff",blink:false}; }
-  if (lastActionTime) {
-    var min=Math.floor((Date.now()-lastActionTime)/60000);
-    var erz=pct>=70?TIMER_ZWANG_HOCH:pct>=40?TIMER_ZWANG_MITTE:TIMER_ZWANG_NIEDRIG;
-    var vorz=pct>=70?TIMER_VORZWANG_HOCH:pct>=40?TIMER_VORZWANG_MITTE:TIMER_VORZWANG_NIEDRIG;
-    var empf=pct>=70?TIMER_WARN_HOCH:pct>=40?TIMER_WARN_MITTE:TIMER_WARN_NIEDRIG;
-    var la=getGesamtMinuten()>0?getLiegendMinuten()/getGesamtMinuten():0;
-    var lb=la>=0.25?10:la>=0.15?0:-5;
-    erz+=lb; vorz+=lb; empf+=lb;
-    if (min>=erz) { return {type:"TIMER_ZWANG",text:"\uD83D\uDED1 App gesperrt \u2014 bitte erst pausieren!",bg:"#ff3b30",color:"#fff",blink:true}; }
-    if (min>=vorz) { return {type:"TIMER_VORZWANG",text:min+" Min. aktiv \u2014 \u26a0 Pause jetzt notwendig! Sonst wird App gesperrt.",bg:"#ff9500",color:"#fff",blink:false}; }
-    if (min>=empf) { return {type:"TIMER_WARN",text:min+" Min. aktiv - Pause einplanen",bg:"#b8860b",color:"#fff",blink:false}; }
+  if (!pauseLaeuft) {
+    if (state.kurzPausen>=KURZPAUSEN_GRENZE) { return {type:"KURZPAUSEN",text:state.kurzPausen+"x kurze Pausen \u2014 jetzt richtig hinlegen!",bg:"#ff9500",color:"#fff",blink:false}; }
+    if (auf>schwelle&&state.letzteLiegeZeit) { return {type:"AUFRECHT",text:auf+" Min. aufrecht - Liegepause sinnvoll",bg:"#ff9500",color:"#fff",blink:false}; }
+    if (lastActionTime) {
+      var min=Math.floor((Date.now()-lastActionTime)/60000);
+      var erz=pct>=70?TIMER_ZWANG_HOCH:pct>=40?TIMER_ZWANG_MITTE:TIMER_ZWANG_NIEDRIG;
+      var vorz=pct>=70?TIMER_VORZWANG_HOCH:pct>=40?TIMER_VORZWANG_MITTE:TIMER_VORZWANG_NIEDRIG;
+      var empf=pct>=70?TIMER_WARN_HOCH:pct>=40?TIMER_WARN_MITTE:TIMER_WARN_NIEDRIG;
+      var la=getGesamtMinuten()>0?getLiegendMinuten()/getGesamtMinuten():0;
+      var lb=la>=0.25?10:la>=0.15?0:-5;
+      erz+=lb; vorz+=lb; empf+=lb;
+      if (min>=erz) { return {type:"TIMER_ZWANG",text:"\uD83D\uDED1 App gesperrt \u2014 bitte erst pausieren!",bg:"#ff3b30",color:"#fff",blink:true}; }
+      if (min>=vorz) { return {type:"TIMER_VORZWANG",text:min+" Min. aktiv \u2014 \u26a0 Pause jetzt notwendig! Sonst wird App gesperrt.",bg:"#ff9500",color:"#fff",blink:false}; }
+      if (min>=empf) { return {type:"TIMER_WARN",text:min+" Min. aktiv - Pause einplanen",bg:"#b8860b",color:"#fff",blink:false}; }
+    }
+    if (isTopfKritisch()) { return {type:"TOPF",text:"Tagesabschnitt-Budget \u00fcberschritten!",bg:"#b8860b",color:"#fff",blink:false}; }
   }
-  if (isTopfKritisch()) { return {type:"TOPF",text:"Tagesabschnitt-Budget \u00fcberschritten!",bg:"#b8860b",color:"#fff",blink:false}; }
   return null;
 }
 
