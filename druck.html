@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.47</title>
+<title>PacingApp 6.0.9.49</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -507,6 +507,9 @@ function storeSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
     if (d.zuvielPkt  != null) { ZUVIEL_PUNKTE             = d.zuvielPkt; }
     if (d.zuvielFen  != null) { ZUVIEL_FENSTER_MS         = d.zuvielFen * 60 * 1000; }
     if (d.zuvielPau  != null) { ZUVIEL_PAUSE_MIN          = d.zuvielPau; }
+    if (d.sb3 != null) { SYMPTOM_BODENSATZ[3] = d.sb3; }
+    if (d.sb6 != null) { SYMPTOM_BODENSATZ[6] = d.sb6; }
+    if (d.sb7 != null) { SYMPTOM_BODENSATZ[7] = d.sb7; }
   } catch(e) {}
 })();
 
@@ -937,16 +940,25 @@ function updateDisplay() {
   // Wenn Topf leer aber Gesamtreserve noch da: Farbe auf Basis der Gesamtreserve
   var anzeigeWert = (restTopf <= 0 && echteReserve > 0) ? echteReserve : restTopf;
   var anzeigeNutzbar = (restTopf <= 0 && echteReserve > 0) ? echteReserve : nutzbarTopf;
-  renderStatus(anzeigeWert, notstromTopf, anzeigeNutzbar, liegeAnteil, liegeWarnAktiv);
+  // Topf leer = immer Rot, auch wenn noch Gesamtreserve vorhanden
+  var topfLeer = (restTopf <= 0);
+  renderStatus(anzeigeWert, notstromTopf, anzeigeNutzbar, liegeAnteil, liegeWarnAktiv, topfLeer);
   renderPemHeader(); renderUsed(); checkRollingPene();
   updateToepfe(); updateLiegebalken();
 }
 
-function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil, liegeWarnAktiv) {
+function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil, liegeWarnAktiv, topfLeer) {
   var body=document.getElementById("mainBody"), bS=document.getElementById("boxSpielraum"), msg=document.getElementById("statusMsg");
   body.className=""; bS.className="status";
 
   var liegeWarn = (liegeWarnAktiv && liegeAnteil < 0.15) ? 2 : (liegeWarnAktiv && liegeAnteil < 0.25) ? 1 : 0;
+
+  // Topf aufgebraucht → immer Rot (Gesamtreserve ist nur Notstrom)
+  if (topfLeer) {
+    body.classList.add("mode-red"); bS.classList.add("bg-red");
+    msg.textContent = restTopf > 0 ? "STOP! Topf leer \u2014 nur noch Gesamtreserve!" : "STOP! Notstrom aufgebraucht!";
+    return;
+  }
 
   // Schwellen prozentual vom nutzbaren Topf-Budget
   // >60% grün, 30-60% gelb, 10-30% orange, <10% oder Notstrom rot
@@ -1623,6 +1635,21 @@ function renderGrenzenEditor() {
   html += sysRow("Schwelle Mitte (25\u201349%)", "sg_aufrMitte", AUFRECHT_SCHWELLE_MITTE, "Min.");
   html += sysRow("Schwelle Niedrig (&lt;25%)", "sg_aufrNiedr", AUFRECHT_SCHWELLE_NIEDRIG, "Min.");
 
+  html += "<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">SYMPTOM-ABZÜGE (Pkt. leicht / mittel / schwer)</div>";
+  var sbNamen = {3:"Ersch\u00f6pfung", 6:"Muskelschmerz", 7:"Gelenkschmerz"};
+  var sbKeys = [3, 6, 7];
+  for (var sbi=0; sbi<sbKeys.length; sbi++) {
+    var sbk = sbKeys[sbi];
+    var sbv = SYMPTOM_BODENSATZ[sbk];
+    html += "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">"
+      + "<span style=\"font-size:11px;color:#444;flex:1;\">" + sbNamen[sbk] + "</span>"
+      + "<div style=\"display:flex;gap:4px;align-items:center;\">"
+      + "<input id=\"sg_sb" + sbk + "_0\" type=\"number\" value=\"" + sbv[0] + "\" style=\"width:38px;text-align:center;padding:5px 2px;font-size:12px;border:1px solid #34c759;border-radius:6px;margin-top:0;\">"
+      + "<input id=\"sg_sb" + sbk + "_1\" type=\"number\" value=\"" + sbv[1] + "\" style=\"width:38px;text-align:center;padding:5px 2px;font-size:12px;border:1px solid #ff9500;border-radius:6px;margin-top:0;\">"
+      + "<input id=\"sg_sb" + sbk + "_2\" type=\"number\" value=\"" + sbv[2] + "\" style=\"width:38px;text-align:center;padding:5px 2px;font-size:12px;border:1px solid #ff3b30;border-radius:6px;margin-top:0;\">"
+      + "</div></div>";
+  }
+
   html += "<button type=\"button\" onclick=\"speichereSysGrenzen()\" style=\"background:#5856d6;color:#fff;width:100%;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:10px;\">Systemgrenzen speichern</button>";
   html += "<button type=\"button\" onclick=\"resetSysGrenzen()\" style=\"background:none;border:1px solid #c7c7cc;color:#6e6e73;width:100%;padding:8px;border-radius:10px;font-weight:600;font-size:12px;cursor:pointer;margin-top:6px;\">Systemgrenzen zur\u00fccksetzen</button>";
 
@@ -1712,6 +1739,15 @@ function speichereSysGrenzen() {
   AUFRECHT_SCHWELLE_HOCH   = leseNumFeld("sg_aufrHoch",   45);
   AUFRECHT_SCHWELLE_MITTE  = leseNumFeld("sg_aufrMitte",  35);
   AUFRECHT_SCHWELLE_NIEDRIG= leseNumFeld("sg_aufrNiedr",  25);
+  var sbKeys2 = [3, 6, 7];
+  for (var sbi2=0; sbi2<sbKeys2.length; sbi2++) {
+    var sbk2 = sbKeys2[sbi2];
+    SYMPTOM_BODENSATZ[sbk2] = [
+      leseNumFeld("sg_sb"+sbk2+"_0", SYMPTOM_BODENSATZ[sbk2][0]),
+      leseNumFeld("sg_sb"+sbk2+"_1", SYMPTOM_BODENSATZ[sbk2][1]),
+      leseNumFeld("sg_sb"+sbk2+"_2", SYMPTOM_BODENSATZ[sbk2][2])
+    ];
+  }
   storeSet("pacing_sys_grenzen", JSON.stringify({
     notstrom:  Math.round(NOTSTROM_ANTEIL*100),
     blockWarn: Math.round(BLOCK_WARN*100),
@@ -1730,7 +1766,10 @@ function speichereSysGrenzen() {
     crashAufr: CRASH_AUFRECHT_MAX,
     aufrHoch:  AUFRECHT_SCHWELLE_HOCH,
     aufrMitte: AUFRECHT_SCHWELLE_MITTE,
-    aufrNiedr: AUFRECHT_SCHWELLE_NIEDRIG
+    aufrNiedr: AUFRECHT_SCHWELLE_NIEDRIG,
+    sb3: SYMPTOM_BODENSATZ[3],
+    sb6: SYMPTOM_BODENSATZ[6],
+    sb7: SYMPTOM_BODENSATZ[7]
   }));
   document.getElementById("alleGrenzenEditor").style.display = "none";
   showToast("Systemgrenzen gespeichert");
@@ -1746,6 +1785,7 @@ function resetSysGrenzen() {
   CRASH_SCORE_HOCH=4; CRASH_SCORE_MITTEL=2;
   CRASH_BELASTUNG_HOCH=18; CRASH_BELASTUNG_MITTEL=12; CRASH_AUFRECHT_MAX=90;
   AUFRECHT_SCHWELLE_HOCH=45; AUFRECHT_SCHWELLE_MITTE=35; AUFRECHT_SCHWELLE_NIEDRIG=25;
+  SYMPTOM_BODENSATZ[3]=[3,5,8]; SYMPTOM_BODENSATZ[6]=[3,6,10]; SYMPTOM_BODENSATZ[7]=[3,6,10];
   document.getElementById("alleGrenzenEditor").style.display = "none";
   showToast("Systemgrenzen zur\u00fcckgesetzt");
 }
