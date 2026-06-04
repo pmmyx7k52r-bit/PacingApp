@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.49</title>
+<title>PacingApp 6.0.9.51</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -2066,21 +2066,29 @@ function logSymptomMitSchwere(schwere) { if(_pendingSymptom===null){return;} if(
 function getSymptomBodensatz() {
   var symp=state.symptome||[], letzter={};
   for(var i=0;i<symp.length;i++){letzter[symp[i].s]=symp[i];}
-  var extra=0;
+  var maxAbzug=0;
   for(var idx in SYMPTOM_BODENSATZ){
     var sym=letzter[parseInt(idx)]; if(!sym||sym.weg){continue;}
-    var gew=SYMPTOM_BODENSATZ[idx];
-    if(sym.sw==="leicht"){extra+=gew[0];}else if(sym.sw==="mittel"){extra+=gew[1];}else if(sym.sw==="schwer"){extra+=gew[2];}
+    var gew=SYMPTOM_BODENSATZ[idx], abzug=0;
+    if(sym.sw==="leicht"){abzug=gew[0];}else if(sym.sw==="mittel"){abzug=gew[1];}else if(sym.sw==="schwer"){abzug=gew[2];}
+    if(abzug>maxAbzug){maxAbzug=abzug;}
   }
-  return extra;
+  return maxAbzug;
 }
 
 function logSymptom(idx, schwere) {
   var altExtra=getSymptomBodensatz();
   mutateState(function(s){if(!s.symptome){s.symptome=[];}s.symptome.push({s:idx,t:nowTime(),ts:Date.now(),sw:schwere||"leicht"});});
   var neuExtra=getSymptomBodensatz(), diff=neuExtra-altExtra;
-  if(diff>0){mutateState(function(s){s.used.push({n:getSYMPTOM_NAMEN()[idx]+" ("+(schwere||"leicht")+") -"+diff,v:diff,ts:Date.now(),t:nowTime(),pos:"liegend"});});}
-  renderUsed(); updateDisplay(); showToast(getSYMPTOM_NAMEN()[idx]+" ("+(schwere||"leicht")+")");
+  var namen=getSYMPTOM_NAMEN();
+  if(diff>0){
+    mutateState(function(s){s.used.push({n:namen[idx]+" ("+(schwere||"leicht")+") -"+diff,v:diff,ts:Date.now(),t:nowTime(),pos:"liegend"});});
+  } else if(diff<0) {
+    // Korrektur nach unten (z.B. schwer→leicht): Gutschrift buchen
+    var gut=Math.abs(diff);
+    mutateState(function(s){s.used.push({n:namen[idx]+" (Korrektur) +"+gut,v:0,regen:gut,ts:Date.now(),t:nowTime(),pos:"liegend"});});
+  }
+  renderUsed(); updateDisplay(); showToast(namen[idx]+" ("+(schwere||"leicht")+")");
 }
 
 function logSymptomWeg(idx) {
