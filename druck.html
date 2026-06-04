@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.44</title>
+<title>PacingApp 6.0.9.47</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -892,12 +892,19 @@ function updateDisplay() {
   var notstromRest = Math.max(0, budgetTopf - Math.max(verbrauchTopf, nutzbarTopf));
 
   var lbl=document.getElementById("labelSpielraum");
-  if(lbl){lbl.textContent="Spielraum "+topfPre[aktiverTopf]+topfNamen[aktiverTopf];}
   var valTopfRest=document.getElementById("valTopfRest");
-  if(valTopfRest){valTopfRest.textContent=restTopf;}
 
   // Echte verbleibende Reserve über alle noch kommenden Töpfe (Overflow-bereinigt)
   var echteReserve = berechneEchteReserve();
+
+  if (restTopf <= 0 && echteReserve > 0) {
+    // Spielraum dieses Topfes aufgebraucht — auf Gesamtreserve umschalten
+    if(lbl){lbl.textContent="Restreserve gesamt";}
+    if(valTopfRest){valTopfRest.textContent=echteReserve;}
+  } else {
+    if(lbl){lbl.textContent="Spielraum "+topfPre[aktiverTopf]+topfNamen[aktiverTopf];}
+    if(valTopfRest){valTopfRest.textContent=restTopf;}
+  }
   // Gesamter noch verfügbarer Notstrom über alle verbleibenden Töpfe
   var notstromGesamt = 0;
   for (var nti = aktiverTopf; nti < 4; nti++) { notstromGesamt += notstromEff[nti]; }
@@ -924,17 +931,22 @@ function updateDisplay() {
 
   var gesamt=getGesamtMinuten();
   var liegeAnteil=gesamt>0?getLiegendMinuten()/gesamt:0;
+  // Liegewarnung erst nach 30 Minuten Gesamtzeit sinnvoll
+  var liegeWarnAktiv = gesamt >= 30;
 
-  renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil);
+  // Wenn Topf leer aber Gesamtreserve noch da: Farbe auf Basis der Gesamtreserve
+  var anzeigeWert = (restTopf <= 0 && echteReserve > 0) ? echteReserve : restTopf;
+  var anzeigeNutzbar = (restTopf <= 0 && echteReserve > 0) ? echteReserve : nutzbarTopf;
+  renderStatus(anzeigeWert, notstromTopf, anzeigeNutzbar, liegeAnteil, liegeWarnAktiv);
   renderPemHeader(); renderUsed(); checkRollingPene();
   updateToepfe(); updateLiegebalken();
 }
 
-function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil) {
+function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil, liegeWarnAktiv) {
   var body=document.getElementById("mainBody"), bS=document.getElementById("boxSpielraum"), msg=document.getElementById("statusMsg");
   body.className=""; bS.className="status";
 
-  var liegeWarn = liegeAnteil < 0.15 ? 2 : liegeAnteil < 0.25 ? 1 : 0;
+  var liegeWarn = (liegeWarnAktiv && liegeAnteil < 0.15) ? 2 : (liegeWarnAktiv && liegeAnteil < 0.25) ? 1 : 0;
 
   // Schwellen prozentual vom nutzbaren Topf-Budget
   // >60% grün, 30-60% gelb, 10-30% orange, <10% oder Notstrom rot
@@ -1289,7 +1301,7 @@ function getMainWarning() {
   if (!pauseLaeuft) {
     if (state.block>=bP) { return {type:"PEM_ZWANG",text:"PEM-Gefahr! Pause erzwingen!",bg:"#ff3b30",color:"#fff",blink:true}; }
   }
-  if (sc>=CRASH_SCORE_MITTEL) { return {type:"CRASH_MED",text:"PEM-Risiko steigt - Belastung reduzieren!",bg:"#ff9500",color:"#fff",blink:false}; }
+  if (!pauseLaeuft && sc>=CRASH_SCORE_MITTEL) { return {type:"CRASH_MED",text:"PEM-Risiko steigt - Belastung reduzieren!",bg:"#ff9500",color:"#fff",blink:false}; }
   if (_t3warn) { return _t3warn; }
   if (!pauseLaeuft) {
     if (state.kurzPausen>=KURZPAUSEN_GRENZE) { return {type:"KURZPAUSEN",text:state.kurzPausen+"x kurze Pausen \u2014 jetzt richtig hinlegen!",bg:"#ff9500",color:"#fff",blink:false}; }
