@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.54</title>
+<title>PacingApp 6.0.9.55</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -2078,18 +2078,28 @@ function getSymptomBodensatz() {
 
 function bereinigeBodensatz() {
   var soll = getSymptomBodensatz();
-  // Alle bisherigen Symptom-Abzug/-Korrektur-Eintraege entfernen
-  mutateState(function(s) {
-    s.used = s.used.filter(function(u) {
-      return !(u._symptomAbzug || u._symptomRegen ||
-               u.n.indexOf("Symptom-Abzug") === 0 ||
-               u.n.indexOf("Symptom-Korrektur") === 0);
-    });
-  });
-  // Einen einzigen aktuellen Eintrag setzen
-  if (soll > 0) {
+  // Finde den letzten Symptom-Abzug-Eintrag
+  var letzterIdx = -1;
+  var bisherSumme = 0;
+  for (var i = 0; i < state.used.length; i++) {
+    var u = state.used[i];
+    if (u._symptomAbzug || u.n.indexOf("Symptom-Abzug") === 0) {
+      bisherSumme += (u.v || 0);
+      letzterIdx = i;
+    }
+    if (u._symptomRegen || u.n.indexOf("Symptom-Korrektur") === 0) {
+      bisherSumme -= (u.regen || 0);
+    }
+  }
+  var diff = soll - bisherSumme;
+  if (diff > 0) {
     mutateState(function(s) {
-      s.used.push({n:"Symptom-Abzug -"+soll, v:soll, ts:Date.now(), t:nowTime(), pos:"liegend", _symptomAbzug:true});
+      s.used.push({n:"Symptom-Abzug -"+soll, v:diff, ts:Date.now(), t:nowTime(), pos:"liegend", _symptomAbzug:true});
+    });
+  } else if (diff < 0) {
+    var gut = Math.abs(diff);
+    mutateState(function(s) {
+      s.used.push({n:"Symptom-Korrektur +"+gut, v:0, regen:gut, ts:Date.now(), t:nowTime(), pos:"liegend", _symptomRegen:true});
     });
   }
 }
