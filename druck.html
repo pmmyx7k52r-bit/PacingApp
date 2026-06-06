@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.58</title>
+<title>PacingApp 6.0.9.59</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -678,8 +678,7 @@ function toggleSection(bodyId, chevronId) {
 // INIT
 // ============================================================
 window.onload = function() {
-  // Symptom-Abzug-Eintraege immer beim Laden entfernen und neu berechnen
-  // (verhindert Drift durch inkonsistente Altdaten aus frueheren Versionen)
+  // Symptom-Abzug-Eintraege beim Laden neu berechnen
   if (state.max > 0 && state.used && state.used.length > 0) {
     var hatSymptomEintrag = false;
     for (var si = 0; si < state.used.length; si++) {
@@ -691,19 +690,31 @@ window.onload = function() {
       }
     }
     if (hatSymptomEintrag) {
-      mutateState(function(s) {
-        s.used = s.used.filter(function(u) {
-          return !(u._symptomAbzug || u._symptomRegen ||
-                   (u.n && u.n.indexOf("Symptom-Abzug") === 0) ||
-                   (u.n && u.n.indexOf("Symptom-Korrektur") === 0));
-        });
+      state.used = state.used.filter(function(u) {
+        return !(u._symptomAbzug || u._symptomRegen ||
+                 (u.n && u.n.indexOf("Symptom-Abzug") === 0) ||
+                 (u.n && u.n.indexOf("Symptom-Korrektur") === 0));
       });
+      storeSet(STORAGE_STATE, JSON.stringify(state));
       bereinigeBodensatz();
     }
   }
   buildSchwereButtons();
   renderNacherfassenButtons();
   verdrahteButtons();
+
+  // iOS Safari: beim Resume aus Background Timer-State prüfen
+  document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === "visible" && state.max > 0) {
+      // Laufende Timer-Starts korrigieren falls App eingefroren war
+      var jetzt = Date.now();
+      if (_kopfAnStartTs && jetzt - _kopfAnStartTs > 4 * 3600000) { _kopfAnStartTs = null; clearInterval(_kopfAnInterval); _kopfAnInterval = null; document.getElementById("kopfAnLaeuft").classList.remove("active"); document.getElementById("kopfAnRuhe").classList.remove("hidden"); }
+      if (_kopfAnKomplexStartTs && jetzt - _kopfAnKomplexStartTs > 4 * 3600000) { _kopfAnKomplexStartTs = null; clearInterval(_kopfAnKomplexInterval); _kopfAnKomplexInterval = null; document.getElementById("kopfAnKomplexLaeuft").classList.remove("active"); document.getElementById("kopfAnKomplexRuhe").classList.remove("hidden"); }
+      if (_koerperStartTs.leicht && jetzt - _koerperStartTs.leicht > 4 * 3600000) { koerperStop("leicht"); }
+      if (_koerperStartTs.schwer && jetzt - _koerperStartTs.schwer > 4 * 3600000) { koerperStop("schwer"); }
+      updateDisplay();
+    }
+  });
   if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
   minutenTimerInterval = setInterval(function() {
     if (state.max > 0) {
