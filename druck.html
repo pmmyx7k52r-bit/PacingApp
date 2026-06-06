@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.59</title>
+<title>PacingApp 6.0.9.66</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -823,16 +823,30 @@ function showMainUI() {
   document.getElementById("cardSymptome").style.display="block";
 }
 
+function zeigeConfirm(text, sub, onJa) {
+  var ov=document.getElementById("confirmOverlay"), dlg=document.getElementById("confirmDialog");
+  document.getElementById("confirmText").textContent=text;
+  document.getElementById("confirmSub").textContent=sub||"";
+  ov.style.display="block"; dlg.style.display="block";
+  document.getElementById("confirmJa").onclick=function(){ ov.style.display="none"; dlg.style.display="none"; onJa(); };
+  document.getElementById("confirmNein").onclick=function(){ ov.style.display="none"; dlg.style.display="none"; };
+  ov.onclick=function(){ ov.style.display="none"; dlg.style.display="none"; };
+}
+
 function toggleCheck() {
-  try { archiveDay(); } catch(e) {}
-  resetDayInternal();
+  zeigeConfirm("Wirklich neuen Tag starten?", "Der aktuelle Tag wird archiviert.", function() {
+    try { archiveDay(); } catch(e) {}
+    resetDayInternal();
+  });
 }
 
 function guteNacht() {
-  if (state.pauseBeginnTs) { endePauseStill(); }
-  archiveDay();
-  setTimeout(function(){ resetDayInternal(); }, 50);
-  showToast("Gute Nacht! \uD83C\uDF19");
+  zeigeConfirm("Wirklich den Tag beenden?", "Alle Daten werden archiviert und der Tag zur\u00fcckgesetzt.", function() {
+    if (state.pauseBeginnTs) { endePauseStill(); }
+    archiveDay();
+    setTimeout(function(){ resetDayInternal(); }, 50);
+    showToast("Gute Nacht! \uD83C\uDF19");
+  });
 }
 
 function endePauseStill() {
@@ -843,7 +857,7 @@ function endePauseStill() {
   var regen=0;
   if (liegend && min>0) { var rm=Math.min(min,REGEN_MAX_MIN); regen=Math.floor(rm/10)*REGEN_PRO_10_MIN; regen=Math.min(regen,Math.floor(state.max*REGEN_MAX_ANTEIL)); }
   // NEU: Zu-viel-Flag löschen + 2 Punkte Bonus wenn Pause >= 20 Min.
-  if (min >= ZUVIEL_PAUSE_MIN && liegend) { _zuvielAktiv = false; }
+  if (min >= ZUVIEL_PAUSE_MIN - 3 && liegend) { _zuvielAktiv = false; }
   if (min >= ZUVIEL_PAUSE_MIN) { regen += 2; }
   mutateState(function(s) {
     s.used.push({n:"Pause beendet ("+min+" Min.)",v:0,ts:jetzt,t:nowTime(),pos:"aufrecht",regen:regen});
@@ -1127,9 +1141,11 @@ function endePause(auto) {
     regen=Math.floor(rm/10)*REGEN_PRO_10_MIN;
     regen=Math.min(regen,Math.floor(state.max*REGEN_MAX_ANTEIL));
   }
-  // NEU: Zu-viel-Flag löschen + 2 Punkte Bonus wenn Pause >= 20 Min.
-  if (min >= ZUVIEL_PAUSE_MIN) {
+  // Zu-viel-Flag löschen + 2 Punkte Bonus wenn Pause >= 20 Min. (3 Min. Toleranz)
+  if (min >= ZUVIEL_PAUSE_MIN - 3) {
     _zuvielAktiv = false;
+  }
+  if (min >= ZUVIEL_PAUSE_MIN) {
     regen += 2;
   }
   var hinweis = min>=PAUSE_MINDEST_MIN&&liegend ? "Prima!" : min>=PAUSE_MINDEST_MIN ? "Liegepause w\u00e4re besser." : "Auf l\u00e4ngere Pausen achten.";
@@ -1219,6 +1235,7 @@ function getGesamtMinuten() {
 }
 
 function getLiegendMinuten() {
+  if (getGesamtMinuten() < 1) { return 0; }
   var sorted=state.used.slice().sort(function(a,b){return a.ts-b.ts;}), jetzt=Date.now(), min=0, tE=null;
   if (sorted.length>=1&&sorted[0].pos==="liegend") {
     for (var j=1; j<sorted.length; j++) { if(sorted[j].pos==="aufrecht"&&sorted[j].v>=0){tE=sorted[j].ts;break;} }
@@ -1308,6 +1325,8 @@ function getMainWarning() {
     var last30 = 0;
     for (var zi = 0; zi < state.used.length; zi++) {
       var zu = state.used[zi];
+      // Symptom-Abzüge nicht als Belastung zählen
+      if (zu._symptomAbzug || (zu.n && zu.n.indexOf("Symptom-Abzug") === 0)) { continue; }
       if (zu.v > 0 && zu.ts && zu.ts >= fenster30) { last30 += zu.v; }
     }
     if (last30 >= ZUVIEL_PUNKTE) { _zuvielAktiv = true; }
@@ -2284,6 +2303,18 @@ function updateToepfe() {
 
 function updateLiegebalken() {
   var wrap=document.getElementById("liegebalkenWrap"); if(!wrap||state.max<=0){return;}
+  // Erst anzeigen wenn mindestens eine echte Aktivität oder Pause erfasst wurde
+  var hatEchteAktivitaet = false;
+  for (var i=0; i<state.used.length; i++) {
+    if (state.used[i].v > 0 || state.used[i].n === "Pausenbeginn") { hatEchteAktivitaet = true; break; }
+  }
+  if (!hatEchteAktivitaet) {
+    document.getElementById("liegebalkenFill").style.width="0%";
+    document.getElementById("liegebalkenWerte").textContent="";
+    document.getElementById("liegebalkenTipp").textContent="";
+    document.getElementById("liegebalkenLabel").textContent="Liegen / Aufrecht";
+    return;
+  }
   var gesamt=getGesamtMinuten(), lieg=getLiegendMinuten(), auf=Math.max(0,gesamt-lieg);
   if(gesamt<=0){return;}
   var anteil=Math.round(lieg/gesamt*100);
@@ -2312,8 +2343,9 @@ function checkTopfWechsel() {
   if(aktiverTopf===0){if(state.letzterTopf!==0){mutateState(function(s){s.letzterTopf=0;});}return;}
   if(state.letzterTopf<0){mutateState(function(s){s.letzterTopf=aktiverTopf;});return;}
   if(aktiverTopf>state.letzterTopf){
+    // In-Memory sofort setzen bevor mutateState, verhindert Doppelaufruf
+    state.letzterTopf = aktiverTopf;
     mutateState(function(s){s.letzterTopf=aktiverTopf;});
-    // Pause-Timer auf Topfgrenz-Zeitpunkt zurücksetzen, damit neuer Topf sauber zählt
     if (lastActionTime) {
       var heute2=new Date(); heute2.setHours(0,0,0,0);
       var grenzTs=heute2.getTime()+TOPF_ENDE_H[aktiverTopf-1]*3600000;
@@ -2418,5 +2450,14 @@ function showHistory() {
   showToast(txt);
 }
 </script>
+<div id="confirmOverlay" style="position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.5);display:none;" ></div>
+<div id="confirmDialog" style="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:5001;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);padding:20px 16px;min-width:280px;max-width:340px;text-align:center;display:none;">
+  <div id="confirmText" style="font-size:15px;font-weight:700;color:#333;margin-bottom:6px;"></div>
+  <div id="confirmSub" style="font-size:12px;color:#888;margin-bottom:16px;"></div>
+  <div style="display:flex;gap:10px;">
+    <button type="button" id="confirmNein" style="flex:1;padding:12px;background:#e5e5ea;color:#333;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">Abbrechen</button>
+    <button type="button" id="confirmJa" style="flex:1;padding:12px;background:#ff3b30;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">Ja</button>
+  </div>
+</div>
 </body>
 </html>
