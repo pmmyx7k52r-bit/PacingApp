@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.55</title>
+<title>PacingApp 6.0.9.56</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1984,7 +1984,9 @@ function undoLast() {
   var lu=state.used.length?state.used[state.used.length-1]:null;
   var ls=state.symptome.length?state.symptome[state.symptome.length-1]:null;
   if (ls&&ls.ts&&(!lu||ls.ts>lu.ts)) {
-    mutateState(function(s){s.symptome.pop();}); updateDisplay(); showToast("Symptom r\u00fckg\u00e4ngig");
+    mutateState(function(s){s.symptome.pop();});
+    bereinigeBodensatz(); // Bodensatz nach Symptom-Undo neu berechnen
+    updateDisplay(); showToast("Symptom r\u00fckg\u00e4ngig");
   } else if (lu) {
     var last=state.used[state.used.length-1];
     if(last.n.indexOf("Strafe:")===0){mutateState(function(s){s.used.pop();s.pene=false;s.block=Math.round(s.max*BLOCK_PAUSE)-1;});}
@@ -1993,7 +1995,12 @@ function undoLast() {
       for(var pi=state.used.length-2;pi>=0;pi--){if(state.used[pi].n==="Pausenbeginn"){vorTs=state.used[pi].ts;break;}}
       mutateState(function(s){s.used.pop();s.pauseBeginnTs=vorTs;});
       if(vorTs){document.getElementById("btnPauseBeginn").style.display="none";document.getElementById("btnPauseEnde").style.display="block";}
-    }else{mutateState(function(s){s.used.pop();s.block=Math.max(0,s.block-last.v);});}
+    } else if(last._symptomAbzug||last._symptomRegen||last.n.indexOf("Symptom-Abzug")===0||last.n.indexOf("Symptom-Korrektur")===0) {
+      // Symptom-Abzug direkt poppen ist gefährlich — stattdessen neu berechnen
+      showToast("Bitte Symptom selbst r\u00fckg\u00e4ngig machen"); return;
+    } else {
+      mutateState(function(s){s.used.pop();s.block=Math.max(0,s.block-last.v);});
+    }
     updateDisplay();
   }
 }
@@ -2078,23 +2085,16 @@ function getSymptomBodensatz() {
 
 function bereinigeBodensatz() {
   var soll = getSymptomBodensatz();
-  // Finde den letzten Symptom-Abzug-Eintrag
-  var letzterIdx = -1;
   var bisherSumme = 0;
   for (var i = 0; i < state.used.length; i++) {
     var u = state.used[i];
-    if (u._symptomAbzug || u.n.indexOf("Symptom-Abzug") === 0) {
-      bisherSumme += (u.v || 0);
-      letzterIdx = i;
-    }
-    if (u._symptomRegen || u.n.indexOf("Symptom-Korrektur") === 0) {
-      bisherSumme -= (u.regen || 0);
-    }
+    if (u._symptomAbzug || u.n.indexOf("Symptom-Abzug") === 0) { bisherSumme += (u.v || 0); }
+    if (u._symptomRegen || u.n.indexOf("Symptom-Korrektur") === 0) { bisherSumme -= (u.regen || 0); }
   }
   var diff = soll - bisherSumme;
   if (diff > 0) {
     mutateState(function(s) {
-      s.used.push({n:"Symptom-Abzug -"+soll, v:diff, ts:Date.now(), t:nowTime(), pos:"liegend", _symptomAbzug:true});
+      s.used.push({n:"Symptom-Abzug -"+diff, v:diff, ts:Date.now(), t:nowTime(), pos:"liegend", _symptomAbzug:true});
     });
   } else if (diff < 0) {
     var gut = Math.abs(diff);
