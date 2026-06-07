@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.66</title>
+<title>PacingApp 6.0.9.68</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -706,12 +706,17 @@ window.onload = function() {
   // iOS Safari: beim Resume aus Background Timer-State prüfen
   document.addEventListener("visibilitychange", function() {
     if (document.visibilityState === "visible" && state.max > 0) {
-      // Laufende Timer-Starts korrigieren falls App eingefroren war
       var jetzt = Date.now();
-      if (_kopfAnStartTs && jetzt - _kopfAnStartTs > 4 * 3600000) { _kopfAnStartTs = null; clearInterval(_kopfAnInterval); _kopfAnInterval = null; document.getElementById("kopfAnLaeuft").classList.remove("active"); document.getElementById("kopfAnRuhe").classList.remove("hidden"); }
-      if (_kopfAnKomplexStartTs && jetzt - _kopfAnKomplexStartTs > 4 * 3600000) { _kopfAnKomplexStartTs = null; clearInterval(_kopfAnKomplexInterval); _kopfAnKomplexInterval = null; document.getElementById("kopfAnKomplexLaeuft").classList.remove("active"); document.getElementById("kopfAnKomplexRuhe").classList.remove("hidden"); }
-      if (_koerperStartTs.leicht && jetzt - _koerperStartTs.leicht > 4 * 3600000) { koerperStop("leicht"); }
-      if (_koerperStartTs.schwer && jetzt - _koerperStartTs.schwer > 4 * 3600000) { koerperStop("schwer"); }
+      // Timer-Starts aus localStorage wiederherstellen falls In-Memory verloren
+      if (!_kopfAnStartTs) { var kl=storeGet("pacing_timer_kopf_leicht"); if(kl&&kl!==""){_kopfAnStartTs=parseInt(kl); kopfAnStart('leicht');} }
+      if (!_kopfAnKomplexStartTs) { var kk=storeGet("pacing_timer_kopf_komplex"); if(kk&&kk!==""){_kopfAnKomplexStartTs=parseInt(kk); kopfAnStart('komplex');} }
+      if (!_koerperStartTs.leicht) { var kbl=storeGet("pacing_timer_koerper_leicht"); if(kbl&&kbl!==""){_koerperStartTs.leicht=parseInt(kbl); koerperStart('leicht');} }
+      if (!_koerperStartTs.schwer) { var kbs=storeGet("pacing_timer_koerper_schwer"); if(kbs&&kbs!==""){_koerperStartTs.schwer=parseInt(kbs); koerperStart('schwer');} }
+      // Timer die zu lange liefen abbrechen (>4h)
+      if (_kopfAnStartTs && jetzt-_kopfAnStartTs > 4*3600000) { clearInterval(_kopfAnInterval); _kopfAnInterval=null; _kopfAnStartTs=null; storeSet("pacing_timer_kopf_leicht",""); document.getElementById("kopfAnLaeuft").classList.remove("active"); document.getElementById("kopfAnRuhe").classList.remove("hidden"); }
+      if (_kopfAnKomplexStartTs && jetzt-_kopfAnKomplexStartTs > 4*3600000) { clearInterval(_kopfAnKomplexInterval); _kopfAnKomplexInterval=null; _kopfAnKomplexStartTs=null; storeSet("pacing_timer_kopf_komplex",""); document.getElementById("kopfAnKomplexLaeuft").classList.remove("active"); document.getElementById("kopfAnKomplexRuhe").classList.remove("hidden"); }
+      if (_koerperStartTs.leicht && jetzt-_koerperStartTs.leicht > 4*3600000) { koerperStop("leicht"); }
+      if (_koerperStartTs.schwer && jetzt-_koerperStartTs.schwer > 4*3600000) { koerperStop("schwer"); }
       updateDisplay();
     }
   });
@@ -924,7 +929,7 @@ function updateDisplay() {
   var notstromEff=[notstromArr[0],notstromArr[1],notstromArr[2],notstromArr[3]];
   var budgetsEff=[budgets[0],budgets[1],budgets[2],budgets[3]];
   for (var oi2=0; oi2<3; oi2++) {
-    var ovfl=Math.max(0, vrAlle[oi2]-nutzbarArr[oi2]);
+    var ovfl=Math.max(0, vrAlle[oi2]-nutzbarEff[oi2]);
     if (ovfl<=0) { continue; }
     var vbl=3-oi2;
     var abzug=Math.round(ovfl/vbl);
@@ -1465,8 +1470,8 @@ function kopfAnStart(typ) {
   var laeuftId=isK?"kopfAnKomplexLaeuft":"kopfAnLaeuft";
   var timerId=isK?"kopfAnKomplexTimer":"kopfAnTimer";
   var farbe=isK?"#3a0ca3":"#5856d6";
-  if (isK) { if(_kopfAnKomplexStartTs){return;} _kopfAnKomplexStartTs=Date.now(); }
-  else { if(_kopfAnStartTs){return;} _kopfAnStartTs=Date.now(); }
+  if (isK) { if(_kopfAnKomplexStartTs){return;} _kopfAnKomplexStartTs=Date.now(); storeSet("pacing_timer_kopf_komplex", String(_kopfAnKomplexStartTs)); }
+  else { if(_kopfAnStartTs){return;} _kopfAnStartTs=Date.now(); storeSet("pacing_timer_kopf_leicht", String(_kopfAnStartTs)); }
   initAudio();
   document.getElementById(ruheId).classList.add("hidden");
   document.getElementById(laeuftId).classList.add("active");
@@ -1535,7 +1540,8 @@ function kopfAnStop(typ) {
   var farbe=isK?"#3a0ca3":"#5856d6";
   if (!startTs) { return; }
   clearInterval(interval);
-  if (isK){_kopfAnKomplexInterval=null;_kopfAnKomplexStartTs=null;}else{_kopfAnInterval=null;_kopfAnStartTs=null;}
+  if (isK){_kopfAnKomplexInterval=null;_kopfAnKomplexStartTs=null;storeSet("pacing_timer_kopf_komplex","");}
+  else{_kopfAnInterval=null;_kopfAnStartTs=null;storeSet("pacing_timer_kopf_leicht","");}
   document.getElementById(laeuftId).classList.remove("active");
   document.getElementById(ruheId).classList.remove("hidden");
   document.getElementById(timerId).textContent="0:00";
@@ -1847,6 +1853,7 @@ function koerperStart(typ) {
   if (state.max<=0){showToast("Bitte erst den Tag starten!");return;}
   if (_koerperStartTs[typ]){return;}
   _koerperStartTs[typ]=Date.now();
+  storeSet("pacing_timer_koerper_"+typ, String(_koerperStartTs[typ]));
   initAudio();
   var grenzen=typ==='leicht'?KOERPER_LEICHT_GRENZEN:KOERPER_SCHWER_GRENZEN;
   var farbe0=typ==='leicht'?"#007aff":"#ff9500";
@@ -1873,6 +1880,7 @@ function koerperStart(typ) {
 function koerperStop(typ) {
   if (!_koerperStartTs[typ]){return;}
   clearInterval(_koerperInterval[typ]); _koerperInterval[typ]=null;
+  storeSet("pacing_timer_koerper_"+typ, "");
   var startTs=_koerperStartTs[typ];
   _koerperStartTs[typ]=null;
   var ruheId=typ==='leicht'?"koerperLeichtRuhe":"koerperSchwerRuhe";
@@ -2084,6 +2092,8 @@ function resetDayInternal() {
   document.getElementById("btnPauseBeginn").style.display="block";
   document.getElementById("btnPauseEnde").style.display="none";
   stopPauseTimer();
+  storeSet("pacing_timer_kopf_leicht",""); storeSet("pacing_timer_kopf_komplex","");
+  storeSet("pacing_timer_koerper_leicht",""); storeSet("pacing_timer_koerper_schwer","");
   if(_kopfAnInterval){clearInterval(_kopfAnInterval);_kopfAnInterval=null;} _kopfAnStartTs=null;
   if(_kopfAnKomplexInterval){clearInterval(_kopfAnKomplexInterval);_kopfAnKomplexInterval=null;} _kopfAnKomplexStartTs=null;
   ["kopfAnLaeuft","kopfAnKomplexLaeuft","koerperLeichtLaeuft","koerperSchwerLaeuft"].forEach(function(id){var el=document.getElementById(id);if(el){el.classList.remove("active");}});
@@ -2232,7 +2242,7 @@ function updateToepfe() {
   var nutzbarEff = [nutzbar[0], nutzbar[1], nutzbar[2], nutzbar[3]];
   var notstromEff = [notstrom[0], notstrom[1], notstrom[2], notstrom[3]];
   for (var oi = 0; oi < 3; oi++) {
-    var ovfl = Math.max(0, vr[oi] - nutzbar[oi]);
+    var ovfl = Math.max(0, vr[oi] - nutzbarEff[oi]);
     if (ovfl <= 0) { continue; }
     var verbleibend = 3 - oi;
     var abzugProTopf = Math.round(ovfl / verbleibend);
