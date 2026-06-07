@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.68</title>
+<title>PacingApp 6.0.9.69</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -577,7 +577,7 @@ function berechneEchteReserve() {
     var vbl=3-oiR, abzug=Math.round(ovfl/vbl);
     for (var ri=oiR+1; ri<4; ri++) {
       budgetsR[ri]=Math.max(0,budgetsR[ri]-abzug);
-      notstromR[ri]=Math.min(notstromR[ri],budgetsR[ri]);
+      notstromR[ri]=Math.round(budgetsR[ri]*NOTSTROM_ANTEIL);
       nutzbarR[ri]=Math.max(0,budgetsR[ri]-notstromR[ri]);
     }
   }
@@ -935,7 +935,8 @@ function updateDisplay() {
     var abzug=Math.round(ovfl/vbl);
     for (var ri=oi2+1; ri<4; ri++) {
       budgetsEff[ri]=Math.max(0, budgetsEff[ri]-abzug);
-      notstromEff[ri]=Math.min(notstromEff[ri], budgetsEff[ri]);
+      // Notstrom proportional zum neuen Budget berechnen
+      notstromEff[ri]=Math.round(budgetsEff[ri]*NOTSTROM_ANTEIL);
       nutzbarEff[ri]=Math.max(0, budgetsEff[ri]-notstromEff[ri]);
     }
   }
@@ -1355,7 +1356,7 @@ function getMainWarning() {
     var budgetsEff=[budgets[0],budgets[1],budgets[2],budgets[3]];
     var notstromEff=[Math.round(budgets[0]*NOTSTROM_ANTEIL),Math.round(budgets[1]*NOTSTROM_ANTEIL),Math.round(budgets[2]*NOTSTROM_ANTEIL),Math.round(budgets[3]*NOTSTROM_ANTEIL)];
     var nutzbarEff=[nutzbar[0],nutzbar[1],nutzbar[2],nutzbar[3]];
-    for (var oi=0;oi<3;oi++){var ovfl=Math.max(0,vr[oi]-nutzbarEff[oi]);if(ovfl<=0){continue;}var vbl=3-oi,abzug=Math.round(ovfl/vbl);for(var ri=oi+1;ri<4;ri++){budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug);notstromEff[ri]=Math.min(notstromEff[ri],budgetsEff[ri]);nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-notstromEff[ri]);}}
+    for (var oi=0;oi<3;oi++){var ovfl=Math.max(0,vr[oi]-nutzbarEff[oi]);if(ovfl<=0){continue;}var vbl=3-oi,abzug=Math.round(ovfl/vbl);for(var ri=oi+1;ri<4;ri++){budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug);notstromEff[ri]=Math.round(budgetsEff[ri]*NOTSTROM_ANTEIL);nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-notstromEff[ri]);}}
     var restT3=Math.max(0,nutzbarEff[3]-vr[3]);
     var nsT3=notstromEff[3];
     if (restT3<=nsT3 && restT3>0) {
@@ -2248,7 +2249,7 @@ function updateToepfe() {
     var abzugProTopf = Math.round(ovfl / verbleibend);
     for (var ri = oi + 1; ri < 4; ri++) {
       budgetsEff[ri] = Math.max(0, budgetsEff[ri] - abzugProTopf);
-      notstromEff[ri] = Math.min(notstromEff[ri], budgetsEff[ri]);
+      notstromEff[ri] = Math.round(budgetsEff[ri] * NOTSTROM_ANTEIL);
       nutzbarEff[ri] = Math.max(0, budgetsEff[ri] - notstromEff[ri]);
     }
   }
