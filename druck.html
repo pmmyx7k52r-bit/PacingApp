@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.71</title>
+<title>PacingApp 6.0.9.75</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -436,13 +436,13 @@ var TOPF_ANTEIL = [0.25, 0.25, 0.25, 0.25];
 var TOPF_ENDE_H = [9.0, 12.0, 15.0, 24.0];
 var TOPF_START_H = 5.0;
 var NOTSTROM_ANTEIL = 0.20;
-var SYMPTOM_BODENSATZ = { 3:[3,5,8], 6:[3,6,10], 7:[3,6,10] };
+var SYMPTOM_BODENSATZ = { 3:[4,7,12], 6:[2,4,7], 7:[3,6,10] };
 var ZUSTAND_CHECK_MS = 2 * 60 * 60 * 1000;
 var KOPFAN_GRENZEN = [3,10,15,30];
 var KOPFAN_PUNKTE  = [2,5,10,15,20];
 var KOPFAN_KOMPLEX_GRENZEN = [3,10,15,30];
 var KOPFAN_KOMPLEX_PUNKTE  = [3,7,12,18,25];
-var KOERPER_LEICHT_GRENZEN = [1,3,10,20,30];
+var KOERPER_LEICHT_GRENZEN = [3,10,30,45,60];
 var KOERPER_LEICHT_PUNKTE  = [1,2,5,10,15,20];
 var KOERPER_SCHWER_GRENZEN = [1,3,10,20,30];
 var KOERPER_SCHWER_PUNKTE  = [2,4,8,15,20,25];
@@ -943,8 +943,10 @@ function updateDisplay() {
   var notstromTopf= notstromEff[aktiverTopf];
   var nutzbarTopf = nutzbarEff[aktiverTopf];
   var verbrauchTopf = vrAlle[aktiverTopf];
-  var restTopf = Math.max(0, nutzbarTopf - verbrauchTopf);
-  var notstromRest = Math.max(0, budgetTopf - Math.max(verbrauchTopf, nutzbarTopf));
+  // Bodensatz direkt vom Spielraum abziehen (wird nicht mehr in used gebucht)
+  var bodensatzAktuell = getSymptomBodensatz();
+  var restTopf = Math.max(0, nutzbarTopf - verbrauchTopf - bodensatzAktuell);
+  var notstromRest = Math.max(0, budgetTopf - Math.max(verbrauchTopf + bodensatzAktuell, nutzbarTopf));
 
   var lbl=document.getElementById("labelSpielraum");
   var valTopfRest=document.getElementById("valTopfRest");
@@ -1020,7 +1022,7 @@ function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil, liegeWar
   var farbe, meldung;
   if (restTopf <= 0) {
     farbe = "red"; meldung = "STOP! Notstrom aufgebraucht!";
-  } else if (restTopf <= notstromTopf) {
+  } else if (restTopf < notstromTopf) {
     farbe = "red"; meldung = "STOP! Im Notstrom-Bereich!";
   } else if (pctRest <= 0.10) {
     farbe = "red"; meldung = liegeWarn > 0 ? "Kritisch! Sofort hinlegen!" : "Kritisch! Kaum noch Reserve!";
@@ -1276,17 +1278,23 @@ function isTopfKritisch() {
   if (state.max<=0) { return false; }
   var stundeJetzt=new Date().getHours()+new Date().getMinutes()/60;
   var aktiverTopf=stundeJetzt<TOPF_ENDE_H[0]?0:stundeJetzt<TOPF_ENDE_H[1]?1:stundeJetzt<TOPF_ENDE_H[2]?2:3;
-  var budget=Math.round(state.max*TOPF_ANTEIL[aktiverTopf]);
   var heute=new Date(); heute.setHours(0,0,0,0);
   var grenzen=[heute.getTime()+TOPF_ENDE_H[0]*3600000,heute.getTime()+TOPF_ENDE_H[1]*3600000,heute.getTime()+TOPF_ENDE_H[2]*3600000,Infinity];
-  var vr=0, startTs=heute.getTime()+TOPF_START_H*3600000;
+  var startTs=heute.getTime()+TOPF_START_H*3600000;
+  var vr=[0,0,0,0];
   for (var i=0; i<state.used.length; i++) {
-    var u=state.used[i];
-    if (u.v<=0||!u.ts||u.ts<startTs) { continue; }
-    var ti=u.ts<grenzen[0]?0:u.ts<grenzen[1]?1:u.ts<grenzen[2]?2:3;
-    if (ti===aktiverTopf) { vr+=u.v; }
+    var u=state.used[i]; if(!u.v||u.v<=0||!u.ts||u.ts<startTs){continue;}
+    var ti=u.ts<grenzen[0]?0:u.ts<grenzen[1]?1:u.ts<grenzen[2]?2:3; vr[ti]+=u.v;
   }
-  return vr>budget;
+  var budgets=[Math.round(state.max*TOPF_ANTEIL[0]),Math.round(state.max*TOPF_ANTEIL[1]),Math.round(state.max*TOPF_ANTEIL[2]),Math.round(state.max*TOPF_ANTEIL[3])];
+  var nutzbarEff=[budgets[0]-Math.round(budgets[0]*NOTSTROM_ANTEIL),budgets[1]-Math.round(budgets[1]*NOTSTROM_ANTEIL),budgets[2]-Math.round(budgets[2]*NOTSTROM_ANTEIL),budgets[3]-Math.round(budgets[3]*NOTSTROM_ANTEIL)];
+  var budgetsEff=[budgets[0],budgets[1],budgets[2],budgets[3]];
+  for (var oi=0; oi<3; oi++) {
+    var ovfl=Math.max(0,vr[oi]-nutzbarEff[oi]); if(ovfl<=0){continue;}
+    var abzug=Math.round(ovfl/(3-oi));
+    for (var ri=oi+1; ri<4; ri++) { budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug); nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-Math.round(budgetsEff[ri]*NOTSTROM_ANTEIL)); }
+  }
+  return vr[aktiverTopf] > nutzbarEff[aktiverTopf];
 }
 
 function getCrashScore() {
@@ -1357,9 +1365,9 @@ function getMainWarning() {
     for (var oi=0;oi<3;oi++){var ovfl=Math.max(0,vr[oi]-nutzbarEff[oi]);if(ovfl<=0){continue;}var vbl=3-oi,abzug=Math.round(ovfl/vbl);for(var ri=oi+1;ri<4;ri++){budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug);notstromEff[ri]=Math.round(budgetsEff[ri]*NOTSTROM_ANTEIL);nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-notstromEff[ri]);}}
     var restT3=Math.max(0,nutzbarEff[3]-vr[3]);
     var nsT3=notstromEff[3];
-    if (restT3<=nsT3 && restT3>0) {
+    if (restT3<nsT3 && restT3>0) {
       _t3warn={type:"T3_NOTSTROM",text:"Achtung! Letztes Tagesbudget fast aufgebraucht \u2014 PEM-Risiko!",bg:"#ff3b30",color:"#fff",blink:true};
-    } else if (restT3<=nsT3*2 && restT3>0) {
+    } else if (restT3<nsT3*2 && restT3>0) {
       _t3warn={type:"T3_WARN",text:"Tagesbudget knapp \u2014 bitte hinlegen!",bg:"#ff9500",color:"#fff",blink:false};
     } else {
       _t3warn=null;
@@ -1371,7 +1379,7 @@ function getMainWarning() {
     if (state.block>=bP) { return {type:"PEM_ZWANG",text:"PEM-Gefahr! Pause erzwingen!",bg:"#ff3b30",color:"#fff",blink:true}; }
   }
   if (!pauseLaeuft && sc>=CRASH_SCORE_MITTEL) { return {type:"CRASH_MED",text:"PEM-Risiko steigt - Belastung reduzieren!",bg:"#ff9500",color:"#fff",blink:false}; }
-  if (_t3warn) { return _t3warn; }
+  if (_t3warn && !pauseLaeuft) { return _t3warn; }
   if (!pauseLaeuft) {
     if (state.kurzPausen>=KURZPAUSEN_GRENZE) { return {type:"KURZPAUSEN",text:state.kurzPausen+"x kurze Pausen \u2014 jetzt richtig hinlegen!",bg:"#ff9500",color:"#fff",blink:false}; }
     if (auf>schwelle&&state.letzteLiegeZeit) { return {type:"AUFRECHT",text:auf+" Min. aufrecht - Liegepause sinnvoll",bg:"#ff9500",color:"#fff",blink:false}; }
@@ -1597,7 +1605,7 @@ function schnellErfassen(typ) {
     } else { e.style.display="none"; }
     return;
   }
-  var pkt=typ==='toxisch'?10:15;
+  var pkt=typ==='toxisch'?5:10;
   var label=typ==='toxisch'?"Giftige Umgebung":"Emotion";
   if (state.pauseBeginnTs){endePause(true);}
   mutateState(function(s){
@@ -1843,7 +1851,7 @@ function resetSysGrenzen() {
   CRASH_SCORE_HOCH=4; CRASH_SCORE_MITTEL=2;
   CRASH_BELASTUNG_HOCH=18; CRASH_BELASTUNG_MITTEL=12; CRASH_AUFRECHT_MAX=90;
   AUFRECHT_SCHWELLE_HOCH=45; AUFRECHT_SCHWELLE_MITTE=35; AUFRECHT_SCHWELLE_NIEDRIG=25;
-  SYMPTOM_BODENSATZ[3]=[3,5,8]; SYMPTOM_BODENSATZ[6]=[3,6,10]; SYMPTOM_BODENSATZ[7]=[3,6,10];
+  SYMPTOM_BODENSATZ[3]=[4,7,12]; SYMPTOM_BODENSATZ[6]=[2,4,7]; SYMPTOM_BODENSATZ[7]=[3,6,10];
   document.getElementById("alleGrenzenEditor").style.display = "none";
   showToast("Systemgrenzen zur\u00fcckgesetzt");
 }
@@ -2260,6 +2268,8 @@ function updateToepfe() {
     var nu=nutzbarAnz[tt];
     var ns=notstromAnz[tt];
     var verbrauch=vr[tt];
+    // Bodensatz nur im aktiven Topf anrechnen
+    if (tt===aktiverTopf) { verbrauch = verbrauch + getSymptomBodensatz(); }
     var uebNutzbar=(verbrauch>nu);
     var uebGesamt=(verbrauch>ba);
 
@@ -2282,7 +2292,9 @@ function updateToepfe() {
     fill.style.background="#aaa";
 
     if(bod && ba>0){
-      bod.style.height=bodPct+"%";
+      // Notstrom-Balken nur zeigen wenn Topf aktiv oder vergangen
+      var zeigeBod = istAktiv || istVerg || verbrauch > 0;
+      bod.style.height=zeigeBod?bodPct+"%":"0%";
       bod.style.background="#ff6b6b";
       bod.style.borderTopColor="#cc0000";
       bod.style.zIndex=(pct<(100-bodPct))?"1":"0";
