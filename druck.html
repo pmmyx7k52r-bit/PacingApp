@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.69</title>
+<title>PacingApp 6.0.9.71</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -530,10 +530,16 @@ function berechneCur() {
   var verbrauch = 0, regen = 0;
   for (var i = 0; i < state.used.length; i++) {
     var u = state.used[i];
+    // Symptom-Abzug/-Korrektur-Eintraege werden NICHT mehr in berechneCur gezaehlt
+    // Der Bodensatz wird direkt ueber getSymptomBodensatz() berechnet
+    if (u._symptomAbzug || u._symptomRegen ||
+        (u.n && u.n.indexOf("Symptom-Abzug") === 0) ||
+        (u.n && u.n.indexOf("Symptom-Korrektur") === 0)) { continue; }
     if (u.v && u.v > 0) { verbrauch += u.v; }
     if (u.regen && u.regen > 0) { regen += u.regen; }
   }
-  return Math.max(0, Math.min(state.max, state.max - verbrauch + regen));
+  var bodensatz = getSymptomBodensatz();
+  return Math.max(0, Math.min(state.max, state.max - verbrauch + regen - bodensatz));
 }
 
 function syncCur() {
@@ -678,25 +684,17 @@ function toggleSection(bodyId, chevronId) {
 // INIT
 // ============================================================
 window.onload = function() {
-  // Symptom-Abzug-Eintraege beim Laden neu berechnen
+  // Alte Symptom-Abzug/-Korrektur-Eintraege beim Laden immer entfernen
+  // (berechneCur() berechnet Bodensatz jetzt direkt ueber getSymptomBodensatz())
   if (state.max > 0 && state.used && state.used.length > 0) {
-    var hatSymptomEintrag = false;
-    for (var si = 0; si < state.used.length; si++) {
-      var su = state.used[si];
-      if (su._symptomAbzug || su._symptomRegen ||
-          (su.n && su.n.indexOf("Symptom-Abzug") === 0) ||
-          (su.n && su.n.indexOf("Symptom-Korrektur") === 0)) {
-        hatSymptomEintrag = true; break;
-      }
-    }
-    if (hatSymptomEintrag) {
-      state.used = state.used.filter(function(u) {
-        return !(u._symptomAbzug || u._symptomRegen ||
-                 (u.n && u.n.indexOf("Symptom-Abzug") === 0) ||
-                 (u.n && u.n.indexOf("Symptom-Korrektur") === 0));
-      });
+    var vorLen = state.used.length;
+    state.used = state.used.filter(function(u) {
+      return !(u._symptomAbzug || u._symptomRegen ||
+               (u.n && u.n.indexOf("Symptom-Abzug") === 0) ||
+               (u.n && u.n.indexOf("Symptom-Korrektur") === 0));
+    });
+    if (state.used.length !== vorLen) {
       storeSet(STORAGE_STATE, JSON.stringify(state));
-      bereinigeBodensatz();
     }
   }
   buildSchwereButtons();
@@ -2148,36 +2146,27 @@ function getSymptomBodensatz() {
 }
 
 function bereinigeBodensatz() {
-  var soll = getSymptomBodensatz();
-  var bisherSumme = 0;
-  for (var i = 0; i < state.used.length; i++) {
-    var u = state.used[i];
-    if (u._symptomAbzug || u.n.indexOf("Symptom-Abzug") === 0) { bisherSumme += (u.v || 0); }
-    if (u._symptomRegen || u.n.indexOf("Symptom-Korrektur") === 0) { bisherSumme -= (u.regen || 0); }
-  }
-  var diff = soll - bisherSumme;
-  if (diff > 0) {
-    mutateState(function(s) {
-      s.used.push({n:"Symptom-Abzug -"+diff, v:diff, ts:Date.now(), t:nowTime(), pos:"liegend", _symptomAbzug:true});
-    });
-  } else if (diff < 0) {
-    var gut = Math.abs(diff);
-    mutateState(function(s) {
-      s.used.push({n:"Symptom-Korrektur +"+gut, v:0, regen:gut, ts:Date.now(), t:nowTime(), pos:"liegend", _symptomRegen:true});
-    });
+  // Keine Buchungen mehr noetig — berechneCur() holt Bodensatz direkt aus getSymptomBodensatz()
+  // Alte Eintraege aus used entfernen
+  var vorLen = state.used.length;
+  state.used = state.used.filter(function(u) {
+    return !(u._symptomAbzug || u._symptomRegen ||
+             (u.n && u.n.indexOf("Symptom-Abzug") === 0) ||
+             (u.n && u.n.indexOf("Symptom-Korrektur") === 0));
+  });
+  if (state.used.length !== vorLen) {
+    storeSet(STORAGE_STATE, JSON.stringify(state));
   }
 }
 
 function logSymptom(idx, schwere) {
   var namen=getSYMPTOM_NAMEN();
   mutateState(function(s){if(!s.symptome){s.symptome=[];}s.symptome.push({s:idx,t:nowTime(),ts:Date.now(),sw:schwere||"leicht"});});
-  bereinigeBodensatz();
   renderUsed(); updateDisplay(); showToast(namen[idx]+" ("+(schwere||"leicht")+")");
 }
 
 function logSymptomWeg(idx) {
   mutateState(function(s){if(!s.symptome){s.symptome=[];}s.symptome.push({s:idx,t:nowTime(),ts:Date.now(),weg:true});});
-  bereinigeBodensatz();
   renderUsed(); updateDisplay(); showToast(getSYMPTOM_NAMEN()[idx]+" weg");
 }
 
