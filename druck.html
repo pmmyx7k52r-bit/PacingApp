@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.75</title>
+<title>PacingApp 6.0.9.76</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1177,7 +1177,9 @@ function endePause(auto) {
       } else { showToast("Pause zu kurz! Mindestens 10 Minuten"); }
     } else {
       showToast("Pause: "+min+" Min. - "+hinweis);
-      setTimeout(zeigeBlockCheck, 600);
+      setTimeout(function(){
+        zeigeSymptomKonfirmation(function(){ zeigeBlockCheck(); });
+      }, 600);
     }
   }
 }
@@ -1428,10 +1430,11 @@ function schliesseZustandsPicker() { document.getElementById("zustandsPicker").s
 function setZustand(zustand) {
   if (state.max<=0) { return; }
   if (zustand==="stabil") {
-    var fenster=Date.now()-4*3600000, symp=state.symptome||[], aktive=[];
-    for (var si=0; si<symp.length; si++) { if(!symp[si].weg&&symp[si].ts&&symp[si].ts>=fenster){aktive.push(symp[si].s);} }
-    if (aktive.length>0) { mutateState(function(s){for(var ai=0;ai<aktive.length;ai++){s.symptome.push({s:aktive[ai],t:nowTime(),ts:Date.now(),weg:true});}}); updateToepfe(); renderUsed(); }
-    showToast("Gut! Weiter so.");
+    schliesseZustandsPicker();
+    zeigeSymptomKonfirmation(function(){
+      showToast("Gut! Weiter so.");
+    });
+    return;
   } else {
     showToast("Bitte Symptome im Katalog erfassen \u2193");
     var sympBody=document.getElementById("symptomBody");
@@ -2012,11 +2015,32 @@ function makeEntryRow(entry) {
     var left=document.createElement("span"); left.style.cssText="display:flex;align-items:center;flex-wrap:wrap;gap:2px;flex:1;";
     var tspan=document.createElement("span"); tspan.style.cssText="font-size:11px;opacity:0.8;margin-right:6px;"; tspan.textContent=u.t||"";
     left.appendChild(tspan); left.appendChild(document.createTextNode(u.n));
+    // Symptom-Info-Einträge: kein Positions-Toggle, kursiv grau
+    if (u._symptomInfo) {
+      left.style.opacity="0.7"; left.style.fontStyle="italic";
+      row.appendChild(left);
+      if (u._infoDiff) {
+        var rsp=document.createElement("span");
+        rsp.style.cssText="font-weight:700;color:"+(u._infoDiff<0?"#ff3b30":"#34c759")+";";
+        rsp.textContent=(u._infoDiff<0?"":"+") + u._infoDiff;
+        row.appendChild(rsp);
+      }
+      return row;
+    }
     var pw=document.createElement("span"); pw.className="pos-wrap";
     var tU=document.createElement("span"); tU.className="pos-tag pos-aufrecht"+(pos==="aufrecht"?" aktiv":""); tU.textContent="aufrecht"; tU.addEventListener("click",machTogglePositionHandler(oi));
     var tD=document.createElement("span"); tD.className="pos-tag pos-liegend"+(pos==="liegend"?" aktiv":""); tD.textContent=pos==="liegend"?"liegend":"liegend?"; tD.addEventListener("click",machTogglePositionHandler(oi));
     pw.appendChild(tU); pw.appendChild(tD); left.appendChild(pw); row.appendChild(left);
-    if (u.v!==0) { var right=document.createElement("span"); right.textContent=(u.v<0?"+":"-")+Math.abs(u.v); row.appendChild(right); }
+    // Verbrauch anzeigen
+    if (u.v!==0) {
+      var right=document.createElement("span"); right.textContent=(u.v<0?"+":"-")+Math.abs(u.v); row.appendChild(right);
+    } else if (u.regen && u.regen>0) {
+      // Regeneration bei Pausen anzeigen
+      var regenSpan=document.createElement("span");
+      regenSpan.style.cssText="font-weight:700;color:#34c759;";
+      regenSpan.textContent="+"+u.regen;
+      row.appendChild(regenSpan);
+    }
   } else {
     var s=entry.data, left2=document.createElement("span");
     if(s.weg){left2.style.opacity="0.6";}
@@ -2169,12 +2193,29 @@ function bereinigeBodensatz() {
 
 function logSymptom(idx, schwere) {
   var namen=getSYMPTOM_NAMEN();
+  var altBodensatz = getSymptomBodensatz();
   mutateState(function(s){if(!s.symptome){s.symptome=[];}s.symptome.push({s:idx,t:nowTime(),ts:Date.now(),sw:schwere||"leicht"});});
+  var neuBodensatz = getSymptomBodensatz();
+  var diff = neuBodensatz - altBodensatz;
+  if (diff !== 0) {
+    var label = diff > 0 ? "Symptom-Abzug (jetzt -"+neuBodensatz+" Pkt.)" : "Symptom-Abzug reduziert (-"+neuBodensatz+" Pkt.)";
+    mutateState(function(s){s.used.push({n:label,v:0,ts:Date.now(),t:nowTime(),pos:"liegend",_symptomInfo:true,_infoDiff:-diff});});
+  } else if (altBodensatz === 0 && neuBodensatz === 0) {
+    // Symptom ohne Bodensatz — nur in Symptom-Liste, kein Info-Eintrag nötig
+  }
   renderUsed(); updateDisplay(); showToast(namen[idx]+" ("+(schwere||"leicht")+")");
 }
 
 function logSymptomWeg(idx) {
+  var altBodensatz = getSymptomBodensatz();
   mutateState(function(s){if(!s.symptome){s.symptome=[];}s.symptome.push({s:idx,t:nowTime(),ts:Date.now(),weg:true});});
+  var neuBodensatz = getSymptomBodensatz();
+  var diff = neuBodensatz - altBodensatz; // negativ = Entlastung
+  if (diff !== 0) {
+    var gut = altBodensatz - neuBodensatz;
+    var label = neuBodensatz > 0 ? "Symptom-Abzug reduziert (-"+neuBodensatz+" Pkt.)" : "Symptom-Abzug entfällt (+"+gut+" Pkt.)";
+    mutateState(function(s){s.used.push({n:label,v:0,ts:Date.now(),t:nowTime(),pos:"liegend",_symptomInfo:true,_infoDiff:gut});});
+  }
   renderUsed(); updateDisplay(); showToast(getSYMPTOM_NAMEN()[idx]+" weg");
 }
 
@@ -2403,8 +2444,54 @@ function schliesseTopfWechsel() {
 }
 
 // ============================================================
-// BLOCK-CHECK
+// SYMPTOM-BESTÄTIGUNG
 // ============================================================
+var _symptomKonfirmQueue = [];
+var _symptomKonfirmCallback = null;
+
+function zeigeSymptomKonfirmation(callback) {
+  // Aktive Bodensatz-Symptome sammeln
+  var symp = state.symptome || [], letzter = {};
+  for (var i = 0; i < symp.length; i++) { letzter[symp[i].s] = symp[i]; }
+  var aktive = [];
+  for (var idx in SYMPTOM_BODENSATZ) {
+    var s = letzter[parseInt(idx)];
+    if (s && !s.weg) { aktive.push({idx: parseInt(idx), sw: s.sw || "leicht"}); }
+  }
+  if (aktive.length === 0) { if (callback) { callback(); } return; }
+  _symptomKonfirmQueue = aktive;
+  _symptomKonfirmCallback = callback || null;
+  zeigeNaechsteKonfirm();
+}
+
+function zeigeNaechsteKonfirm() {
+  if (_symptomKonfirmQueue.length === 0) {
+    document.getElementById("symptomKonfirmOverlay").style.display = "none";
+    document.getElementById("symptomKonfirmDialog").style.display = "none";
+    if (_symptomKonfirmCallback) { _symptomKonfirmCallback(); _symptomKonfirmCallback = null; }
+    return;
+  }
+  var item = _symptomKonfirmQueue[0];
+  var namen = getSYMPTOM_NAMEN();
+  var schwereFarbe = item.sw === "schwer" ? "#ff3b30" : item.sw === "mittel" ? "#ff9500" : "#ffcc00";
+  document.getElementById("symptomKonfirmTitel").innerHTML =
+    namen[item.idx] + " <span style=\"background:" + schwereFarbe + ";color:#fff;padding:2px 8px;border-radius:8px;font-size:12px;\">" + item.sw + "</span>";
+  document.getElementById("symptomKonfirmSub").textContent = "Weiterhin " + item.sw + "?";
+  document.getElementById("symptomKonfirmOverlay").style.display = "block";
+  document.getElementById("symptomKonfirmDialog").style.display = "block";
+  document.getElementById("symptomKonfirmJa").onclick = function() {
+    _symptomKonfirmQueue.shift();
+    zeigeNaechsteKonfirm();
+  };
+  document.getElementById("symptomKonfirmNein").onclick = function() {
+    var idx = _symptomKonfirmQueue.shift().idx;
+    // Als weg markieren — Nutzer kann neu eingeben
+    logSymptomWeg(idx);
+    // Symptom-Picker öffnen für neue Eingabe
+    setTimeout(function() { pickSchwere(idx); }, 300);
+    zeigeNaechsteKonfirm();
+  };
+}
 function zeigeBlockCheck() {
   var picker=document.getElementById("blockCheckPicker"), overlay=document.getElementById("blockCheckOverlay");
   if(!picker){return;}
@@ -2469,6 +2556,15 @@ function showHistory() {
   <div style="display:flex;gap:10px;">
     <button type="button" id="confirmNein" style="flex:1;padding:12px;background:#e5e5ea;color:#333;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">Abbrechen</button>
     <button type="button" id="confirmJa" style="flex:1;padding:12px;background:#ff3b30;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">Ja</button>
+  </div>
+</div>
+<div id="symptomKonfirmOverlay" style="position:fixed;inset:0;z-index:4200;background:rgba(0,0,0,0.45);display:none;"></div>
+<div id="symptomKonfirmDialog" style="position:fixed;left:12px;right:12px;bottom:80px;z-index:4201;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);padding:16px;display:none;">
+  <div style="font-size:14px;font-weight:700;color:#333;margin-bottom:4px;" id="symptomKonfirmTitel"></div>
+  <div style="font-size:12px;color:#666;margin-bottom:12px;" id="symptomKonfirmSub"></div>
+  <div style="display:flex;gap:8px;">
+    <button type="button" id="symptomKonfirmJa" style="flex:1;padding:12px;background:#34c759;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;">Ja, beibehalten</button>
+    <button type="button" id="symptomKonfirmNein" style="flex:1;padding:12px;background:#ff9500;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;">Nein, ändern</button>
   </div>
 </div>
 </body>
