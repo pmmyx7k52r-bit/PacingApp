@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.78</title>
+<title>PacingApp 6.0.9.79</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -320,7 +320,7 @@ input, select {
 
       <div style="display:flex;gap:6px;margin-bottom:6px;">
         <button type="button" onclick="schnellErfassen('eigen')" style="flex:1;background:#fff;border:2px solid #5856d6;color:#5856d6;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">+<br>Eigene<br>Aktivit&auml;t</button>
-        <button type="button" onclick="schnellErfassen('toxisch')" style="flex:1;background:#ff3b30;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128272;<br>Giftige<br>Umgebung</button>
+        <button type="button" onclick="schnellErfassen('toxisch')" style="flex:1;background:#ff3b30;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128272;<br>Toxische<br>Umgebung</button>
         <button type="button" onclick="schnellErfassen('emotion')" style="flex:1;background:#ff9500;border:none;color:#fff;padding:8px 4px;border-radius:10px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;text-align:center;line-height:1.3;">&#128171;<br>Emotion/<br>Stress</button>
       </div>
       <div id="eigenEingabe" style="display:none;flex-direction:column;gap:6px;margin-bottom:6px;padding:10px;background:rgba(255,255,255,0.15);border-radius:12px;">
@@ -1598,7 +1598,7 @@ function schnellErfassen(typ) {
     return;
   }
   var pkt=typ==='toxisch'?5:10;
-  var label=typ==='toxisch'?"Giftige Umgebung":"Emotion";
+  var label=typ==='toxisch'?"Toxische Umgebung":"Emotion";
   if (state.pauseBeginnTs){endePause(true);}
   mutateState(function(s){
     s.block+=pkt; s.used.push({n:label,v:pkt,ts:Date.now(),t:nowTime(),pos:"aufrecht"});
