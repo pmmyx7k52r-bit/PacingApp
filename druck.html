@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.77</title>
+<title>PacingApp 6.0.9.78</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -343,21 +343,12 @@ input, select {
 
 <div class="card" id="cardSymptome" style="display:none;">
   <div class="coll-header" id="btnToggleSymptom">
-    <h3>Symptome erfassen <span style="font-size:11px;font-weight:400;opacity:0.6;">Tippen: auf/zu</span></h3>
+    <h3>Symptome <span style="font-size:11px;font-weight:400;opacity:0.6;">Tippen: auf/zu</span></h3>
     <span class="coll-chevron" id="symptomChevron">&#9660;</span>
   </div>
   <div id="aktiveSymptomeAnzeige" style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px;min-height:0;"></div>
   <div class="coll-body" id="symptomBody">
-    <div class="symptom-grid" style="margin-top:8px;">
-      <button type="button" class="symptom-btn" data-symptom="0">Kopf-Druck</button>
-      <button type="button" class="symptom-btn" data-symptom="1">Augen</button>
-      <button type="button" class="symptom-btn" data-symptom="2">Brain-Fog</button>
-      <button type="button" class="symptom-btn" data-symptom="3">Ersch&ouml;pfung</button>
-      <button type="button" class="symptom-btn" data-symptom="4">Pfeifen</button>
-      <button type="button" class="symptom-btn" data-symptom="5">Unruhe</button>
-      <button type="button" class="symptom-btn" data-symptom="6">Muskelschmerz</button>
-      <button type="button" class="symptom-btn" data-symptom="7">Gelenkschmerz</button>
-    </div>
+    <p style="font-size:12px;color:#888;margin:8px 0 4px;">Neue Symptome nach Pausen im Block-Check erfassen.</p>
   </div>
 </div>
 
@@ -762,8 +753,6 @@ function verdrahteButtons() {
   document.getElementById("schwereOverlay").addEventListener("click", closeSchwere);
   var schlafBtns = document.querySelectorAll("[data-schlaf]");
   for (var si=0; si<schlafBtns.length; si++) { schlafBtns[si].addEventListener("click", machSchlafHandler(schlafBtns[si])); }
-  var symptomBtns = document.querySelectorAll("[data-symptom]");
-  for (var syi=0; syi<symptomBtns.length; syi++) { symptomBtns[syi].addEventListener("click", machSymptomHandler(symptomBtns[syi])); }
 }
 
 function machSchlafHandler(btn) {
