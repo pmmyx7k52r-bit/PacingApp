@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.76</title>
+<title>PacingApp 6.0.9.77</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -2129,6 +2129,8 @@ function resetDayInternal() {
   if(_kopfAnKomplexInterval){clearInterval(_kopfAnKomplexInterval);_kopfAnKomplexInterval=null;} _kopfAnKomplexStartTs=null;
   ["kopfAnLaeuft","kopfAnKomplexLaeuft","koerperLeichtLaeuft","koerperSchwerLaeuft"].forEach(function(id){var el=document.getElementById(id);if(el){el.classList.remove("active");}});
   ["kopfAnRuhe","kopfAnKomplexRuhe"].forEach(function(id){var el=document.getElementById(id);if(el){el.classList.remove("hidden");}});
+  var koerperRuheIds=["koerperLeichtRuhe","koerperSchwerRuhe"];
+  for (var kri=0;kri<koerperRuheIds.length;kri++){var krel=document.getElementById(koerperRuheIds[kri]);if(krel){krel.style.display="flex";}}
   document.getElementById("catalogBody").className="coll-body";
   document.getElementById("catalogChevron").className="coll-chevron";
   var mwb=document.getElementById("mainWarnBar"); if(mwb){mwb.style.display="none";mwb._dismissed=false;}
