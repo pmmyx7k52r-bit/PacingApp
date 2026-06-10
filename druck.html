@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.79</title>
+<title>PacingApp 6.0.9.81</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -888,9 +888,10 @@ function updateDisplay() {
   var startTs=heute.getTime()+TOPF_START_H*3600000;
   var vrAlle=[0,0,0,0];
   for (var i=0; i<state.used.length; i++) {
-    var u=state.used[i]; if(!u.v||u.v<=0||!u.ts||u.ts<startTs){continue;}
+    var u=state.used[i]; if(!u.ts||u.ts<startTs){continue;}
     var ti=u.ts<grenzenTs[0]?0:u.ts<grenzenTs[1]?1:u.ts<grenzenTs[2]?2:3;
-    vrAlle[ti]+=u.v;
+    if(u.v&&u.v>0){vrAlle[ti]+=u.v;}
+    if(u.regen&&u.regen>0){vrAlle[ti]=Math.max(0,vrAlle[ti]-u.regen);}
   }
 
   var budgets=[
@@ -2261,11 +2262,10 @@ function updateToepfe() {
 
   var vr=[0,0,0,0];
   for(var i=0;i<state.used.length;i++){
-    var u=state.used[i]; if(u.v<=0||!u.ts||u.ts<startTs){continue;}
-    if(u.ts<grenzen[0]){vr[0]+=u.v;}
-    else if(u.ts<grenzen[1]){vr[1]+=u.v;}
-    else if(u.ts<grenzen[2]){vr[2]+=u.v;}
-    else{vr[3]+=u.v;}
+    var u=state.used[i]; if(!u.ts||u.ts<startTs){continue;}
+    var ti=u.ts<grenzen[0]?0:u.ts<grenzen[1]?1:u.ts<grenzen[2]?2:3;
+    if(u.v>0){vr[ti]+=u.v;}
+    if(u.regen&&u.regen>0){vr[ti]=Math.max(0,vr[ti]-u.regen);}
   }
 
   var budgetsEff = [budgets[0], budgets[1], budgets[2], budgets[3]];
