@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.81</title>
+<title>PacingApp 6.0.9.83</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -348,7 +348,16 @@ input, select {
   </div>
   <div id="aktiveSymptomeAnzeige" style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px;min-height:0;"></div>
   <div class="coll-body" id="symptomBody">
-    <p style="font-size:12px;color:#888;margin:8px 0 4px;">Neue Symptome nach Pausen im Block-Check erfassen.</p>
+    <div class="symptom-grid" style="margin-top:8px;">
+      <button type="button" class="symptom-btn" data-symptom="0">Kopf-Druck</button>
+      <button type="button" class="symptom-btn" data-symptom="1">Augen</button>
+      <button type="button" class="symptom-btn" data-symptom="2">Brain-Fog</button>
+      <button type="button" class="symptom-btn" data-symptom="3">Ersch&ouml;pfung</button>
+      <button type="button" class="symptom-btn" data-symptom="4">Pfeifen</button>
+      <button type="button" class="symptom-btn" data-symptom="5">Unruhe</button>
+      <button type="button" class="symptom-btn" data-symptom="6">Muskelschmerz</button>
+      <button type="button" class="symptom-btn" data-symptom="7">Gelenkschmerz</button>
+    </div>
   </div>
 </div>
 
@@ -599,6 +608,7 @@ var _lastWarnType = null, _lastWarnTs = 0, _lastPauseEndeTs = 0;
 var _langePauseHingewiesen = false;
 var _t3warn = null;
 var _zuvielAktiv = false; // NEU: Zu-viel-Warnung aktiv bis Pause >= 20 Min.
+var _topfPauseErforderlich = false; // Topfwechsel ohne ausreichende Pause
 var _koerperInterval = {leicht:null, schwer:null};
 var _koerperStartTs  = {leicht:null, schwer:null};
 
@@ -753,6 +763,8 @@ function verdrahteButtons() {
   document.getElementById("schwereOverlay").addEventListener("click", closeSchwere);
   var schlafBtns = document.querySelectorAll("[data-schlaf]");
   for (var si=0; si<schlafBtns.length; si++) { schlafBtns[si].addEventListener("click", machSchlafHandler(schlafBtns[si])); }
+  var symptomBtns = document.querySelectorAll("[data-symptom]");
+  for (var syi=0; syi<symptomBtns.length; syi++) { symptomBtns[syi].addEventListener("click", machSymptomHandler(symptomBtns[syi])); }
 }
 
 function machSchlafHandler(btn) {
@@ -997,6 +1009,13 @@ function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil, liegeWar
 
   var liegeWarn = (liegeWarnAktiv && liegeAnteil < 0.15) ? 2 : (liegeWarnAktiv && liegeAnteil < 0.25) ? 1 : 0;
 
+  // Topfwechsel ohne Pause → immer orange mit Hinweis
+  if (_topfPauseErforderlich) {
+    body.classList.add("mode-orange"); bS.classList.add("bg-orange");
+    msg.textContent = "Neuer Block \u2014 erst 10 Min. Pause einlegen!";
+    return;
+  }
+
   // Topf aufgebraucht → immer Rot (Gesamtreserve ist nur Notstrom)
   if (topfLeer) {
     body.classList.add("mode-red"); bS.classList.add("bg-red");
@@ -1143,6 +1162,10 @@ function endePause(auto) {
   }
   if (min >= ZUVIEL_PAUSE_MIN) {
     regen += 2;
+  }
+  // Topf-Pause-Flag löschen wenn >= 10 Min.
+  if (min >= PAUSE_MINDEST_MIN) {
+    _topfPauseErforderlich = false;
   }
   var hinweis = min>=PAUSE_MINDEST_MIN&&liegend ? "Prima!" : min>=PAUSE_MINDEST_MIN ? "Liegepause w\u00e4re besser." : "Auf l\u00e4ngere Pausen achten.";
   mutateState(function(s) {
@@ -2098,6 +2121,7 @@ function resetDayInternal() {
   storeSet(STORAGE_STATE,JSON.stringify(state)); storeSet(STORAGE_LOADS,JSON.stringify(loads));
   schlafWert=null; schlafMode=null;
   _zuvielAktiv = false; // NEU: Flag beim Reset löschen
+  _topfPauseErforderlich = false;
   var btns=document.querySelectorAll(".schlaf-btn"); for(var i=0;i<btns.length;i++){btns[i].classList.remove("selected");}
   document.getElementById("individuellRow").classList.remove("open");
   document.getElementById("sleep").value="";
@@ -2380,6 +2404,27 @@ function updateLiegebalken() {
 // ============================================================
 // TOPF-WECHSEL
 // ============================================================
+function hatteAusreichendePause() {
+  // Prüft ob in den letzten 15 Minuten eine Pause >= 10 Min. abgeschlossen wurde
+  var jetzt = Date.now();
+  var fenster = jetzt - 15 * 60 * 1000;
+  for (var i = state.used.length - 1; i >= 0; i--) {
+    var u = state.used[i];
+    if (u.ts && u.ts < fenster) { break; }
+    if (u.n && u.n.indexOf("Pause beendet") === 0 && u.ts >= fenster) {
+      // Pausendauer aus dem Namen lesen
+      var m = u.n.match(/\((\d+) Min\./);
+      if (m && parseInt(m[1]) >= PAUSE_MINDEST_MIN) { return true; }
+    }
+  }
+  // Auch laufende Pause prüfen
+  if (state.pauseBeginnTs) {
+    var laufend = Math.round((jetzt - state.pauseBeginnTs) / 60000);
+    if (laufend >= PAUSE_MINDEST_MIN) { return true; }
+  }
+  return false;
+}
+
 function checkTopfWechsel() {
   if(state.max<=0){return;}
   var h=new Date().getHours()+new Date().getMinutes()/60;
@@ -2396,7 +2441,12 @@ function checkTopfWechsel() {
       lastActionTime=grenzTs;
       storeSet("pacing_timer_start", String(lastActionTime));
     }
-    resetSymptomeTopf(); zeigeTopfWechsel(aktiverTopf);
+    resetSymptomeTopf();
+    // Prüfen ob ausreichende Pause vor Topfwechsel
+    if (!hatteAusreichendePause()) {
+      _topfPauseErforderlich = true;
+    }
+    zeigeTopfWechsel(aktiverTopf);
   }
 }
 
@@ -2422,7 +2472,10 @@ function zeigeTopfWechsel(topfNr) {
   var bar=document.getElementById("topfWechselBar"), txt=document.getElementById("topfWechselText");
   if(!bar||!txt){return;}
   var namen=["bis 9:00","bis 12:00","bis 15:00","ab 15:00"];
-  txt.innerHTML="\uD83D\uDD14 Neuer Block: <strong>"+(namen[topfNr]||"")+"</strong> \u2014 "+berechneEchteReserve()+" Punkte verf\u00fcgbar<br><span style='font-size:12px;font-weight:400;'>Symptome pr\u00fcfen!</span>";
+  var pauseHinweis = _topfPauseErforderlich
+    ? "<br><span style='font-size:13px;font-weight:700;color:#ffcc00;'>\u26a0\ufe0f Erst mindestens 10 Min. Pause einlegen!</span>"
+    : "<br><span style='font-size:12px;font-weight:400;'>Symptome pr\u00fcfen!</span>";
+  txt.innerHTML="\uD83D\uDD14 Neuer Block: <strong>"+(namen[topfNr]||"")+"</strong> \u2014 "+berechneEchteReserve()+" Punkte verf\u00fcgbar"+pauseHinweis;
   bar.style.display="block"; updatePaddingTop();
 }
 
