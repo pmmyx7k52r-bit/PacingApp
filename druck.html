@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.84</title>
+<title>PacingApp 6.0.9.85</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1164,6 +1164,7 @@ function endePause(auto) {
   // Zu-viel-Flag löschen + 2 Punkte Bonus wenn Pause >= 20 Min. (3 Min. Toleranz)
   if (min >= ZUVIEL_PAUSE_MIN - 3) {
     _zuvielAktiv = false;
+    _zuvielPauseEndeTs = jetzt;
   }
   if (min >= ZUVIEL_PAUSE_MIN) {
     regen += 2;
@@ -1354,12 +1355,13 @@ function getMainWarning() {
   // NEU: Zu-viel-Warnung — gleitendes 30-Min-Fenster, bleibt bis Pause >= 20 Min.
   if (!_zuvielAktiv) {
     var fenster30 = Date.now() - ZUVIEL_FENSTER_MS;
+    // Nach ausreichender Pause: nur Aktivitäten NACH der Pause zählen
+    var fensterStart = Math.max(fenster30, _zuvielPauseEndeTs);
     var last30 = 0;
     for (var zi = 0; zi < state.used.length; zi++) {
       var zu = state.used[zi];
-      // Symptom-Abzüge nicht als Belastung zählen
       if (zu._symptomAbzug || (zu.n && zu.n.indexOf("Symptom-Abzug") === 0)) { continue; }
-      if (zu.v > 0 && zu.ts && zu.ts >= fenster30) { last30 += zu.v; }
+      if (zu.v > 0 && zu.ts && zu.ts >= fensterStart) { last30 += zu.v; }
     }
     if (last30 >= ZUVIEL_PUNKTE) { _zuvielAktiv = true; }
   }
@@ -2173,6 +2175,7 @@ function resetDayInternal() {
   storeSet(STORAGE_STATE,JSON.stringify(state)); storeSet(STORAGE_LOADS,JSON.stringify(loads));
   schlafWert=null; schlafMode=null;
   _zuvielAktiv = false; // NEU: Flag beim Reset löschen
+  _zuvielPauseEndeTs = 0;
   _topfPauseErforderlich = false;
   var btns=document.querySelectorAll(".schlaf-btn"); for(var i=0;i<btns.length;i++){btns[i].classList.remove("selected");}
   document.getElementById("individuellRow").classList.remove("open");
