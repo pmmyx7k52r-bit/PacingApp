@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.83</title>
+<title>PacingApp 6.0.9.84</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -608,6 +608,7 @@ var _lastWarnType = null, _lastWarnTs = 0, _lastPauseEndeTs = 0;
 var _langePauseHingewiesen = false;
 var _t3warn = null;
 var _zuvielAktiv = false; // NEU: Zu-viel-Warnung aktiv bis Pause >= 20 Min.
+var _zuvielPauseEndeTs = 0; // Timestamp der letzten ausreichenden Pause
 var _topfPauseErforderlich = false; // Topfwechsel ohne ausreichende Pause
 var _koerperInterval = {leicht:null, schwer:null};
 var _koerperStartTs  = {leicht:null, schwer:null};
@@ -706,11 +707,15 @@ window.onload = function() {
   document.addEventListener("visibilitychange", function() {
     if (document.visibilityState === "visible" && state.max > 0) {
       var jetzt = Date.now();
-      // Timer-Starts aus localStorage wiederherstellen falls In-Memory verloren
-      if (!_kopfAnStartTs) { var kl=storeGet("pacing_timer_kopf_leicht"); if(kl&&kl!==""){_kopfAnStartTs=parseInt(kl); kopfAnStart('leicht');} }
-      if (!_kopfAnKomplexStartTs) { var kk=storeGet("pacing_timer_kopf_komplex"); if(kk&&kk!==""){_kopfAnKomplexStartTs=parseInt(kk); kopfAnStart('komplex');} }
-      if (!_koerperStartTs.leicht) { var kbl=storeGet("pacing_timer_koerper_leicht"); if(kbl&&kbl!==""){_koerperStartTs.leicht=parseInt(kbl); koerperStart('leicht');} }
-      if (!_koerperStartTs.schwer) { var kbs=storeGet("pacing_timer_koerper_schwer"); if(kbs&&kbs!==""){_koerperStartTs.schwer=parseInt(kbs); koerperStart('schwer');} }
+      // Timer aus localStorage wiederherstellen falls In-Memory verloren
+      var kl=storeGet("pacing_timer_kopf_leicht");
+      if(kl&&kl!==""&&!_kopfAnStartTs){ kopfRestoreTimer('leicht', parseInt(kl)); }
+      var kk=storeGet("pacing_timer_kopf_komplex");
+      if(kk&&kk!==""&&!_kopfAnKomplexStartTs){ kopfRestoreTimer('komplex', parseInt(kk)); }
+      var kbl=storeGet("pacing_timer_koerper_leicht");
+      if(kbl&&kbl!==""&&!_koerperStartTs.leicht){ koerperRestoreTimer('leicht', parseInt(kbl)); }
+      var kbs=storeGet("pacing_timer_koerper_schwer");
+      if(kbs&&kbs!==""&&!_koerperStartTs.schwer){ koerperRestoreTimer('schwer', parseInt(kbs)); }
       // Timer die zu lange liefen abbrechen (>4h)
       if (_kopfAnStartTs && jetzt-_kopfAnStartTs > 4*3600000) { clearInterval(_kopfAnInterval); _kopfAnInterval=null; _kopfAnStartTs=null; storeSet("pacing_timer_kopf_leicht",""); document.getElementById("kopfAnLaeuft").classList.remove("active"); document.getElementById("kopfAnRuhe").classList.remove("hidden"); }
       if (_kopfAnKomplexStartTs && jetzt-_kopfAnKomplexStartTs > 4*3600000) { clearInterval(_kopfAnKomplexInterval); _kopfAnKomplexInterval=null; _kopfAnKomplexStartTs=null; storeSet("pacing_timer_kopf_komplex",""); document.getElementById("kopfAnKomplexLaeuft").classList.remove("active"); document.getElementById("kopfAnKomplexRuhe").classList.remove("hidden"); }
@@ -1458,9 +1463,56 @@ function setZustand(zustand) {
   schliesseZustandsPicker();
 }
 
-// ============================================================
-// KOGNITIV-TIMER
-// ============================================================
+function koerperRestoreTimer(typ, startTs) {
+  if (_koerperStartTs[typ]) { return; } // läuft schon
+  _koerperStartTs[typ] = startTs;
+  var grenzen=typ==='leicht'?KOERPER_LEICHT_GRENZEN:KOERPER_SCHWER_GRENZEN;
+  var farbe0=typ==='leicht'?"#007aff":"#ff9500";
+  var ruheId=typ==='leicht'?"koerperLeichtRuhe":"koerperSchwerRuhe";
+  var laeuftId=typ==='leicht'?"koerperLeichtLaeuft":"koerperSchwerLaeuft";
+  var timerId=typ==='leicht'?"koerperLeichtTimer":"koerperSchwerTimer";
+  document.getElementById(ruheId).style.display="none";
+  document.getElementById(laeuftId).classList.add("active");
+  var timerEl=document.getElementById(timerId);
+  _koerperInterval[typ]=setInterval(function(){
+    if(!_koerperStartTs[typ]){clearInterval(_koerperInterval[typ]);return;}
+    var gs=Math.floor((Date.now()-_koerperStartTs[typ])/1000), min=Math.floor(gs/60), sec=gs%60;
+    timerEl.textContent=min+":"+(sec<10?"0":"")+sec;
+    var farbe=farbe0;
+    for(var gi=0;gi<grenzen.length;gi++){
+      var grenzSek=grenzen[gi]*60;
+      if(gs>=grenzSek){farbe="#ff3b30";}else if(grenzSek-gs<=20){farbe="#ff9500";}
+    }
+    timerEl.style.color=farbe;
+  },1000);
+}
+
+function kopfRestoreTimer(typ, startTs) {
+  var isK=(typ==='komplex');
+  if (isK){ if(_kopfAnKomplexStartTs){return;} _kopfAnKomplexStartTs=startTs; }
+  else { if(_kopfAnStartTs){return;} _kopfAnStartTs=startTs; }
+  var ruheId=isK?"kopfAnKomplexRuhe":"kopfAnRuhe";
+  var laeuftId=isK?"kopfAnKomplexLaeuft":"kopfAnLaeuft";
+  var timerId=isK?"kopfAnKomplexTimer":"kopfAnTimer";
+  var farbe0=isK?"#3a0ca3":"#5856d6";
+  var grenzen=isK?KOPFAN_KOMPLEX_GRENZEN:KOPFAN_GRENZEN;
+  document.getElementById(ruheId).classList.add("hidden");
+  document.getElementById(laeuftId).classList.add("active");
+  var timerEl=document.getElementById(timerId);
+  var interval=setInterval(function(){
+    var ts=isK?_kopfAnKomplexStartTs:_kopfAnStartTs;
+    if(!ts){clearInterval(interval);return;}
+    var sek=Math.floor((Date.now()-ts)/1000), min=Math.floor(sek/60), sec=sek%60;
+    timerEl.textContent=min+":"+(sec<10?"0":"")+sec;
+    var f=farbe0;
+    for(var gi=0;gi<grenzen.length;gi++){
+      var grenzSek=grenzen[gi]*60;
+      if(sek>=grenzSek){f="#ff3b30";}else if(sek>=grenzSek-20){f="#ff9500";}
+    }
+    timerEl.style.color=f;
+  },1000);
+  if(isK){_kopfAnKomplexInterval=interval;}else{_kopfAnInterval=interval;}
+}
 var _audioCtx = null;
 
 function initAudio() {
