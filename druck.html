@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.87</title>
+<title>PacingApp 6.0.9.88</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -130,6 +130,19 @@ input, select {
 .schwere-schwer { background:#ff3b30; color:#fff; }
 .schwere-overlay { position:fixed; inset:0; z-index:3999; background:rgba(0,0,0,0.3); }
 .topf-bodensatz { position:absolute; bottom:0; left:0; width:100%; background:#ff6b6b; border-top:2px solid #cc0000; }
+
+/* Belastungskatalog als Sheet */
+#catalogOverlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1400;
+  display:none; opacity:0; transition:opacity 0.25s;
+}
+#catalogOverlay.open { display:block; opacity:1; }
+#cardCatalog.sheet-open {
+  position:fixed; bottom:0; left:0; right:0; top:auto;
+  height:92vh; z-index:1500; border-radius:20px 20px 0 0;
+  overflow-y:auto; margin:0; box-shadow:0 -4px 30px rgba(0,0,0,0.25);
+  transition:transform 0.3s ease;
+}
 </style>
 </head>
 <body id="mainBody">
@@ -236,6 +249,8 @@ input, select {
   <button type="button" class="btn-start" id="btnStart">Tag starten</button>
   <button type="button" class="btn-reset" id="btnReset">Neuer Tag! (Reset!)</button>
 </div>
+
+<div id="catalogOverlay" onclick="toggleCatalogCard()"></div>
 
 <div class="card" id="cardCatalog" style="display:none;">
   <div class="coll-header" id="btnToggleCatalog">
@@ -2209,6 +2224,11 @@ function resetDayInternal() {
   for (var kri=0;kri<koerperRuheIds.length;kri++){var krel=document.getElementById(koerperRuheIds[kri]);if(krel){krel.style.display="flex";}}
   document.getElementById("catalogBody").className="coll-body";
   document.getElementById("catalogChevron").className="coll-chevron";
+  var catalogCard=document.getElementById("cardCatalog");
+  if(catalogCard){catalogCard.classList.remove("sheet-open");}
+  var catalogOv=document.getElementById("catalogOverlay");
+  if(catalogOv){catalogOv.classList.remove("open");}
+  document.body.style.overflow="";
   var mwb=document.getElementById("mainWarnBar"); if(mwb){mwb.style.display="none";mwb._dismissed=false;}
   var lpb=document.getElementById("langePauseBar"); if(lpb){lpb.style.display="none";}
   _langePauseHingewiesen=false;
@@ -2628,9 +2648,23 @@ function schliesseBlockCheck() {
 }
 
 function toggleCatalogCard() {
-  var b=document.getElementById("catalogBody"), c=document.getElementById("catalogChevron"), o=b.classList.contains("open");
-  b.className=o?"coll-body":"coll-body open"; c.className=o?"coll-chevron":"coll-chevron open";
-  if(!o){renderCatalog();}
+  var b=document.getElementById("catalogBody"), c=document.getElementById("catalogChevron");
+  var card=document.getElementById("cardCatalog"), ov=document.getElementById("catalogOverlay");
+  var o=b.classList.contains("open");
+  b.className=o?"coll-body":"coll-body open";
+  c.className=o?"coll-chevron":"coll-chevron open";
+  if (!o) {
+    // Öffnen: Sheet-Modus
+    card.classList.add("sheet-open");
+    ov.classList.add("open");
+    document.body.style.overflow="hidden";
+    renderCatalog();
+  } else {
+    // Schließen
+    card.classList.remove("sheet-open");
+    ov.classList.remove("open");
+    document.body.style.overflow="";
+  }
 }
 function toggleSymptomCard() {
   var b=document.getElementById("symptomBody"), c=document.getElementById("symptomChevron"), o=b.classList.contains("open");
