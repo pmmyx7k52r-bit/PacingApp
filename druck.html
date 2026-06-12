@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.85</title>
+<title>PacingApp 6.0.9.86</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1304,8 +1304,10 @@ function isTopfKritisch() {
   var startTs=heute.getTime()+TOPF_START_H*3600000;
   var vr=[0,0,0,0];
   for (var i=0; i<state.used.length; i++) {
-    var u=state.used[i]; if(!u.v||u.v<=0||!u.ts||u.ts<startTs){continue;}
-    var ti=u.ts<grenzen[0]?0:u.ts<grenzen[1]?1:u.ts<grenzen[2]?2:3; vr[ti]+=u.v;
+    var u=state.used[i]; if(!u.ts||u.ts<startTs){continue;}
+    var ti=u.ts<grenzen[0]?0:u.ts<grenzen[1]?1:u.ts<grenzen[2]?2:3;
+    if(u.v&&u.v>0){vr[ti]+=u.v;}
+    if(u.regen&&u.regen>0){vr[ti]=Math.max(0,vr[ti]-u.regen);}
   }
   var budgets=[Math.round(state.max*TOPF_ANTEIL[0]),Math.round(state.max*TOPF_ANTEIL[1]),Math.round(state.max*TOPF_ANTEIL[2]),Math.round(state.max*TOPF_ANTEIL[3])];
   var nutzbarEff=[budgets[0]-Math.round(budgets[0]*NOTSTROM_ANTEIL),budgets[1]-Math.round(budgets[1]*NOTSTROM_ANTEIL),budgets[2]-Math.round(budgets[2]*NOTSTROM_ANTEIL),budgets[3]-Math.round(budgets[3]*NOTSTROM_ANTEIL)];
@@ -1378,14 +1380,14 @@ function getMainWarning() {
     var startTs=heute.getTime()+TOPF_START_H*3600000;
     var grenzenTs=[heute.getTime()+TOPF_ENDE_H[0]*3600000,heute.getTime()+TOPF_ENDE_H[1]*3600000,heute.getTime()+TOPF_ENDE_H[2]*3600000,Infinity];
     var vr=[0,0,0,0];
-    for (var i=0;i<state.used.length;i++){var u=state.used[i];if(!u.v||u.v<=0||!u.ts||u.ts<startTs){continue;}var ti=u.ts<grenzenTs[0]?0:u.ts<grenzenTs[1]?1:u.ts<grenzenTs[2]?2:3;vr[ti]+=u.v;}
+    for (var i=0;i<state.used.length;i++){var u=state.used[i];if(!u.ts||u.ts<startTs){continue;}var ti=u.ts<grenzenTs[0]?0:u.ts<grenzenTs[1]?1:u.ts<grenzenTs[2]?2:3;if(u.v&&u.v>0){vr[ti]+=u.v;}if(u.regen&&u.regen>0){vr[ti]=Math.max(0,vr[ti]-u.regen);}}
     var budgets=[Math.round(state.max*TOPF_ANTEIL[0]),Math.round(state.max*TOPF_ANTEIL[1]),Math.round(state.max*TOPF_ANTEIL[2]),Math.round(state.max*TOPF_ANTEIL[3])];
     var nutzbar=[budgets[0]-Math.round(budgets[0]*NOTSTROM_ANTEIL),budgets[1]-Math.round(budgets[1]*NOTSTROM_ANTEIL),budgets[2]-Math.round(budgets[2]*NOTSTROM_ANTEIL),budgets[3]-Math.round(budgets[3]*NOTSTROM_ANTEIL)];
     var budgetsEff=[budgets[0],budgets[1],budgets[2],budgets[3]];
     var notstromEff=[Math.round(budgets[0]*NOTSTROM_ANTEIL),Math.round(budgets[1]*NOTSTROM_ANTEIL),Math.round(budgets[2]*NOTSTROM_ANTEIL),Math.round(budgets[3]*NOTSTROM_ANTEIL)];
     var nutzbarEff=[nutzbar[0],nutzbar[1],nutzbar[2],nutzbar[3]];
     for (var oi=0;oi<3;oi++){var ovfl=Math.max(0,vr[oi]-nutzbarEff[oi]);if(ovfl<=0){continue;}var vbl=3-oi,abzug=Math.round(ovfl/vbl);for(var ri=oi+1;ri<4;ri++){budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug);notstromEff[ri]=Math.round(budgetsEff[ri]*NOTSTROM_ANTEIL);nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-notstromEff[ri]);}}
-    var restT3=Math.max(0,nutzbarEff[3]-vr[3]);
+    var restT3=Math.max(0,nutzbarEff[3]-vr[3]-getSymptomBodensatz());
     var nsT3=notstromEff[3];
     if (restT3<nsT3 && restT3>0) {
       _t3warn={type:"T3_NOTSTROM",text:"Achtung! Letztes Tagesbudget fast aufgebraucht \u2014 PEM-Risiko!",bg:"#ff3b30",color:"#fff",blink:true};
