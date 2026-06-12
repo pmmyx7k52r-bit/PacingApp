@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.86</title>
+<title>PacingApp 6.0.9.87</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1014,10 +1014,10 @@ function renderStatus(restTopf, notstromTopf, nutzbarTopf, liegeAnteil, liegeWar
 
   var liegeWarn = (liegeWarnAktiv && liegeAnteil < 0.15) ? 2 : (liegeWarnAktiv && liegeAnteil < 0.25) ? 1 : 0;
 
-  // Topfwechsel ohne Pause → immer orange mit Hinweis
+  // Topfwechsel ohne Pause → Orange, mainWarnBar zeigt blinkende Warnung
   if (_topfPauseErforderlich) {
     body.classList.add("mode-orange"); bS.classList.add("bg-orange");
-    msg.textContent = "Neuer Block \u2014 erst 10 Min. Pause einlegen!";
+    msg.textContent = "Neuer Block gestartet";
     return;
   }
 
@@ -1372,6 +1372,11 @@ function getMainWarning() {
     return {type:"ZUVIEL", text:"Zu viel! Achtung! Dringend mindestens 20 Minuten Pause!", bg:"#ff3b30", color:"#fff", blink:true};
   }
 
+  // Topfwechsel ohne ausreichende Pause → blinkende Warnung in mainWarnBar
+  if (_topfPauseErforderlich && !pauseLaeuft) {
+    return {type:"TOPF_PAUSE", text:"\u26a0\ufe0f Neuer Block \u2014 erst 10 Min. Pause einlegen!", bg:"#ff3b30", color:"#fff", blink:true};
+  }
+
   if (pct<20) { return {type:"NOTBREMSE",text:"STOP! Energie kritisch - sofort hinlegen!",bg:"#000",color:"#ff3b30",blink:true}; }
   if (sc>=CRASH_SCORE_HOCH) { return {type:"CRASH_HIGH",text:"PEM-Risiko hoch! Sofort pausieren!",bg:"#ff3b30",color:"#fff",blink:true}; }
 
@@ -1428,7 +1433,7 @@ function renderMainWarning() {
   var bar=document.getElementById("mainWarnBar"); if (!bar) { return; }
   var warn=getMainWarning(), typ=warn?warn.type:null;
   // NEU: ZUVIEL ist nicht dismissbar
-  var nwD=(typ==="PEM_ZWANG"||typ==="CRASH_HIGH"||typ==="NOTBREMSE"||typ==="TIMER_ZWANG"||typ==="TOPF"||typ==="T3_NOTSTROM"||typ==="ZUVIEL");
+  var nwD=(typ==="PEM_ZWANG"||typ==="CRASH_HIGH"||typ==="NOTBREMSE"||typ==="TIMER_ZWANG"||typ==="TOPF"||typ==="T3_NOTSTROM"||typ==="ZUVIEL"||typ==="TOPF_PAUSE");
   if (bar._dismissed&&!nwD) { return; }
   if (nwD) { bar._dismissed=false; }
   if (typ!==_lastWarnType) {
