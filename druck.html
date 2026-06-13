@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.88</title>
+<title>PacingApp 6.0.9.89</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1411,7 +1411,7 @@ function getMainWarning() {
     var nsT3=notstromEff[3];
     if (restT3<nsT3 && restT3>0) {
       _t3warn={type:"T3_NOTSTROM",text:"Achtung! Letztes Tagesbudget fast aufgebraucht \u2014 PEM-Risiko!",bg:"#ff3b30",color:"#fff",blink:true};
-    } else if (restT3<nsT3*2 && restT3>0) {
+    } else if (restT3<nsT3*2 && restT3>0 && new Date().getHours()<19) {
       _t3warn={type:"T3_WARN",text:"Tagesbudget knapp \u2014 bitte hinlegen!",bg:"#ff9500",color:"#fff",blink:false};
     } else {
       _t3warn=null;
