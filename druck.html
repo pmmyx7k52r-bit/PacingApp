@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.89</title>
+<title>PacingApp 6.0.9.90</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -504,11 +504,11 @@ function storeSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
   if (!g) { return; }
   try {
     var d = JSON.parse(g);
-    if (d.notstrom   != null) { NOTSTROM_ANTEIL          = d.notstrom; }
-    if (d.blockWarn  != null) { BLOCK_WARN                = d.blockWarn; }
-    if (d.blockPause != null) { BLOCK_PAUSE               = d.blockPause; }
+    if (d.notstrom   != null) { NOTSTROM_ANTEIL          = d.notstrom / 100; }
+    if (d.blockWarn  != null) { BLOCK_WARN                = d.blockWarn / 100; }
+    if (d.blockPause != null) { BLOCK_PAUSE               = d.blockPause / 100; }
     if (d.regenPkt   != null) { REGEN_PRO_10_MIN          = d.regenPkt; }
-    if (d.regenMax   != null) { REGEN_MAX_ANTEIL          = d.regenMax; }
+    if (d.regenMax   != null) { REGEN_MAX_ANTEIL          = d.regenMax / 100; }
     if (d.kpGrenze   != null) { KURZPAUSEN_GRENZE         = d.kpGrenze; }
     if (d.kpAbzug    != null) { KURZPAUSE_ABZUG           = d.kpAbzug; }
     if (d.crashHoch  != null) { CRASH_SCORE_HOCH          = d.crashHoch; }
