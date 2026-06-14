@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.90</title>
+<title>PacingApp 6.0.9.91</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -717,6 +717,19 @@ window.onload = function() {
   buildSchwereButtons();
   renderNacherfassenButtons();
   verdrahteButtons();
+
+  // Timer aus localStorage wiederherstellen (bei vollem iOS-Reload via window.onload)
+  if (state.max > 0) {
+    var jetzt0 = Date.now();
+    var kl0=storeGet("pacing_timer_kopf_leicht");
+    if(kl0&&kl0!==""){var kl0i=parseInt(kl0); if(jetzt0-kl0i<4*3600000){kopfRestoreTimer('leicht',kl0i);}else{storeSet("pacing_timer_kopf_leicht","");}}
+    var kk0=storeGet("pacing_timer_kopf_komplex");
+    if(kk0&&kk0!==""){var kk0i=parseInt(kk0); if(jetzt0-kk0i<4*3600000){kopfRestoreTimer('komplex',kk0i);}else{storeSet("pacing_timer_kopf_komplex","");}}
+    var kbl0=storeGet("pacing_timer_koerper_leicht");
+    if(kbl0&&kbl0!==""){var kbl0i=parseInt(kbl0); if(jetzt0-kbl0i<4*3600000){koerperRestoreTimer('leicht',kbl0i);}else{storeSet("pacing_timer_koerper_leicht","");}}
+    var kbs0=storeGet("pacing_timer_koerper_schwer");
+    if(kbs0&&kbs0!==""){var kbs0i=parseInt(kbs0); if(jetzt0-kbs0i<4*3600000){koerperRestoreTimer('schwer',kbs0i);}else{storeSet("pacing_timer_koerper_schwer","");}}
+  }
 
   // iOS Safari: beim Resume aus Background Timer-State prüfen
   document.addEventListener("visibilitychange", function() {
