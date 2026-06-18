@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<<<<<<< HEAD
 <title>PacingApp 6.0.9.92</title>
+=======
+<title>PacingApp 6.0.9.91</title>
+>>>>>>> 80370ae310c13b3c7c14e3e61d03472fd7c973c2
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1158,7 +1162,11 @@ function doPauseBeginn() {
   document.getElementById("btnPauseEnde").style.display="block";
   versteckeSperrBar();
   var mwbPos=document.getElementById("mainWarnBar");
+<<<<<<< HEAD
   if (mwbPos && !_topfPauseErforderlich) {
+=======
+  if (mwbPos) {
+>>>>>>> 80370ae310c13b3c7c14e3e61d03472fd7c973c2
     mwbPos.style.display="block";
     mwbPos.style.background="#34c759";
     mwbPos.style.color="#fff";
@@ -1400,8 +1408,13 @@ function getMainWarning() {
     return {type:"ZUVIEL", text:"Zu viel! Achtung! Dringend mindestens 20 Minuten Pause!", bg:"#ff3b30", color:"#fff", blink:true};
   }
 
+<<<<<<< HEAD
   // Topfwechsel ohne ausreichende Pause → blinkende Warnung auch während Pause
   if (_topfPauseErforderlich) {
+=======
+  // Topfwechsel ohne ausreichende Pause → blinkende Warnung in mainWarnBar
+  if (_topfPauseErforderlich && !pauseLaeuft) {
+>>>>>>> 80370ae310c13b3c7c14e3e61d03472fd7c973c2
     return {type:"TOPF_PAUSE", text:"\u26a0\ufe0f Neuer Block \u2014 erst 10 Min. Pause einlegen!", bg:"#ff3b30", color:"#fff", blink:true};
   }
 
