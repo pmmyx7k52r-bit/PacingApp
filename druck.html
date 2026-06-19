@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.92</title>
+<title>PacingApp 6.0.9.93</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1197,8 +1197,8 @@ function endePause(auto) {
   if (min >= ZUVIEL_PAUSE_MIN) {
     regen += 2;
   }
-  // Topf-Pause-Flag löschen wenn >= 10 Min.
-  if (min >= PAUSE_MINDEST_MIN) {
+  // Topf-Pause-Flag löschen wenn >= 10 Min. (3 Min. Toleranz)
+  if (min >= PAUSE_MINDEST_MIN - 3) {
     _topfPauseErforderlich = false;
   }
   var hinweis = min>=PAUSE_MINDEST_MIN&&liegend ? "Prima!" : min>=PAUSE_MINDEST_MIN ? "Liegepause w\u00e4re besser." : "Auf l\u00e4ngere Pausen achten.";
