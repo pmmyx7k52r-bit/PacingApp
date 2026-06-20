@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.93</title>
+<title>PacingApp 6.0.9.94</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -755,6 +755,13 @@ window.onload = function() {
   if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
   minutenTimerInterval = setInterval(function() {
     if (state.max > 0) {
+      // Topfwechsel-Pause-Flag: automatisch löschen wenn laufende Pause >= 7 Min.
+      if (_topfPauseErforderlich && state.pauseBeginnTs) {
+        var laufendMin = Math.round((Date.now() - state.pauseBeginnTs) / 60000);
+        if (laufendMin >= PAUSE_MINDEST_MIN - 3) {
+          _topfPauseErforderlich = false;
+        }
+      }
       trackDayMinPct();
       updateToepfe(); updateLiegebalken(); renderMainWarning();
       checkLangePause(); checkTopfWechsel();
