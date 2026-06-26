@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.0.9.94</title>
+<title>PacingApp 6.0.9.95</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -755,6 +755,11 @@ window.onload = function() {
   if (minutenTimerInterval) { clearInterval(minutenTimerInterval); }
   minutenTimerInterval = setInterval(function() {
     if (state.max > 0) {
+      // Zu-viel-Flag: automatisch löschen wenn laufende Pause >= 17 Min.
+      if (_zuvielAktiv && state.pauseBeginnTs) {
+        var zuvielMin = Math.round((Date.now() - state.pauseBeginnTs) / 60000);
+        if (zuvielMin >= ZUVIEL_PAUSE_MIN - 3) { _zuvielAktiv = false; _zuvielPauseEndeTs = Date.now(); }
+      }
       // Topfwechsel-Pause-Flag: automatisch löschen wenn laufende Pause >= 7 Min.
       if (_topfPauseErforderlich && state.pauseBeginnTs) {
         var laufendMin = Math.round((Date.now() - state.pauseBeginnTs) / 60000);
@@ -1165,7 +1170,7 @@ function doPauseBeginn() {
   document.getElementById("btnPauseEnde").style.display="block";
   versteckeSperrBar();
   var mwbPos=document.getElementById("mainWarnBar");
-  if (mwbPos && !_topfPauseErforderlich) {
+  if (mwbPos && !_topfPauseErforderlich && !_zuvielAktiv) {
     mwbPos.style.display="block";
     mwbPos.style.background="#34c759";
     mwbPos.style.color="#fff";
@@ -1402,8 +1407,8 @@ function getMainWarning() {
     }
     if (last30 >= ZUVIEL_PUNKTE) { _zuvielAktiv = true; }
   }
-  // Zu-viel nur zeigen wenn NICHT gerade pausiert
-  if (_zuvielAktiv && !pauseLaeuft) {
+  // Zu-viel nur zeigen wenn Pause noch nicht lang genug
+  if (_zuvielAktiv) {
     return {type:"ZUVIEL", text:"Zu viel! Achtung! Dringend mindestens 20 Minuten Pause!", bg:"#ff3b30", color:"#fff", blink:true};
   }
 
