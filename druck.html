@@ -643,20 +643,30 @@ function updateLiegebalken(){
       var regenMaxPkt=Math.floor(state.max*REGEN_MAX_ANTEIL);
       var regenHeute=0;for(var ri3=0;ri3<state.used.length;ri3++){if(state.used[ri3].regen){regenHeute+=state.used[ri3].regen;}}
       var regenNochMoeglich=Math.max(0,regenMaxPkt-regenHeute);
-      if(restT>=gruenSchwelle){
+      // Minuten bis Liegeanteil 25% erreicht: (lieg+x)/(gesamt+x)=0.25 -> x=(0.25*gesamt-lieg)/0.75
+      var liegeMinFehlt=0;
+      if(anteil<25&&gesamt>0){liegeMinFehlt=Math.max(0,Math.ceil((0.25*gesamt-lieg)/0.75));}
+      // Minuten bis Energie gruen: aus regenFehlt ableiten
+      var regenMinFehlt=(regenFehlt>0&&regenNochMoeglich>0)?Math.ceil(regenFehlt/REGEN_PRO_10_MIN)*10:0;
+      // Beides muss erfuellt sein fuer gruenen Status
+      var gruenMin=Math.max(liegeMinFehlt,regenMinFehlt);
+      if(gruenMin===0){
         empfText="\u2713 Gut!";empfColor="#34c759";
-      }else if(regenNochMoeglich<=0){
+      }else if(regenNochMoeglich<=0&&liegeMinFehlt===0){
         empfText="Regen-Limit erreicht";empfColor="#ff9500";
       }else if(state.pauseBeginnTs){
         var bereitsLiegMin=Math.round((Date.now()-state.pauseBeginnTs)/60000);
         var bereitsRegen=Math.floor(Math.min(bereitsLiegMin,REGEN_MAX_MIN)/10)*REGEN_PRO_10_MIN;
         bereitsRegen=Math.min(bereitsRegen,regenNochMoeglich);
-        var restNachPause=Math.max(0,regenFehlt-bereitsRegen);
-        if(restNachPause<=0){empfText="\u2705 Pause reicht \u2014 gr\u00fcner Bereich!";empfColor="#34c759";}
-        else{var nochMin=Math.ceil(restNachPause/REGEN_PRO_10_MIN)*10;empfText="Noch ~"+nochMin+" Min. liegen \u2192 gr\u00fcn";empfColor="#007aff";}
+        var neuGesamt=gesamt+bereitsLiegMin,neuLieg=lieg+bereitsLiegMin;
+        var neuAnteil=neuGesamt>0?neuLieg/neuGesamt*100:0;
+        var nochRegenMin=Math.max(0,regenFehlt-bereitsRegen)>0?Math.ceil(Math.max(0,regenFehlt-bereitsRegen)/REGEN_PRO_10_MIN)*10:0;
+        var nochLiegeMin=neuAnteil>=25?0:Math.max(0,Math.ceil((0.25*neuGesamt-neuLieg)/0.75));
+        var nochGesamt=Math.max(nochRegenMin,nochLiegeMin);
+        if(nochGesamt<=0){empfText="\u2705 Pause reicht \u2014 gr\u00fcner Bereich!";empfColor="#34c759";}
+        else{empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 gr\u00fcn";empfColor="#007aff";}
       }else{
-        var empfMin=Math.min(regenFehlt>0?Math.ceil(regenFehlt/REGEN_PRO_10_MIN)*10:0,Math.ceil(regenNochMoeglich/REGEN_PRO_10_MIN)*10);
-        empfText="Empfehlung: "+empfMin+" Min. hinlegen";empfColor="#ff9500";
+        empfText="Empfehlung: "+gruenMin+" Min. hinlegen";empfColor="#ff9500";
       }
     }
     if(tipp){tipp.textContent=empfText;tipp.style.color=empfColor;}
