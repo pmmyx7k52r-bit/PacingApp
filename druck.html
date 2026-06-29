@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.1.0.2</title>
+<title>PacingApp 6.1.0.3</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -673,9 +673,11 @@ function updateLiegebalken(){
         if(nochGesamt<=0){empfText="\u2705 Pause reicht \u2014 gr\u00fcner Bereich!";empfColor="#34c759";}
         else{empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 gr\u00fcn";empfColor="#007aff";}
       }else{
-        var empfLabel=pflichtPause?"Pause erforderlich: ":"Empfehlung: ";
-        var empfFarbe=pflichtPause?"#ff3b30":"#ff9500";
-        empfText=empfLabel+gruenMin+" Min. hinlegen";empfColor=empfFarbe;
+        var empfLabel,empfFarbe;
+        if(pflichtPause){empfLabel="Pause erforderlich: ";empfFarbe="#ff3b30";}
+        else if(regenMinFehlt>=liegeMinFehlt&&regenMinFehlt>0){empfLabel="Energie-Ausgleich: ";empfFarbe="#ff9500";}
+        else{empfLabel="Empfehlung: ";empfFarbe="#ff9500";}
+        empfText=empfLabel+gruenMin+" Min. liegen";empfColor=empfFarbe;
       }
     }
     if(tipp){tipp.textContent=empfText;tipp.style.color=empfColor;}
