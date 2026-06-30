@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.1.0.3</title>
+<title>PacingApp 6.1.0.5</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -654,6 +654,15 @@ function updateLiegebalken(){
       var pflichtPause=(zuvielMin>0||topfPauseMin>0);
       // Maximum aller Bedingungen fuer wirklich gruenen Status
       var gruenMin=Math.max(liegeMinFehlt,regenMinFehlt,zuvielMin,topfPauseMin);
+      // Naechster Topfwechsel: kommt er vor Ende der empfohlenen Pause?
+      var naechsteTopfH=TOPF_ENDE_H[aktiverTopf2];
+      var minBisTopf=aktiverTopf2<3?Math.round((naechsteTopfH-stundeJetzt2)*60):9999;
+      var naechsteTopfZeit=(Math.floor(naechsteTopfH)<10?"0":"")+Math.floor(naechsteTopfH)+":00";
+      var topfWechselVorGruen=(!pflichtPause&&minBisTopf>0&&minBisTopf<gruenMin);
+      // Bei nahendem Topfwechsel: Notstrom-Schwelle als Minimalziel (nicht Gruen-Schwelle)
+      var notstromT=Math.round(budgetsEff2[aktiverTopf2]*NOTSTROM_ANTEIL);
+      var regenFehltNotstrom=Math.max(0,notstromT-restT+1);
+      var notstromMin=regenFehltNotstrom>0?Math.ceil(regenFehltNotstrom/REGEN_PRO_10_MIN)*10:0;
       if(gruenMin===0){
         empfText="\u2713 Gut!";empfColor="#34c759";
       }else if(regenNochMoeglich<=0&&liegeMinFehlt===0&&!pflichtPause){
@@ -666,18 +675,48 @@ function updateLiegebalken(){
         var neuAnteil=neuGesamt>0?neuLieg/neuGesamt*100:0;
         var nochRegenMin=Math.max(0,regenFehlt-bereitsRegen)>0?Math.ceil(Math.max(0,regenFehlt-bereitsRegen)/REGEN_PRO_10_MIN)*10:0;
         var nochLiegeMin=neuAnteil>=25?0:Math.max(0,Math.ceil((0.25*neuGesamt-neuLieg)/0.75));
-        // Pflichtpausen: verbleibende Zeit mit 3 Min. Toleranz
         var nochZuvielMin=_zuvielAktiv?Math.max(0,ZUVIEL_PAUSE_MIN-3-bereitsLiegMin):0;
         var nochTopfMin=_topfPauseErforderlich?Math.max(0,PAUSE_MINDEST_MIN-3-bereitsLiegMin):0;
         var nochGesamt=Math.max(nochRegenMin,nochLiegeMin,nochZuvielMin,nochTopfMin);
-        if(nochGesamt<=0){empfText="\u2705 Pause reicht \u2014 gr\u00fcner Bereich!";empfColor="#34c759";}
-        else{empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 gr\u00fcn";empfColor="#007aff";}
+        if(nochGesamt<=0){
+          empfText="\u2705 Pause reicht \u2014 gr\u00fcner Bereich!";empfColor="#34c759";
+        }else if(topfWechselVorGruen){
+          // Minimalziel: aus Notstrom kommen vor Topfwechsel?
+          var notstromNachPause=Math.max(0,regenFehltNotstrom-bereitsRegen);
+          var notstromMinNoch=notstromNachPause>0?Math.ceil(notstromNachPause/REGEN_PRO_10_MIN)*10:0;
+          var minBisTopfNoch=Math.max(0,minBisTopf-bereitsLiegMin);
+          if(notstromMinNoch<=0){
+            // Schon aus dem Notstrom - einfach bis zum Wechsel liegen
+            empfText="Bis "+naechsteTopfZeit+" liegen \u2192 neuer Block";empfColor="#34c759";
+          }else if(notstromMinNoch<minBisTopfNoch){
+            // Noch Zeit um aus dem Notstrom zu kommen
+            empfText="Noch "+notstromMinNoch+" Min. liegen (vor "+naechsteTopfZeit+")";empfColor="#007aff";
+          }else{
+            // Notstrom nicht mehr erreichbar - einfach bis Wechsel liegen
+            empfText="Bis "+naechsteTopfZeit+" liegen \u2192 neuer Block";empfColor="#ff9500";
+          }
+        }else{
+          empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 gr\u00fcn";empfColor="#007aff";
+        }
       }else{
-        var empfLabel,empfFarbe;
-        if(pflichtPause){empfLabel="Pause erforderlich: ";empfFarbe="#ff3b30";}
-        else if(regenMinFehlt>=liegeMinFehlt&&regenMinFehlt>0){empfLabel="Energie-Ausgleich: ";empfFarbe="#ff9500";}
-        else{empfLabel="Empfehlung: ";empfFarbe="#ff9500";}
-        empfText=empfLabel+gruenMin+" Min. liegen";empfColor=empfFarbe;
+        if(pflichtPause){
+          empfText="Pause erforderlich: "+gruenMin+" Min. liegen";empfColor="#ff3b30";
+        }else if(topfWechselVorGruen){
+          if(notstromMin===0){
+            // Schon aus dem Notstrom
+            empfText="Bis "+naechsteTopfZeit+" liegen \u2192 neuer Block";empfColor="#34c759";
+          }else if(notstromMin<minBisTopf){
+            // Noch Zeit - reduzierteres Ziel
+            empfText="Energie-Ausgleich: "+notstromMin+" Min. liegen (vor "+naechsteTopfZeit+")";empfColor="#ff9500";
+          }else{
+            // Kein Regen mehr moeglich vor Wechsel
+            empfText="Liegen bis "+naechsteTopfZeit+" \u2192 neuer Block";empfColor="#ff9500";
+          }
+        }else if(regenMinFehlt>=liegeMinFehlt&&regenMinFehlt>0){
+          empfText="Energie-Ausgleich: "+gruenMin+" Min. liegen";empfColor="#ff9500";
+        }else{
+          empfText="Empfehlung: "+gruenMin+" Min. liegen";empfColor="#ff9500";
+        }
       }
     }
     if(tipp){tipp.textContent=empfText;tipp.style.color=empfColor;}
