@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.1.0.10</title>
+<title>PacingApp 6.1.0.11</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -679,7 +679,7 @@ function updateLiegebalken(){
       var notstromMin=regenFehltNotstrom>0?Math.max(0,Math.ceil(regenFehltNotstrom/REGEN_PRO_10_MIN)*10-bankedMin):0;
       var kannNichtMehr=(regenFehlt>0&&regenNochMoeglich<=0);
       if(kannNichtMehr&&liegeMinFehlt===0&&!pflichtPause){
-        empfText="Regen-Limit erreicht";empfColor="#ff9500";
+        empfText="Tageslimit f\u00fcr Erholung erreicht \u2014 Liegen hilft heute nicht mehr";empfColor="#ff9500";
       }else if(gruenMin===0){
         empfText="\u2713 Gut!";empfColor="#34c759";
       }else if(state.pauseBeginnTs){
