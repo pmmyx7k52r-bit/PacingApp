@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.1.0.6</title>
+<title>PacingApp 6.1.0.8</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -510,7 +510,7 @@ function zeigeSperrBar(){var bar=document.getElementById("sperrBar");if(!bar){re
 function versteckeSperrBar(){var bar=document.getElementById("sperrBar");if(bar){bar.style.display="none";}document.body.style.paddingBottom="0";}
 function applyLoad(i){if(state.max<=0){showToast("Bitte erst den Tag starten!");return;}if(!state.pauseBeginnTs&&lastActionTime){var pct0=(state.cur/state.max)*100;var erz=pct0>=70?TIMER_ZWANG_HOCH:pct0>=40?TIMER_ZWANG_MITTE:TIMER_ZWANG_NIEDRIG;var la=getGesamtMinuten()>0?getLiegendMinuten()/getGesamtMinuten():0;erz+=la>=0.25?10:la>=0.15?0:-5;if(Math.floor((Date.now()-lastActionTime)/60000)>=erz){zeigeSperrBar();return;}}if(state.pauseBeginnTs){endePause(true);}mutateState(function(s){s.block+=loads[i].v;s.used.push({n:loads[i].n,v:loads[i].v,ts:Date.now(),t:nowTime(),pos:"aufrecht"});if(!s.aufrechtSeitTs){s.aufrechtSeitTs=Date.now();}});checkPemPenalty();trackDayMinPct();updateDisplay();showToast("Erfasst: "+loads[i].n);startPauseTimer();document.getElementById("mainWarnBar")._dismissed=false;}
 function doPauseBeginn(){var jetzt=Date.now();mutateState(function(s){s.block=0;s.pene=false;s.pauseBeginnTs=jetzt;s.aufrechtSeitTs=null;s.used.push({n:"Pausenbeginn",v:0,ts:jetzt,t:nowTime(),pos:"liegend"});});var mwb=document.getElementById("mainWarnBar");if(mwb){mwb.style.display="none";mwb._dismissed=false;}document.getElementById("pacingHeader").style.display="none";_lastWarnType=null;_lastWarnTs=0;var lpb=document.getElementById("langePauseBar");if(lpb){lpb.style.display="none";}_langePauseHingewiesen=false;stopPauseTimer();document.getElementById("btnPauseBeginn").style.display="none";document.getElementById("btnPauseEnde").style.display="block";versteckeSperrBar();var mwbPos=document.getElementById("mainWarnBar");if(mwbPos&&!_topfPauseErforderlich&&!_zuvielAktiv){mwbPos.style.display="block";mwbPos.style.background="#34c759";mwbPos.style.color="#fff";mwbPos.style.animation="none";mwbPos.style.cursor="pointer";mwbPos.innerHTML="&#128564; Pause l\u00e4uft \u2014 sehr gut!<br><span style=\"font-size:11px;font-weight:400;opacity:0.8;\">Tippen zum Schlie\u00dfen</span>";mwbPos.onclick=function(){this._dismissed=true;this.style.display="none";};mwbPos._dismissed=false;mwbPos._currentType=null;_lastWarnType=null;_lastWarnTs=Date.now()+15000;}showToast("Pausenbeginn erfasst");updateDisplay();}
-function endePause(auto){if(state.max<=0){return;}var jetzt=Date.now(),min=state.pauseBeginnTs?Math.round((jetzt-state.pauseBeginnTs)/60000):0;var liegend=false;for(var pi=state.used.length-1;pi>=0;pi--){if(state.used[pi].n==="Pausenbeginn"){liegend=(state.used[pi].pos==="liegend");break;}}var regen=0,neuerRest=state.liegeRestMin||0;if(liegend&&min>0){var rm=auto?Math.min(min,PAUSE_MINDEST_MIN):Math.min(min,REGEN_MAX_MIN);var combinedMin=(state.liegeRestMin||0)+rm;var regenBlocks=Math.floor(combinedMin/10);regen=regenBlocks*REGEN_PRO_10_MIN;regen=Math.min(regen,Math.floor(state.max*REGEN_MAX_ANTEIL));neuerRest=combinedMin-regenBlocks*10;}if(min>=ZUVIEL_PAUSE_MIN-3){_zuvielAktiv=false;_zuvielPauseEndeTs=jetzt;}if(min>=ZUVIEL_PAUSE_MIN){regen+=2;}if(min>=PAUSE_MINDEST_MIN-3){_topfPauseErforderlich=false;}var hinweis=min>=PAUSE_MINDEST_MIN&&liegend?"Prima!":min>=PAUSE_MINDEST_MIN?"Liegepause w\u00e4re besser.":"Auf l\u00e4ngere Pausen achten.";mutateState(function(s){s.used.push({n:"Pause beendet ("+min+" Min.) - "+hinweis,v:0,ts:jetzt,t:nowTime(),pos:"aufrecht",regen:regen});s.pauseBeginnTs=null;s.aufrechtSeitTs=jetzt;if(liegend){s.liegeRestMin=neuerRest;}if(min>=PAUSE_MINDEST_MIN&&liegend){s.kurzPausen=0;s.letzteLiegeZeit=jetzt;}else if(liegend){s.kurzPausen=(s.kurzPausen||0)+1;s.letzteLiegeZeit=jetzt;}else{s.kurzPausen=(s.kurzPausen||0)+1;}});document.getElementById("btnPauseEnde").style.display="none";document.getElementById("btnPauseBeginn").style.display="block";var lpb=document.getElementById("langePauseBar");if(lpb){lpb.style.display="none";}_langePauseHingewiesen=false;_lastPauseEndeTs=Date.now();if(!auto){trackDayMinPct();updateDisplay();startPauseTimer();if(min<PAUSE_MINDEST_MIN){if(state.kurzPausen>=KURZPAUSEN_GRENZE){mutateState(function(s){s.used.push({n:"Strafe: Zu viele Kurzpausen! Abzug",v:KURZPAUSE_ABZUG,ts:Date.now(),t:nowTime(),pos:"aufrecht"});});showToast("Zu viele Kurzpausen! Abzug -"+KURZPAUSE_ABZUG);}else{showToast("Pause zu kurz! Mindestens 10 Minuten");}}else{showToast("Pause: "+min+" Min. - "+hinweis);setTimeout(function(){zeigeSymptomKonfirmation(function(){zeigeBlockCheck();});},600);}}}
+function endePause(auto){if(state.max<=0){return;}var jetzt=Date.now(),min=state.pauseBeginnTs?Math.round((jetzt-state.pauseBeginnTs)/60000):0;var liegend=false;for(var pi=state.used.length-1;pi>=0;pi--){if(state.used[pi].n==="Pausenbeginn"){liegend=(state.used[pi].pos==="liegend");break;}}var regen=0,neuerRest=state.liegeRestMin||0;if(liegend&&min>0){var rm=auto?Math.min(min,PAUSE_MINDEST_MIN):Math.min(min,REGEN_MAX_MIN);var combinedMin=(state.liegeRestMin||0)+rm;var regenBlocks=Math.floor(combinedMin/10);regen=regenBlocks*REGEN_PRO_10_MIN;regen=Math.min(regen,Math.floor(state.max*REGEN_MAX_ANTEIL));neuerRest=combinedMin-regenBlocks*10;}if(min>=ZUVIEL_PAUSE_MIN-3){_zuvielAktiv=false;_zuvielPauseEndeTs=jetzt;}if(min>=ZUVIEL_PAUSE_MIN){regen+=2;}if(min>=PAUSE_MINDEST_MIN-3){_topfPauseErforderlich=false;}var hinweis=min>=PAUSE_MINDEST_MIN&&liegend?"Prima!":min>=PAUSE_MINDEST_MIN?"Liegepause w\u00e4re besser.":"Auf l\u00e4ngere Pausen achten.";mutateState(function(s){s.used.push({n:"Pause beendet ("+min+" Min.) - "+hinweis,v:0,ts:jetzt,t:nowTime(),pos:"aufrecht",regen:regen});s.pauseBeginnTs=null;s.aufrechtSeitTs=jetzt;if(liegend){s.liegeRestMin=neuerRest;}if(min>=PAUSE_MINDEST_MIN&&liegend){s.kurzPausen=0;s.letzteLiegeZeit=jetzt;}else if(liegend){s.kurzPausen=(s.kurzPausen||0)+1;s.letzteLiegeZeit=jetzt;}else{s.kurzPausen=(s.kurzPausen||0)+1;}});document.getElementById("btnPauseEnde").style.display="none";document.getElementById("btnPauseBeginn").style.display="block";var lpb=document.getElementById("langePauseBar");if(lpb){lpb.style.display="none";}_langePauseHingewiesen=false;_lastPauseEndeTs=Date.now();if(!auto){trackDayMinPct();updateDisplay();startPauseTimer();if(min<PAUSE_MINDEST_MIN){if(state.kurzPausen>=KURZPAUSEN_GRENZE){mutateState(function(s){s.used.push({n:"Strafe: Zu viele Kurzpausen! Abzug",v:KURZPAUSE_ABZUG,ts:Date.now(),t:nowTime(),pos:"aufrecht"});});showToast("Zu viele Kurzpausen! Abzug -"+KURZPAUSE_ABZUG);}else{showToast("Pause zu kurz! Mindestens 10 Minuten");}}else{showToast("Pause: "+min+" Min. - "+hinweis);}}}
 function archiveDay(){if(state.max<=0){return;}var pct=(state.cur/state.max)*100,minPct=state.dayMinPct!==undefined?state.dayMinPct:pct;mutateState(function(s){if(!s.history){s.history=[];}s.history.push({crash:pct<25,minPct:minPct});if(s.history.length>7){s.history.shift();}s.dayMinPct=undefined;});}
 function checkRollingPene(){var h=state.history||[],red=0;for(var i=0;i<h.length;i++){if(typeof h[i]==="object"?h[i].crash:h[i]){red++;}}if(state.max>0&&(state.cur/state.max)*100<25){red++;}var c1=h.length>=1?(typeof h[h.length-1]==="object"?h[h.length-1].crash:h[h.length-1]):false;var c2=h.length>=2?(typeof h[h.length-2]==="object"?h[h.length-2].crash:h[h.length-2]):false;var rwb=document.getElementById("rollingWarnBox");if(rwb){rwb.textContent="Mehrere Tage im roten Bereich! Auf Rolling PENE aufpassen!";rwb.style.display=(red>=3&&!(h.length>=2&&!c1&&!c2))?"block":"none";}}
 function togglePosition(idx){if(state.max<=0||!state.used[idx]){return;}var neuePos=state.used[idx].pos==="aufrecht"?"liegend":"aufrecht",neuerRegen=0,pIdx=-1;if(state.used[idx].n==="Pausenbeginn"){for(var pi=idx+1;pi<state.used.length;pi++){if(state.used[pi].n.indexOf("Pause beendet")===0){var min=Math.round((state.used[pi].ts-state.used[idx].ts)/60000);if(neuePos==="liegend"){neuerRegen=Math.floor(Math.min(min,REGEN_MAX_MIN)/10)*REGEN_PRO_10_MIN;neuerRegen=Math.min(neuerRegen,Math.floor(state.max*REGEN_MAX_ANTEIL));}pIdx=pi;break;}}}mutateState(function(s){s.used[idx].pos=neuePos;if(pIdx>=0){s.used[pIdx].regen=neuerRegen;}if(neuePos==="liegend"){s.letzteLiegeZeit=s.used[idx].ts||Date.now();}});renderUsed();updateDisplay();}
@@ -638,7 +638,22 @@ function updateLiegebalken(){
       for(var oi2=0;oi2<3;oi2++){var ovfl2=Math.max(0,vr2[oi2]-nutzbarEff2[oi2]);if(ovfl2<=0){continue;}var abzug2=Math.round(ovfl2/(3-oi2));for(var ri2=oi2+1;ri2<4;ri2++){budgetsEff2[ri2]=Math.max(0,budgetsEff2[ri2]-abzug2);nutzbarEff2[ri2]=Math.max(0,budgetsEff2[ri2]-Math.round(budgetsEff2[ri2]*NOTSTROM_ANTEIL));}}
       var nutzbarT=nutzbarEff2[aktiverTopf2],verbrauchT=vr2[aktiverTopf2]+getSymptomBodensatz();
       var restT=Math.max(0,nutzbarT-verbrauchT);
-      var gruenSchwelle=Math.ceil(nutzbarT*0.60);
+      var notstromT=Math.round(budgetsEff2[aktiverTopf2]*NOTSTROM_ANTEIL);
+      // NEU 6.1.0.8: Ziel ist die Mitte der naechstbesseren Farbstufe, nicht fix "gruen"
+      var pctRest=nutzbarT>0?restT/nutzbarT:0;
+      var notstromPct=nutzbarT>0?notstromT/nutzbarT:0;
+      var b0=Math.max(notstromPct,0.10);
+      var farbeGrenzen=[b0,0.30,0.60,1.0];
+      var farbeIndex;
+      if(restT<=0||restT<notstromT||pctRest<=0.10){farbeIndex=0;}
+      else if(pctRest<=0.30){farbeIndex=1;}
+      else if(pctRest<=0.60){farbeIndex=2;}
+      else{farbeIndex=3;}
+      var farbeNamen=["rot","orange","gelb","gr\u00fcn"];
+      var naechsteFarbe=farbeNamen[Math.min(farbeIndex+1,3)];
+      var gruenSchwelle;
+      if(farbeIndex>=3){gruenSchwelle=restT;}
+      else{var zielPct=(farbeGrenzen[farbeIndex]+farbeGrenzen[farbeIndex+1])/2;gruenSchwelle=Math.max(restT,Math.ceil(nutzbarT*zielPct));}
       var regenFehlt=Math.max(0,gruenSchwelle-restT+1);
       var regenMaxPkt=Math.floor(state.max*REGEN_MAX_ANTEIL);
       var regenHeute=0;for(var ri3=0;ri3<state.used.length;ri3++){if(state.used[ri3].regen){regenHeute+=state.used[ri3].regen;}}
@@ -660,8 +675,7 @@ function updateLiegebalken(){
       var minBisTopf=aktiverTopf2<3?Math.round((naechsteTopfH-stundeJetzt2)*60):9999;
       var naechsteTopfZeit=(Math.floor(naechsteTopfH)<10?"0":"")+Math.floor(naechsteTopfH)+":00";
       var topfWechselVorGruen=(!pflichtPause&&minBisTopf>0&&minBisTopf<gruenMin);
-      // Bei nahendem Topfwechsel: Notstrom-Schwelle als Minimalziel (nicht Gruen-Schwelle)
-      var notstromT=Math.round(budgetsEff2[aktiverTopf2]*NOTSTROM_ANTEIL);
+      // Bei nahendem Topfwechsel: Notstrom-Schwelle als Minimalziel (nicht Ziel-Schwelle)
       var regenFehltNotstrom=Math.max(0,notstromT-restT+1);
       var notstromMin=regenFehltNotstrom>0?Math.max(0,Math.ceil(regenFehltNotstrom/REGEN_PRO_10_MIN)*10-bankedMin):0;
       if(gruenMin===0){
@@ -681,7 +695,7 @@ function updateLiegebalken(){
         var nochTopfMin=_topfPauseErforderlich?Math.max(0,PAUSE_MINDEST_MIN-3-bereitsLiegMin):0;
         var nochGesamt=Math.max(nochRegenMin,nochLiegeMin,nochZuvielMin,nochTopfMin);
         if(nochGesamt<=0){
-          empfText="\u2705 Pause reicht \u2014 gr\u00fcner Bereich!";empfColor="#34c759";
+          empfText="\u2705 Pause reicht!";empfColor="#34c759";
         }else if(topfWechselVorGruen){
           // Minimalziel: aus Notstrom kommen vor Topfwechsel?
           var notstromNachPause=Math.max(0,regenFehltNotstrom-bereitsRegen);
@@ -698,7 +712,7 @@ function updateLiegebalken(){
             empfText="Bis "+naechsteTopfZeit+" liegen \u2192 neuer Block";empfColor="#ff9500";
           }
         }else{
-          empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 gr\u00fcn";empfColor="#007aff";
+          empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 "+naechsteFarbe;empfColor="#007aff";
         }
       }else{
         if(pflichtPause){
@@ -715,9 +729,9 @@ function updateLiegebalken(){
             empfText="Liegen bis "+naechsteTopfZeit+" \u2192 neuer Block";empfColor="#ff9500";
           }
         }else if(regenMinFehlt>=liegeMinFehlt&&regenMinFehlt>0){
-          empfText="Energie-Ausgleich: "+gruenMin+" Min. liegen";empfColor="#ff9500";
+          empfText="Energie-Ausgleich: "+gruenMin+" Min. liegen \u2192 "+naechsteFarbe;empfColor="#ff9500";
         }else{
-          empfText="Empfehlung: "+gruenMin+" Min. liegen";empfColor="#ff9500";
+          empfText="Empfehlung: "+gruenMin+" Min. liegen \u2192 "+naechsteFarbe;empfColor="#ff9500";
         }
       }
     }
