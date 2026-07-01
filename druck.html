@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.1.0.13</title>
+<title>PacingApp 6.1.0.14</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -717,7 +717,8 @@ function updateLiegebalken(){
         }
       }else{
         if(pflichtPause){
-          empfText="Pause erforderlich: "+gruenMin+" Min. liegen";empfColor="#ff3b30";
+          var pflichtMin=Math.max(zuvielMin,topfPauseMin);
+          empfText="Pause erforderlich: "+pflichtMin+" Min. liegen";empfColor="#ff3b30";
         }else if(topfWechselVorGruen){
           if(notstromMin===0){
             // Schon aus dem Notstrom
