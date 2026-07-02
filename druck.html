@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.1.0.14</title>
+<title>PacingApp 6.1.0.15</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -694,8 +694,12 @@ function updateLiegebalken(){
         var nochLiegeMin=neuAnteil>=25?0:Math.max(0,Math.ceil((0.25*neuGesamt-neuLieg)/0.75));
         var nochZuvielMin=_zuvielAktiv?Math.max(0,ZUVIEL_PAUSE_MIN-3-bereitsLiegMin):0;
         var nochTopfMin=_topfPauseErforderlich?Math.max(0,PAUSE_MINDEST_MIN-3-bereitsLiegMin):0;
+        var nochPflicht=Math.max(nochZuvielMin,nochTopfMin);
         var nochGesamt=Math.max(nochRegenMin,nochLiegeMin,nochZuvielMin,nochTopfMin);
-        if(nochGesamt<=0){
+        if(nochPflicht>0){
+          // Pflichtpause hat Vorrang - optionales Farbziel erst danach anzeigen
+          empfText="Noch "+nochPflicht+" Min. Pflicht-Pause";empfColor="#ff3b30";
+        }else if(nochGesamt<=0){
           empfText="\u2705 Pause reicht!";empfColor="#34c759";
         }else if(topfWechselVorGruen){
           // Minimalziel: aus Notstrom kommen vor Topfwechsel?
