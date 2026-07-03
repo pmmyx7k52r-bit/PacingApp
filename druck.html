@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.1.0.17</title>
+<title>PacingApp 6.1.0.18</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -657,7 +657,7 @@ function updateLiegebalken(){
       var naechsteFarbe=farbeNamen[Math.min(farbeIndex+1,3)];
       var regenFehlt;
       if(farbeIndex>=3){regenFehlt=0;}
-      else{var zielPct=farbeGrenzen[farbeIndex+1];var gruenSchwelle=Math.max(restT,Math.ceil(nutzbarT*zielPct));regenFehlt=Math.max(0,gruenSchwelle-restT+1);}
+      else{var zielPct=farbeGrenzen[farbeIndex];var gruenSchwelle=Math.max(restT,Math.ceil(nutzbarT*zielPct));regenFehlt=Math.max(0,gruenSchwelle-restT+1);}
       var regenNochMoeglich=regenNochVerfuegbar();
       var bankedMin=state.liegeRestMin||0;
       // Minuten bis Liegeanteil 25%: (lieg+x)/(gesamt+x)=0.25 -> x=(0.25*gesamt-lieg)/0.75
