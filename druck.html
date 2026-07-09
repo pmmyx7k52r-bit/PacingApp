@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.2.1</title>
+<title>PacingApp 6.2.2</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -728,7 +728,8 @@ function updateLiegebalken(){
         var bereitsLiegMin=Math.round((Date.now()-state.pauseBeginnTs)/60000);
         var bereitsKombiniert=bankedMin+Math.min(bereitsLiegMin,REGEN_MAX_MIN);
         var bereitsBloecke=Math.floor(bereitsKombiniert/10);
-        var bereitsRegen=Math.min(bereitsBloecke*REGEN_PRO_10_MIN,regenNochMoeglich);
+        var bereitsBonus=bereitsLiegMin>=ZUVIEL_PAUSE_MIN?2:0;
+        var bereitsRegen=Math.min(bereitsBloecke*REGEN_PRO_10_MIN+bereitsBonus,regenNochMoeglich);
         var neuGesamt=gesamt+bereitsLiegMin,neuLieg=lieg+bereitsLiegMin;
         var neuAnteil=neuGesamt>0?neuLieg/neuGesamt*100:0;
         var nochRegenMin=(Math.max(0,regenFehlt-bereitsRegen)>0&&regenNochMoeglich>0)?Math.max(0,Math.ceil(Math.max(0,regenFehlt-bereitsRegen)/REGEN_PRO_10_MIN)*10-(bereitsKombiniert-bereitsBloecke*10)):0;
