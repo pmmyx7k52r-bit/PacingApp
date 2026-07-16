@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.3.8</title>
+<title>PacingApp 6.3.9</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -549,10 +549,15 @@ function pruefeIdleAbzug(){
   var idleMin=Math.floor((Date.now()-_letzteAktion)/60000);
   var idleBloeckeSoll=Math.floor(idleMin/IDLE_DRAIN_MIN);
   if(idleBloeckeSoll<=_idleAbzugBloecke){return;}
-  var abzugMaxPkt=Math.floor(state.max*IDLE_DRAIN_MAX_ANTEIL);
-  var idleAbzugHeute=0;
-  for(var iAi=0;iAi<state.used.length;iAi++){if(state.used[iAi]._idleDrain){idleAbzugHeute+=state.used[iAi].v;}}
-  var nochMoeglich=Math.max(0,abzugMaxPkt-idleAbzugHeute);
+  var stundeJetztI=new Date().getHours()+new Date().getMinutes()/60;
+  var aktiverTopfI=stundeJetztI<TOPF_ENDE_H[0]?0:stundeJetztI<TOPF_ENDE_H[1]?1:stundeJetztI<TOPF_ENDE_H[2]?2:3;
+  var heuteI=new Date();heuteI.setHours(0,0,0,0);
+  var topfStartTsI=aktiverTopfI===0?heuteI.getTime()+TOPF_START_H*3600000:heuteI.getTime()+TOPF_ENDE_H[aktiverTopfI-1]*3600000;
+  var budgetTopfI=Math.round(state.max*TOPF_ANTEIL[aktiverTopfI]);
+  var abzugMaxPktTopf=Math.floor(budgetTopfI*IDLE_DRAIN_MAX_ANTEIL);
+  var idleAbzugTopf=0;
+  for(var iAi=0;iAi<state.used.length;iAi++){var uI=state.used[iAi];if(uI._idleDrain&&uI.ts&&uI.ts>=topfStartTsI){idleAbzugTopf+=uI.v;}}
+  var nochMoeglich=Math.max(0,abzugMaxPktTopf-idleAbzugTopf);
   var neueBloecke=idleBloeckeSoll-_idleAbzugBloecke;
   var abzugPkt=Math.min(neueBloecke*IDLE_DRAIN_PKT,nochMoeglich);
   _idleAbzugBloecke=idleBloeckeSoll;
@@ -648,7 +653,7 @@ function renderGrenzenEditor(){
   html+=sysRow("Aktiv (1=an, 0=aus)","sg_idleAktiv",IDLE_DRAIN_AKTIV,"");
   html+=sysRow("Alle X Min. ohne Erfassung","sg_idleMin",IDLE_DRAIN_MIN,"Min.");
   html+=sysRow("Abzug pro Block","sg_idlePkt",IDLE_DRAIN_PKT,"Pkt.");
-  html+=sysRow("Max. Anteil/Tag","sg_idleMaxAnteil",Math.round(IDLE_DRAIN_MAX_ANTEIL*100),"%");
+  html+=sysRow("Max. Anteil/Topf","sg_idleMaxAnteil",Math.round(IDLE_DRAIN_MAX_ANTEIL*100),"%");
   html+="<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">CRASH-SCORE</div>";
   html+=sysRow("Score Hoch (sofort Pause)","sg_crashHoch",CRASH_SCORE_HOCH,"Pkt.");html+=sysRow("Score Mittel (Warnung)","sg_crashMit",CRASH_SCORE_MITTEL,"Pkt.");html+=sysRow("Belastung Hoch (2h)","sg_crashBelH",CRASH_BELASTUNG_HOCH,"Pkt.");html+=sysRow("Belastung Mittel (2h)","sg_crashBelM",CRASH_BELASTUNG_MITTEL,"Pkt.");html+=sysRow("Aufrecht-Max (2h)","sg_crashAufr",CRASH_AUFRECHT_MAX,"Min.");
   html+="<div style=\"font-size:10px;font-weight:700;color:#8e8e93;margin:10px 0 4px;\">AUFRECHT-SCHWELLEN</div>";
