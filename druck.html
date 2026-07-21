@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.3.15</title>
+<title>PacingApp 6.3.16</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -551,20 +551,38 @@ function pruefeIdleAbzug(){
   var idleMin=Math.floor((Date.now()-_letzteAktion)/60000);
   var idleBloeckeSoll=Math.floor(idleMin/IDLE_DRAIN_MIN);
   if(idleBloeckeSoll<=_idleAbzugBloecke){return;}
-  var stundeJetztI=new Date().getHours()+new Date().getMinutes()/60;
-  var aktiverTopfI=stundeJetztI<TOPF_ENDE_H[0]?0:stundeJetztI<TOPF_ENDE_H[1]?1:stundeJetztI<TOPF_ENDE_H[2]?2:3;
   var heuteI=new Date();heuteI.setHours(0,0,0,0);
-  var topfStartTsI=aktiverTopfI===0?heuteI.getTime()+TOPF_START_H*3600000:heuteI.getTime()+TOPF_ENDE_H[aktiverTopfI-1]*3600000;
-  var budgetTopfI=Math.round(state.max*TOPF_ANTEIL[aktiverTopfI]);
-  var abzugMaxPktTopf=Math.floor(budgetTopfI*IDLE_DRAIN_MAX_ANTEIL);
-  var idleAbzugTopf=0;
-  for(var iAi=0;iAi<state.used.length;iAi++){var uI=state.used[iAi];if(uI._idleDrain&&uI.ts&&uI.ts>=topfStartTsI){idleAbzugTopf+=uI.v;}}
-  var nochMoeglich=Math.max(0,abzugMaxPktTopf-idleAbzugTopf);
-  var neueBloecke=idleBloeckeSoll-_idleAbzugBloecke;
-  var abzugPkt=Math.min(neueBloecke*IDLE_DRAIN_PKT,nochMoeglich);
+  var grenzenI=[heuteI.getTime()+TOPF_ENDE_H[0]*3600000,heuteI.getTime()+TOPF_ENDE_H[1]*3600000,heuteI.getTime()+TOPF_ENDE_H[2]*3600000,Infinity];
+  function topfFuerI(ts){return ts<grenzenI[0]?0:ts<grenzenI[1]?1:ts<grenzenI[2]?2:3;}
+  // NEU: jeden neuen 10-Min.-Block einzeln dem Topf zuordnen, in dem er zeitlich lag
+  // (statt beim Wiedereinstieg alles pauschal dem GERADE aktiven Topf zuzuschlagen -
+  // das hat den Dunkelabzug am Nachmittag/Abend systematisch unterschaetzt bzw.
+  // faelschlich in den falschen Topf gebucht, wenn die App laenger im Hintergrund war)
+  var proTopf=[0,0,0,0],letzterTsProTopf=[0,0,0,0];
+  for(var bi=_idleAbzugBloecke+1;bi<=idleBloeckeSoll;bi++){
+    var blockTs=_letzteAktion+bi*IDLE_DRAIN_MIN*60000;
+    var ti=topfFuerI(blockTs);
+    proTopf[ti]+=1;
+    letzterTsProTopf[ti]=blockTs;
+  }
   _idleAbzugBloecke=idleBloeckeSoll;
-  if(abzugPkt<=0){return;}
-  mutateState(function(s){s.block+=abzugPkt;s.used.push({n:"Dunkelaktivit\u00e4t ("+(idleBloeckeSoll*IDLE_DRAIN_MIN)+" Min. ohne Erfassung)",v:abzugPkt,ts:Date.now(),t:nowTime(),pos:"aufrecht",_idleDrain:true});});
+  var neueEintraege=[],gesamtAbzug=0;
+  for(var tt=0;tt<4;tt++){
+    if(proTopf[tt]<=0){continue;}
+    var topfStartTsI=tt===0?heuteI.getTime()+TOPF_START_H*3600000:heuteI.getTime()+TOPF_ENDE_H[tt-1]*3600000;
+    var topfEndeTsI=grenzenI[tt];
+    var budgetTopfI=Math.round(state.max*TOPF_ANTEIL[tt]);
+    var abzugMaxPktTopf=Math.floor(budgetTopfI*IDLE_DRAIN_MAX_ANTEIL);
+    var idleAbzugTopf=0;
+    for(var iAi=0;iAi<state.used.length;iAi++){var uI=state.used[iAi];if(uI._idleDrain&&uI.ts&&uI.ts>=topfStartTsI&&uI.ts<topfEndeTsI){idleAbzugTopf+=uI.v;}}
+    var nochMoeglich=Math.max(0,abzugMaxPktTopf-idleAbzugTopf);
+    var abzugPktTopf=Math.min(proTopf[tt]*IDLE_DRAIN_PKT,nochMoeglich);
+    if(abzugPktTopf<=0){continue;}
+    gesamtAbzug+=abzugPktTopf;
+    neueEintraege.push({n:"Dunkelaktivit\u00e4t ("+(proTopf[tt]*IDLE_DRAIN_MIN)+" Min. ohne Erfassung, Topf "+(tt+1)+")",v:abzugPktTopf,ts:letzterTsProTopf[tt],t:new Date(letzterTsProTopf[tt]).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),pos:"aufrecht",_idleDrain:true});
+  }
+  if(gesamtAbzug<=0){return;}
+  mutateState(function(s){for(var ei=0;ei<neueEintraege.length;ei++){s.block+=neueEintraege[ei].v;s.used.push(neueEintraege[ei]);}});
   checkPemPenalty();trackDayMinPct();updateDisplay();
 }
 var savedTimer=storeGet("pacing_timer_start");if(savedTimer&&savedTimer!==""&&state.max>0){lastActionTime=parseInt(savedTimer);renderMainWarning();}
