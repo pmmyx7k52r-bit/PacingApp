@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.3.16</title>
+<title>PacingApp 6.3.17</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -737,8 +737,18 @@ function updateLiegebalken(){
   if(fill){fill.style.background=farbe;}
   if(lbl){lbl.textContent="Liegen / Aufrecht";}
   if(werte){werte.textContent=lieg+" / "+auf+" Min. ("+anteil+"%)";werte.style.color=farbe;}
-  // NEU 6.1.0: Empfehlung wie lange Liegepause noetig bis gruener Topf-Bereich
+  // NEU 6.1.0: Empfehlung wie lange Liegepause noetig bis naechster Farbstufe
+  // NEU 6.3.17: Exakte Minute-fuer-Minute-Simulation statt linearer Naeherung.
+  //   Grund: Regeneration ist NICHT linear - bei ZUVIEL_PAUSE_MIN (Standard 20 Min.)
+  //   gibt es einen einmaligen Bonus von +2 Punkten (siehe endePause()/endePauseStill()).
+  //   Die alte lineare Hochrechnung ("10 Min. pro Punkt", plus ein unnoetiger "+1"-Puffer
+  //   beim Zielwert) kannte diesen Sprung nicht und hat die noetige Zeit dadurch massiv
+  //   ueberschaetzt (z.B. 48 Min. vorhergesagt, real nach ~30 Min. schon zwei Farbstufen
+  //   weiter). Jetzt: exakte Klassifikation + Simulation, dieselbe Logik wie beim Pausenende.
   (function(){
+    function farbeIndexFuerRestT(rt,ntz,nst){if(ntz<=0){return 0;}var pr=rt/ntz;if(rt<=0||rt<nst||pr<=0.10){return 0;}if(pr<=0.30){return 1;}if(pr<=0.60){return 2;}return 3;}
+    function minRestTFuerZiel(ntz,nst,zielIdx){for(var r=0;r<=ntz+1;r++){if(farbeIndexFuerRestT(r,ntz,nst)>=zielIdx){return r;}}return ntz;}
+    function minutenBisPunkte(banked,bereitsMin,zielPkt,cap){if(zielPkt<=0){return 0;}if(!(cap>0)){return null;}for(var m=bereitsMin;m<=bereitsMin+300;m++){var komb=banked+Math.min(m,REGEN_MAX_MIN);var bloecke=Math.floor(komb/10);var bonus=m>=ZUVIEL_PAUSE_MIN?2:0;var total=Math.min(bloecke*REGEN_PRO_10_MIN+bonus,cap);if(total>=zielPkt){return Math.max(0,m-bereitsMin);}}return null;}
     var empfText="",empfColor=farbe;
     if(state.max>0){
       var stundeJetzt2=new Date().getHours()+new Date().getMinutes()/60;
@@ -755,30 +765,21 @@ function updateLiegebalken(){
       var nutzbarT=nutzbarEff2[aktiverTopf2],verbrauchT=vr2[aktiverTopf2]+getSymptomBodensatz();
       var restT=Math.max(0,nutzbarT-verbrauchT);
       var notstromT=Math.round(budgetsEff2[aktiverTopf2]*NOTSTROM_ANTEIL);
-      // NEU 6.1.0.8: Ziel ist die Mitte der naechstbesseren Farbstufe, nicht fix "gruen"
-      var pctRest=nutzbarT>0?restT/nutzbarT:0;
-      var notstromPct=nutzbarT>0?notstromT/nutzbarT:0;
-      var b0=Math.max(notstromPct,0.10);
-      var farbeGrenzen=[b0,0.30,0.60,1.0];
-      var farbeIndex;
-      if(restT<=0||restT<notstromT||pctRest<=0.10){farbeIndex=0;}
-      else if(pctRest<=0.30){farbeIndex=1;}
-      else if(pctRest<=0.60){farbeIndex=2;}
-      else{farbeIndex=3;}
+      var farbeIndex=farbeIndexFuerRestT(restT,nutzbarT,notstromT);
       var farbeNamen=["rot","orange","gelb","gr\u00fcn"];
       var farbeHex=["#ff3b30","#ff9500","#ffcc00","#34c759"];
       var farbeHexAktion=function(fi){return fi>=3?"#ff9500":farbeHex[fi];};
       var naechsteFarbe=farbeNamen[Math.min(farbeIndex+1,3)];
-      var regenFehlt;
-      if(farbeIndex>=3){regenFehlt=0;}
-      else{var zielPct=farbeGrenzen[farbeIndex];var gruenSchwelle=Math.max(restT,Math.ceil(nutzbarT*zielPct));regenFehlt=Math.max(0,gruenSchwelle-restT+1);}
+      // Exaktes Ziel: kleinster restT-Wert, der wirklich in die naechste Farbstufe faellt
+      // (direkt anhand derselben Klassifikationsfunktion ermittelt statt mit Naeherung+Puffer)
+      var regenFehlt=farbeIndex>=3?0:Math.max(0,minRestTFuerZiel(nutzbarT,notstromT,farbeIndex+1)-restT);
       var regenNochMoeglich=regenNochVerfuegbar();
       var bankedMin=state.liegeRestMin||0;
       // Minuten bis Liegeanteil 25%: (lieg+x)/(gesamt+x)=0.25 -> x=(0.25*gesamt-lieg)/0.75
       var liegeMinFehlt=0;
       if(anteil<25&&gesamt>0){liegeMinFehlt=Math.max(0,Math.ceil((0.25*gesamt-lieg)/0.75));}
-      // Minuten bis Energie gruen
-      var regenMinFehlt=(regenFehlt>0&&regenNochMoeglich>0)?Math.max(0,Math.ceil(regenFehlt/REGEN_PRO_10_MIN)*10-bankedMin):0;
+      // Minuten bis Energie naechste Farbstufe (Simulation, inkl. Zuviel-Pause-Bonus)
+      var regenMinFehlt=(regenFehlt>0&&regenNochMoeglich>0)?(minutenBisPunkte(bankedMin,0,regenFehlt,regenNochMoeglich)||0):0;
       // Pflichtpausen (Zu-viel / Topfwechsel) einbeziehen
       var zuvielMin=_zuvielAktiv?ZUVIEL_PAUSE_MIN:0;
       var topfPauseMin=_topfPauseErforderlich?PAUSE_MINDEST_MIN:0;
@@ -791,8 +792,8 @@ function updateLiegebalken(){
       var naechsteTopfZeit=(Math.floor(naechsteTopfH)<10?"0":"")+Math.floor(naechsteTopfH)+":00";
       var topfWechselVorGruen=(!pflichtPause&&minBisTopf>0&&minBisTopf<gruenMin);
       // Bei nahendem Topfwechsel: Notstrom-Schwelle als Minimalziel (nicht Ziel-Schwelle)
-      var regenFehltNotstrom=Math.max(0,notstromT-restT+1);
-      var notstromMin=(regenFehltNotstrom>0&&regenNochMoeglich>0)?Math.max(0,Math.ceil(regenFehltNotstrom/REGEN_PRO_10_MIN)*10-bankedMin):0;
+      var regenFehltNotstrom=Math.max(0,notstromT-restT);
+      var notstromMin=(regenFehltNotstrom>0&&regenNochMoeglich>0)?(minutenBisPunkte(bankedMin,0,regenFehltNotstrom,regenNochMoeglich)||0):0;
       var kannNichtMehr=(regenFehlt>0&&regenNochMoeglich<=0);
       if(kannNichtMehr&&liegeMinFehlt===0&&!pflichtPause){
         empfText="Punkte-Limit erreicht \u2014 Liegen bleibt trotzdem wichtig!";empfColor="#ff9500";
@@ -800,13 +801,9 @@ function updateLiegebalken(){
         empfText="\u2713 Gut!";empfColor="#34c759";
       }else if(state.pauseBeginnTs){
         var bereitsLiegMin=Math.round((Date.now()-state.pauseBeginnTs)/60000);
-        var bereitsKombiniert=bankedMin+Math.min(bereitsLiegMin,REGEN_MAX_MIN);
-        var bereitsBloecke=Math.floor(bereitsKombiniert/10);
-        var bereitsBonus=bereitsLiegMin>=ZUVIEL_PAUSE_MIN?2:0;
-        var bereitsRegen=Math.min(bereitsBloecke*REGEN_PRO_10_MIN+bereitsBonus,regenNochMoeglich);
         var neuGesamt=gesamt,neuLieg=lieg;
         var neuAnteil=neuGesamt>0?neuLieg/neuGesamt*100:0;
-        var nochRegenMin=(Math.max(0,regenFehlt-bereitsRegen)>0&&regenNochMoeglich>0)?Math.max(0,Math.ceil(Math.max(0,regenFehlt-bereitsRegen)/REGEN_PRO_10_MIN)*10-(bereitsKombiniert-bereitsBloecke*10)):0;
+        var nochRegenMin=(regenFehlt>0&&regenNochMoeglich>0)?(minutenBisPunkte(bankedMin,bereitsLiegMin,regenFehlt,regenNochMoeglich)||0):0;
         var nochLiegeMin=neuAnteil>=25?0:Math.max(0,Math.ceil((0.25*neuGesamt-neuLieg)/0.75));
         var nochZuvielMin=_zuvielAktiv?Math.max(0,ZUVIEL_PAUSE_MIN-3-bereitsLiegMin):0;
         var nochTopfMin=_topfPauseErforderlich?Math.max(0,PAUSE_MINDEST_MIN-3-bereitsLiegMin):0;
@@ -819,8 +816,7 @@ function updateLiegebalken(){
           empfText="\u2705 Pause reicht!";empfColor="#34c759";
         }else if(topfWechselVorGruen){
           // Minimalziel: aus Notstrom kommen UND Liegeanteil erreichen, vor Topfwechsel?
-          var notstromNachPause=Math.max(0,regenFehltNotstrom-bereitsRegen);
-          var notstromMinNoch=(notstromNachPause>0&&regenNochMoeglich>0)?Math.max(0,Math.ceil(notstromNachPause/REGEN_PRO_10_MIN)*10-(bereitsKombiniert-bereitsBloecke*10)):0;
+          var notstromMinNoch=(regenFehltNotstrom>0&&regenNochMoeglich>0)?(minutenBisPunkte(bankedMin,bereitsLiegMin,regenFehltNotstrom,regenNochMoeglich)||0):0;
           var minBisTopfNoch=Math.max(0,minBisTopf-bereitsLiegMin);
           var zielMinNoch=Math.max(notstromMinNoch,nochLiegeMin);
           if(zielMinNoch<=0){
