@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.3.17</title>
+<title>PacingApp 6.3.18</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -588,7 +588,7 @@ function pruefeIdleAbzug(){
 var savedTimer=storeGet("pacing_timer_start");if(savedTimer&&savedTimer!==""&&state.max>0){lastActionTime=parseInt(savedTimer);renderMainWarning();}
   var savedIdle=storeGet("pacing_letzte_aktion");if(savedIdle&&savedIdle!==""&&state.max>0){_letzteAktion=parseInt(savedIdle);}else if(state.max>0){_letzteAktion=Date.now();}
 var today=new Date().toDateString();if(state.date&&state.date!==today&&state.max>0){archiveDay();resetDayInternal();renderCatalog();return;}
-if(state.max>0){restorePauseState();showMainUI();updateDisplay();}
+if(state.max>0){restorePauseState();pruefeIdleAbzug();showMainUI();updateDisplay();}
 checkRollingPene();renderCatalog();
 };
 function restorePauseState(){if(state.pauseBeginnTs){document.getElementById("btnPauseBeginn").style.display="none";document.getElementById("btnPauseEnde").style.display="block";}else{document.getElementById("btnPauseBeginn").style.display="block";document.getElementById("btnPauseEnde").style.display="none";}}
