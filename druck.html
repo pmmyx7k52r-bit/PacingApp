@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.5.0</title>
+<title>PacingApp 6.5.1</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -844,6 +844,11 @@ function updateLiegebalken(){
       for(var oi2=0;oi2<3;oi2++){var ovfl2=Math.max(0,vr2[oi2]-nutzbarEff2[oi2]);if(ovfl2<=0){continue;}var abzug2=Math.round(ovfl2/(3-oi2));for(var ri2=oi2+1;ri2<4;ri2++){budgetsEff2[ri2]=Math.max(0,budgetsEff2[ri2]-abzug2);nutzbarEff2[ri2]=Math.max(0,budgetsEff2[ri2]-Math.round(budgetsEff2[ri2]*NOTSTROM_ANTEIL));}}
       var nutzbarT=nutzbarEff2[aktiverTopf2],verbrauchT=vr2[aktiverTopf2]+getSymptomBodensatz();
       var restT=Math.max(0,nutzbarT-verbrauchT);
+      // NEU 6.5.1: ungeklemmte Version (darf negativ sein) fuer die Bedarfsrechnungen -
+      // das bei 0 gedeckelte restT hat bei tiefem Notstrom-Ueberzug den wahren Abstand
+      // zum Ziel verschluckt und den noetigen Regen-Bedarf massiv unterschaetzt (z.B.
+      // 4 Pkt./16 Min. angezeigt statt tatsaechlich noetiger 13 Pkt./~50+ Min.).
+      var restTEcht=nutzbarT-verbrauchT;
       var notstromT=Math.round(budgetsEff2[aktiverTopf2]*NOTSTROM_ANTEIL);
       var farbeIndex=farbeIndexFuerRestT(restT,nutzbarT,notstromT);
       var farbeNamen=["rot","orange","gelb","gr\u00fcn"];
@@ -852,7 +857,7 @@ function updateLiegebalken(){
       var naechsteFarbe=farbeNamen[Math.min(farbeIndex+1,3)];
       // Exaktes Ziel: kleinster restT-Wert, der wirklich in die naechste Farbstufe faellt
       // (direkt anhand derselben Klassifikationsfunktion ermittelt statt mit Naeherung+Puffer)
-      var regenFehlt=farbeIndex>=3?0:Math.max(0,minRestTFuerZiel(nutzbarT,notstromT,farbeIndex+1)-restT);
+      var regenFehlt=farbeIndex>=3?0:Math.max(0,minRestTFuerZiel(nutzbarT,notstromT,farbeIndex+1)-restTEcht);
       var regenNochMoeglich=regenNochVerfuegbar();
       var bankedMin=state.liegeRestMin||0;
       // Minuten bis Liegeanteil 25%: (lieg+x)/(gesamt+x)=0.25 -> x=(0.25*gesamt-lieg)/0.75
@@ -872,7 +877,7 @@ function updateLiegebalken(){
       var naechsteTopfZeit=(Math.floor(naechsteTopfH)<10?"0":"")+Math.floor(naechsteTopfH)+":00";
       var topfWechselVorGruen=(!pflichtPause&&minBisTopf>0&&minBisTopf<gruenMin);
       // Bei nahendem Topfwechsel: Notstrom-Schwelle als Minimalziel (nicht Ziel-Schwelle)
-      var regenFehltNotstrom=Math.max(0,notstromT-restT);
+      var regenFehltNotstrom=Math.max(0,notstromT-restTEcht);
       var notstromMin=(regenFehltNotstrom>0&&regenNochMoeglich>0)?(minutenBisPunkte(bankedMin,0,regenFehltNotstrom,regenNochMoeglich)||0):0;
       var kannNichtMehr=(regenFehlt>0&&regenNochMoeglich<=0);
       if(kannNichtMehr&&liegeMinFehlt===0&&!pflichtPause){
