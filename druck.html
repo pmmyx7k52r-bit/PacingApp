@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.8.3.2</title>
+<title>PacingApp 6.8.3.3</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -235,6 +235,7 @@ input, select {
   <button type="button" class="btn-pause-big" id="btnAufstehen" style="display:none;">Aufgestanden &#128694;</button>
   <button type="button" class="btn-pause-big" id="btnPauseBeginn">Pausenbeginn (ohne Handy!)</button>
   <button type="button" class="btn-pause-end" id="btnPauseEnde">Pause beendet</button>
+  <button type="button" id="btnPauseEndeFrueher" style="display:none;background:none;border:1px solid #c7c7cc;color:#6e6e73;font-size:12px;padding:8px;">Pause war schon fr&uuml;her zu Ende &hellip;</button>
 </div>
 <div id="rollingWarnBox" class="rolling-warn"></div>
 
@@ -493,7 +494,7 @@ function sicherstelleAufgestanden(){if(state.max>0&&!state.morgensAufgestanden){
 function beendeUnterwegsFallsAktiv(){if(state.unterwegsAktiv){mutateState(function(s){s.unterwegsAktiv=false;s.unterwegsSeitTs=null;});aktualisiereUnterwegsButton();}}
 function aktualisiereUnterwegsButton(){var startBtn=document.getElementById("btnUnterwegsStart");if(startBtn){startBtn.style.display=state.unterwegsAktiv?"none":"block";}var chip=document.getElementById("unterwegsChip");if(chip){if(state.unterwegsAktiv){chip.style.display="block";chip.onclick=function(){zuhauseAngekommen();};var seitTxt=state.unterwegsSeitTs?new Date(state.unterwegsSeitTs).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";chip.innerHTML="\uD83D\uDE97 Unterwegs seit "+seitTxt+"<br><span style=\"font-size:11px;font-weight:400;opacity:0.85;\">Tippen: zu Hause angekommen</span>";}else{chip.style.display="none";chip.onclick=null;}}}
 function zuhauseAngekommen(){if(state.max<=0){return;}var seitTs=state.unterwegsSeitTs,minUnterwegs=seitTs?Math.round((Date.now()-seitTs)/60000):0;mutateState(function(s){s.unterwegsAktiv=false;s.unterwegsSeitTs=null;s.used.push({n:"Zuhause angekommen (nach "+minUnterwegs+" Min. unterwegs)",v:0,ts:Date.now(),t:nowTimeSec(),pos:"aufrecht"});});_lastWarnType=null;_lastWarnTs=0;updateDisplay();showToast("Willkommen zur\u00fcck!",true);markiereAktivitaet();}
-function aktualisierePauseButtons(){var btnAuf=document.getElementById("btnAufstehen"),btnBeginn=document.getElementById("btnPauseBeginn"),btnEnde=document.getElementById("btnPauseEnde");if(!btnAuf||!btnBeginn||!btnEnde){return;}if(!state.morgensAufgestanden&&!state.pauseBeginnTs){btnAuf.style.display="block";btnBeginn.style.display="none";btnEnde.style.display="none";}else if(state.pauseBeginnTs){btnAuf.style.display="none";btnBeginn.style.display="none";btnEnde.style.display="block";}else{btnAuf.style.display="none";btnBeginn.style.display="block";btnEnde.style.display="none";}}
+function aktualisierePauseButtons(){var btnAuf=document.getElementById("btnAufstehen"),btnBeginn=document.getElementById("btnPauseBeginn"),btnEnde=document.getElementById("btnPauseEnde");if(!btnAuf||!btnBeginn||!btnEnde){return;}var btnFr=document.getElementById("btnPauseEndeFrueher");if(btnFr){btnFr.style.display=state.pauseBeginnTs?"block":"none";}if(!state.morgensAufgestanden&&!state.pauseBeginnTs){btnAuf.style.display="block";btnBeginn.style.display="none";btnEnde.style.display="none";}else if(state.pauseBeginnTs){btnAuf.style.display="none";btnBeginn.style.display="none";btnEnde.style.display="block";}else{btnAuf.style.display="none";btnBeginn.style.display="block";btnEnde.style.display="none";}}
 function morgensAufstehen(){if(state.max<=0){return;}checkTopfWechsel();pruefeIdleAbzug();mutateState(function(s){s.block+=1;s.morgensAufgestanden=true;s.used.push({n:"Aufgestanden",v:1,ts:Date.now(),t:nowTimeSec(),pos:"aufrecht"});s.aufrechtSeitTs=Date.now();});checkPemPenalty();trackDayMinPct();updateDisplay();aktualisierePauseButtons();showToast("Aufgestanden - 1 Pkt.");startPauseTimer();markiereAktivitaet();}
 function regenNochVerfuegbar(){if(state.max<=0){return 0;}var heute=new Date();heute.setHours(0,0,0,0);var cutoffTs=heute.getTime()+REGEN_CAP_AB_STUNDE*3600000;var jetzt=Date.now();if(jetzt<cutoffTs){return Infinity;}var regenMaxPkt=Math.floor(state.max*REGEN_MAX_ANTEIL);var regenSeitCutoff=regenHeuteSeit(cutoffTs);return Math.max(0,regenMaxPkt-regenSeitCutoff);}
 var schlafWert=null,schlafMode=null,lastActionTime=null;
@@ -521,7 +522,7 @@ function saveLoads(){storeSet(STORAGE_LOADS,JSON.stringify(loads));}
 function startPauseTimer(){if(!lastActionTime){lastActionTime=Date.now();storeSet("pacing_timer_start",String(lastActionTime));}renderMainWarning();}
 function stopPauseTimer(){lastActionTime=null;storeSet("pacing_timer_start","");}
 function checkLangePause(){var bar=document.getElementById("langePauseBar");if(!bar||!state.pauseBeginnTs||state.max<=0){if(bar){bar.style.display="none";}_langePauseHingewiesen=false;return;}var min=Math.round((Date.now()-state.pauseBeginnTs)/60000);if(min>=PAUSE_NACHFRAGE_MIN){bar.style.display="block";bar.style.background="#ff3b30";bar.style.animation="blinker 1.2s linear infinite";bar.innerHTML=min+" Min. \u2014 Pause l\u00e4uft noch \u2014 vergessen zu beenden?<br><span style=\"font-size:11px;font-weight:400;opacity:0.9;\">Tippen um Pause jetzt zu beenden</span>";if(!_langePauseHingewiesen){_langePauseHingewiesen=true;setTimeout(langePauseNachfragen,500);}}else if(min>=PAUSE_WARN2_MIN){bar.style.display="block";bar.style.background="#ff9500";bar.style.animation="blinker 1.2s linear infinite";bar.innerHTML=min+" Min. \u2014 Pause l\u00e4uft noch?<br><span style=\"font-size:11px;font-weight:400;opacity:0.9;\">Tippen um Pause jetzt zu beenden</span>";_langePauseHingewiesen=false;}else if(min>=PAUSE_WARN1_MIN){bar.style.display="block";bar.style.background="#5856d6";bar.style.animation="none";bar.innerHTML=min+" Min. \u2014 Pause l\u00e4uft noch?<br><span style=\"font-size:11px;font-weight:400;opacity:0.85;\">Tippen um Pause jetzt zu beenden</span>";_langePauseHingewiesen=false;}else{bar.style.display="none";bar.style.animation="none";_langePauseHingewiesen=false;}}
-function langePauseNachfragen(){var bar=document.getElementById("langePauseBar");if(bar){bar.style.display="none";}if(!state.pauseBeginnTs){return;}var min=Math.round((Date.now()-state.pauseBeginnTs)/60000);if(confirm(min+" Min. \u2014 Pause vergessen zu beenden?\n\nPause jetzt beenden?")){endePause(false);}else{_langePauseHingewiesen=false;}}
+function langePauseNachfragen(){var bar=document.getElementById("langePauseBar");if(bar){bar.style.display="none";}if(!state.pauseBeginnTs){return;}zeigePauseEndeDialog();}
 function toggleSection(bodyId,chevronId){var body=document.getElementById(bodyId),chev=document.getElementById(chevronId);if(!body){return;}if(body.className.indexOf("open")>=0){body.className=body.className.replace(" open","").replace("open","");if(chev){chev.className=chev.className.replace(" open","").replace("open","");}}else{body.className+=" open";if(chev){chev.className+=" open";}}}
 function pruefeIdleAbzug(){
   if(!IDLE_DRAIN_AKTIV||state.max<=0){return;}
@@ -592,7 +593,7 @@ if(state.max>0){restorePauseState();checkTopfWechsel();pruefeIdleAbzug();showMai
 checkRollingPene();renderCatalog();
 };
 function restorePauseState(){aktualisierePauseButtons();}
-function verdrahteButtons(){document.getElementById("btnAufstehen").addEventListener("click",morgensAufstehen);document.getElementById("btnPauseBeginn").addEventListener("click",doPauseBeginn);document.getElementById("btnPauseEnde").addEventListener("click",function(){endePause(false);});document.getElementById("btnStart").addEventListener("click",startDay);document.getElementById("btnReset").addEventListener("click",resetDay);document.getElementById("btnToggleCatalog").addEventListener("click",toggleCatalogCard);document.getElementById("btnAddCatalog").addEventListener("click",addCatalogEntry);document.getElementById("btnResetKatalog").addEventListener("click",resetKatalog);document.getElementById("btnToggleSymptom").addEventListener("click",toggleSymptomCard);document.getElementById("btnToggleUsed").addEventListener("click",toggleUsedCard);document.getElementById("btnUndo").addEventListener("click",undoLast);document.getElementById("debugBtn").addEventListener("click",showHistory);document.getElementById("exportBtn").addEventListener("click",exportiereDaten);document.getElementById("btnToggleCheck").addEventListener("click",toggleCheck);document.getElementById("btnGuteNacht").addEventListener("click",guteNacht);document.getElementById("schwereOverlay").addEventListener("click",closeSchwere);var schlafBtns=document.querySelectorAll("[data-schlaf]");for(var si=0;si<schlafBtns.length;si++){schlafBtns[si].addEventListener("click",machSchlafHandler(schlafBtns[si]));}var symptomBtns=document.querySelectorAll("[data-symptom]");for(var syi=0;syi<symptomBtns.length;syi++){symptomBtns[syi].addEventListener("click",machSymptomHandler(symptomBtns[syi]));}}
+function verdrahteButtons(){document.getElementById("btnAufstehen").addEventListener("click",morgensAufstehen);document.getElementById("btnPauseBeginn").addEventListener("click",doPauseBeginn);document.getElementById("btnPauseEnde").addEventListener("click",function(){endePause(false);});document.getElementById("btnPauseEndeFrueher").addEventListener("click",zeigePauseEndeDialog);document.getElementById("btnStart").addEventListener("click",startDay);document.getElementById("btnReset").addEventListener("click",resetDay);document.getElementById("btnToggleCatalog").addEventListener("click",toggleCatalogCard);document.getElementById("btnAddCatalog").addEventListener("click",addCatalogEntry);document.getElementById("btnResetKatalog").addEventListener("click",resetKatalog);document.getElementById("btnToggleSymptom").addEventListener("click",toggleSymptomCard);document.getElementById("btnToggleUsed").addEventListener("click",toggleUsedCard);document.getElementById("btnUndo").addEventListener("click",undoLast);document.getElementById("debugBtn").addEventListener("click",showHistory);document.getElementById("exportBtn").addEventListener("click",exportiereDaten);document.getElementById("btnToggleCheck").addEventListener("click",toggleCheck);document.getElementById("btnGuteNacht").addEventListener("click",guteNacht);document.getElementById("schwereOverlay").addEventListener("click",closeSchwere);var schlafBtns=document.querySelectorAll("[data-schlaf]");for(var si=0;si<schlafBtns.length;si++){schlafBtns[si].addEventListener("click",machSchlafHandler(schlafBtns[si]));}var symptomBtns=document.querySelectorAll("[data-symptom]");for(var syi=0;syi<symptomBtns.length;syi++){symptomBtns[syi].addEventListener("click",machSymptomHandler(symptomBtns[syi]));}}
 function machSchlafHandler(btn){return function(){var w=btn.getAttribute("data-schlaf");selectSchlaf(w==="null"?null:parseFloat(w),btn);};}
 function machSymptomHandler(btn){return function(){pickSchwere(parseInt(btn.getAttribute("data-symptom")));};}
 function selectSchlaf(wert,btn){var btns=document.querySelectorAll(".schlaf-btn");for(var i=0;i<btns.length;i++){btns[i].classList.remove("selected");}btn.classList.add("selected");var row=document.getElementById("individuellRow");if(wert===null){schlafMode="individuell";schlafWert=null;row.classList.add("open");document.getElementById("sleep").focus();}else{schlafMode="preset";schlafWert=wert;row.classList.remove("open");document.getElementById("sleep").value="";}}
@@ -603,6 +604,133 @@ function toggleCheck(){zeigeConfirm("Wirklich neuen Tag starten?","Der aktuelle 
 function guteNacht(){zeigeConfirm("Wirklich den Tag beenden?","Alle Daten werden archiviert und der Tag zur\u00fcckgesetzt.",function(){if(state.pauseBeginnTs){endePauseStill();}archiveDay();setTimeout(function(){resetDayInternal();},50);showToast("Gute Nacht! \uD83C\uDF19");});}
 function endePauseStill(){if(state.max<=0){return;}var jetzt=Date.now(),min=state.pauseBeginnTs?Math.round((jetzt-state.pauseBeginnTs)/60000):0;var liegend=false;for(var pi=state.used.length-1;pi>=0;pi--){if(state.used[pi].n==="Pausenbeginn"){liegend=(state.used[pi].pos==="liegend");break;}}var regen=0,neuerRest=state.liegeRestMin||0;if(liegend&&min>0){var rm=Math.min(min,REGEN_MAX_MIN);var combinedMin=(state.liegeRestMin||0)+rm;var regenBlocks=Math.floor(combinedMin/10);regen=regenBlocks*REGEN_PRO_10_MIN;regen=Math.min(regen,regenNochVerfuegbar());neuerRest=combinedMin-regenBlocks*10;}if(min>=ZUVIEL_PAUSE_MIN-3&&liegend){_zuvielAktiv=false;}if(min>=ZUVIEL_PAUSE_MIN){regen+=2;}mutateState(function(s){s.used.push({n:"Pause beendet ("+min+" Min.)",v:0,ts:jetzt,t:nowTimeSec(),pos:"aufrecht",regen:regen});s.pauseBeginnTs=null;s.aufrechtSeitTs=jetzt;if(liegend){s.liegeRestMin=neuerRest;}});}
 
+function fmtHM(ts){var d=new Date(ts);return(d.getHours()<10?"0":"")+d.getHours()+":"+(d.getMinutes()<10?"0":"")+d.getMinutes();}
+function zeigeZeitDialog(titel,sub,defTs,minTs,maxTs,onSave,onCancel){
+  var ov=document.getElementById("zeitOverlay"),dlg=document.getElementById("zeitDialog"),inp=document.getElementById("zeitInput");
+  if(!ov||!dlg||!inp){return;}
+  document.getElementById("zeitTitel").textContent=titel;
+  document.getElementById("zeitSub").textContent=sub||"";
+  inp.value=fmtHM(defTs);
+  ov.style.display="block";dlg.style.display="block";
+  function zu(){ov.style.display="none";dlg.style.display="none";}
+  document.getElementById("zeitAbbrechen").onclick=function(){zu();if(onCancel){onCancel();}};
+  ov.onclick=function(){zu();if(onCancel){onCancel();}};
+  document.getElementById("zeitOk").onclick=function(){
+    var v=inp.value;
+    if(!v||v.indexOf(":")<0){showToast("Bitte Uhrzeit eingeben",true);return;}
+    var p=v.split(":"),d=new Date(defTs);
+    d.setHours(parseInt(p[0],10),parseInt(p[1],10),0,0);
+    var ts=d.getTime();
+    if(fmtHM(ts)===fmtHM(defTs)){ts=defTs;}
+    else if(ts<=minTs||ts>maxTs){showToast("Zeit muss zwischen "+fmtHM(minTs+60000)+" und "+fmtHM(maxTs)+" liegen",true);return;}
+    zu();onSave(ts);
+  };
+}
+function zeigePauseEndeDialog(){
+  if(!state.pauseBeginnTs){return;}
+  var lo=state.pauseBeginnTs,jetzt=Date.now();
+  zeigeZeitDialog("Wann war die Pause zu Ende?","Pause seit "+fmtHM(lo)+". Die Zeit danach wird als aufrecht gewertet.",jetzt,lo,jetzt,function(ts){endePause(false,ts);},function(){_langePauseHingewiesen=false;});
+}
+function istPauseEintrag(u){return!!u&&!!u.n&&(u.n==="Pausenbeginn"||u.n.indexOf("Pause beendet")===0);}
+function istUnterwegsEintrag(u){return!!u&&!!u.n&&(u.n==="Unterwegs / nicht erfasst"||u.n.indexOf("Zuhause angekommen")===0);}
+function korrigierbar(u){return!!u&&!!u.ts&&(istPauseEintrag(u)||istUnterwegsEintrag(u));}
+function machZeitHandler(idx){return function(){korrigiereZeit(idx);};}
+function korrigiereZeit(idx){
+  var u=state.used[idx];if(state.max<=0||!korrigierbar(u)){return;}
+  var pg=istPauseEintrag(u),lo=state.used[0].ts,hiN=null;
+  for(var i=0;i<state.used.length;i++){
+    if(i===idx){continue;}
+    var o=state.used[i];
+    if(!o.ts||!(pg?istPauseEintrag(o):istUnterwegsEintrag(o))){continue;}
+    if(o.ts<u.ts||(o.ts===u.ts&&i<idx)){if(o.ts>lo){lo=o.ts;}}
+    else{if(hiN===null||o.ts<hiN){hiN=o.ts;}}
+  }
+  var maxTs=hiN!==null?hiN-60000:Date.now();
+  zeigeZeitDialog("Uhrzeit korrigieren",u.n,u.ts,lo,maxTs,function(ts){wendeZeitKorrekturAn(idx,ts);});
+}
+function sortiereUsedNachZeit(s){var arr=s.used.map(function(x,i){return{x:x,i:i};});arr.sort(function(a,b){return((a.x.ts||0)-(b.x.ts||0))||(a.i-b.i);});s.used=arr.map(function(o){return o.x;});}
+function dunkelEintraegeFuerFenster(fromTs,toTs){
+  var res=[];if(!IDLE_DRAIN_AKTIV){return res;}
+  var blocks=Math.floor((toTs-fromTs)/(IDLE_DRAIN_MIN*60000));if(blocks<=0){return res;}
+  var h=new Date(fromTs);h.setHours(0,0,0,0);
+  var g=[h.getTime()+TOPF_ENDE_H[0]*3600000,h.getTime()+TOPF_ENDE_H[1]*3600000,h.getTime()+TOPF_ENDE_H[2]*3600000,Infinity];
+  var per=[0,0,0,0],lastTs=[0,0,0,0];
+  for(var bi=1;bi<=blocks;bi++){var bt=fromTs+bi*IDLE_DRAIN_MIN*60000;var ti=bt<g[0]?0:bt<g[1]?1:bt<g[2]?2:3;per[ti]+=1;lastTs[ti]=bt;}
+  for(var tt=0;tt<4;tt++){
+    if(per[tt]<=0){continue;}
+    res.push({n:"Dunkelaktivit\u00e4t ("+(per[tt]*IDLE_DRAIN_MIN)+" Min. ohne Erfassung, Topf "+(tt+1)+")",v:per[tt]*IDLE_DRAIN_PKT,ts:lastTs[tt],t:new Date(lastTs[tt]).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),pos:"aufrecht",_idleDrain:true});
+  }
+  return res;
+}
+function berechneRegenNeu(s){
+  var h=new Date(s.used[0].ts);h.setHours(0,0,0,0);
+  var cutoff=h.getTime()+REGEN_CAP_AB_STUNDE*3600000,maxPkt=Math.floor(s.max*REGEN_MAX_ANTEIL);
+  var rest=0,seit=0,pb=null;
+  for(var i=0;i<s.used.length;i++){
+    var u=s.used[i];
+    if(u.n==="Pausenbeginn"){pb=u;continue;}
+    if(u.n.indexOf("Pause beendet")!==0||!pb){continue;}
+    var neu=!!(u._recalc||pb._recalc||u.auto!==undefined);
+    var min=Math.round((u.ts-pb.ts)/60000);
+    if(neu){
+      var regen=0;
+      if(pb.pos==="liegend"&&min>0){
+        var rm=u.auto?Math.min(min,PAUSE_MINDEST_MIN):Math.min(min,REGEN_MAX_MIN);
+        var comb=rest+rm,bl=Math.floor(comb/10);
+        regen=bl*REGEN_PRO_10_MIN;
+        if(u.ts>=cutoff){regen=Math.min(regen,Math.max(0,maxPkt-seit));}
+        rest=comb-bl*10;
+      }
+      if(min>=ZUVIEL_PAUSE_MIN){regen+=2;}
+      u.n="Pause beendet ("+min+" Min.)";u.regen=regen;
+    }
+    if(u.ts>=cutoff&&u.regen){seit+=u.regen;}
+    delete u._recalc;delete pb._recalc;
+    pb=null;
+  }
+  s.liegeRestMin=rest;
+}
+function wendeZeitKorrekturAn(idx,neuTs){
+  var u=state.used[idx];if(!u||state.max<=0){return;}
+  var alt=u.ts,jetzt=Date.now();
+  if(neuTs===alt){return;}
+  var isPB=(u.n==="Pausenbeginn"),isPE=(u.n.indexOf("Pause beendet")===0);
+  var isUS=(u.n==="Unterwegs / nicht erfasst"),isZH=(u.n.indexOf("Zuhause angekommen")===0);
+  var pbObj=null,peObj=null,usObj=null,zhObj=null,j;
+  if(isPB){pbObj=u;for(j=idx+1;j<state.used.length;j++){if(state.used[j].n.indexOf("Pause beendet")===0){peObj=state.used[j];break;}if(state.used[j].n==="Pausenbeginn"){break;}}}
+  if(isPE){peObj=u;for(j=idx-1;j>=0;j--){if(state.used[j].n==="Pausenbeginn"){pbObj=state.used[j];break;}if(state.used[j].n.indexOf("Pause beendet")===0){break;}}}
+  if(isUS){usObj=u;for(j=idx+1;j<state.used.length;j++){if(state.used[j].n.indexOf("Zuhause angekommen")===0){zhObj=state.used[j];break;}if(state.used[j].n==="Unterwegs / nicht erfasst"){break;}}}
+  if(isZH){zhObj=u;for(j=idx-1;j>=0;j--){if(state.used[j].n==="Unterwegs / nicht erfasst"){usObj=state.used[j];break;}if(state.used[j].n.indexOf("Zuhause angekommen")===0){break;}}}
+  var offen=!!(pbObj&&!peObj);
+  var sAlt=pbObj?pbObj.ts:0,eAlt=peObj?peObj.ts:jetzt;
+  var sNeu=isPB?neuTs:sAlt,eNeu=isPE?neuTs:eAlt;
+  var zusatz=[];
+  if(pbObj){
+    if(isPB&&sNeu>sAlt){zusatz=zusatz.concat(dunkelEintraegeFuerFenster(sAlt,Math.min(eAlt,sNeu)));}
+    if(isPE&&eNeu<eAlt){zusatz=zusatz.concat(dunkelEintraegeFuerFenster(Math.max(sAlt,eNeu),eAlt));}
+  }
+  var flip=null;
+  if(isUS||isZH){var frueher=neuTs<alt;flip={lo:Math.min(alt,neuTs),hi:Math.max(alt,neuTs),pos:isUS?(frueher?"aufrecht":"liegend"):(frueher?"liegend":"aufrecht")};}
+  mutateState(function(s){
+    u.ts=neuTs;
+    u.t=new Date(neuTs).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    if(isPB||isPE){u._recalc=true;}
+    if(isPB&&offen){s.pauseBeginnTs=neuTs;}
+    if(pbObj){
+      var eEnde=offen?jetzt:eNeu;
+      s.used=s.used.filter(function(x){return!(x._idleDrain&&x.ts>=sNeu&&x.ts<=eEnde);});
+      pbObj._recalc=true;
+    }
+    if(flip){for(var k=0;k<s.used.length;k++){var x=s.used[k];if(x.n==="Pausenbeginn"&&x.ts>flip.lo&&x.ts<flip.hi){x.pos=flip.pos;x._recalc=true;}}}
+    if(zhObj&&usObj){zhObj.n="Zuhause angekommen (nach "+Math.max(0,Math.round((zhObj.ts-usObj.ts)/60000))+" Min. unterwegs)";}
+    if(isUS&&!zhObj){s.unterwegsSeitTs=neuTs;}
+    for(var m=0;m<zusatz.length;m++){s.block+=zusatz[m].v;s.used.push(zusatz[m]);}
+    sortiereUsedNachZeit(s);
+    berechneRegenNeu(s);
+  });
+  _lastWarnType=null;_lastWarnTs=0;
+  updateDisplay();showToast("Uhrzeit korrigiert",true);
+}
 function trackDayMinPct(){if(state.max<=0){return;}var pct=(state.cur/state.max)*100;if(state.dayMinPct===undefined||pct<state.dayMinPct-0.5){mutateState(function(s){s.dayMinPct=pct;});}}
 function updateDisplay(){if(state.max<=0){return;}syncCur();var grenze=Math.ceil(state.max*GRENZE_ROT);var spielraum=Math.max(0,state.cur-grenze);document.getElementById("valSpielraum").textContent=spielraum;var stundeJetzt=new Date().getHours()+new Date().getMinutes()/60;var aktiverTopf=stundeJetzt<TOPF_ENDE_H[0]?0:stundeJetzt<TOPF_ENDE_H[1]?1:stundeJetzt<TOPF_ENDE_H[2]?2:3;var topfNamen=["9:00","12:00","15:00","15:00"];var topfPre=["bis ","bis ","bis ","ab "];var heute=new Date();heute.setHours(0,0,0,0);var grenzenTs=[heute.getTime()+TOPF_ENDE_H[0]*3600000,heute.getTime()+TOPF_ENDE_H[1]*3600000,heute.getTime()+TOPF_ENDE_H[2]*3600000,Infinity];var startTs=heute.getTime()+TOPF_START_H*3600000;var vrAlle=[0,0,0,0];for(var i=0;i<state.used.length;i++){var u=state.used[i];if(!u.ts||u.ts<startTs){continue;}var ti=u.ts<grenzenTs[0]?0:u.ts<grenzenTs[1]?1:u.ts<grenzenTs[2]?2:3;if(u.v&&u.v>0){vrAlle[ti]+=u.v;}if(u.regen&&u.regen>0){vrAlle[ti]=Math.max(0,vrAlle[ti]-u.regen);}}var budgets=[Math.round(state.max*TOPF_ANTEIL[0]),Math.round(state.max*TOPF_ANTEIL[1]),Math.round(state.max*TOPF_ANTEIL[2]),Math.round(state.max*TOPF_ANTEIL[3])];var notstromArr=[Math.round(budgets[0]*NOTSTROM_ANTEIL),Math.round(budgets[1]*NOTSTROM_ANTEIL),Math.round(budgets[2]*NOTSTROM_ANTEIL),Math.round(budgets[3]*NOTSTROM_ANTEIL)];var nutzbarArr=[budgets[0]-notstromArr[0],budgets[1]-notstromArr[1],budgets[2]-notstromArr[2],budgets[3]-notstromArr[3]];var nutzbarEff=[nutzbarArr[0],nutzbarArr[1],nutzbarArr[2],nutzbarArr[3]];var notstromEff=[notstromArr[0],notstromArr[1],notstromArr[2],notstromArr[3]];var budgetsEff=[budgets[0],budgets[1],budgets[2],budgets[3]];for(var oi2=0;oi2<3;oi2++){var ovfl=Math.max(0,vrAlle[oi2]-nutzbarEff[oi2]);if(ovfl<=0){continue;}var vbl=3-oi2;var abzug=Math.round(ovfl/vbl);for(var ri=oi2+1;ri<4;ri++){budgetsEff[ri]=Math.max(0,budgetsEff[ri]-abzug);notstromEff[ri]=Math.round(budgetsEff[ri]*NOTSTROM_ANTEIL);nutzbarEff[ri]=Math.max(0,budgetsEff[ri]-notstromEff[ri]);}}var budgetTopf=budgetsEff[aktiverTopf],notstromTopf=notstromEff[aktiverTopf],nutzbarTopf=nutzbarEff[aktiverTopf];var verbrauchTopf=vrAlle[aktiverTopf];var bodensatzAktuell=getSymptomBodensatz();var restTopf=Math.max(0,nutzbarTopf-verbrauchTopf-bodensatzAktuell);var notstromRest=Math.max(0,budgetTopf-Math.max(verbrauchTopf+bodensatzAktuell,nutzbarTopf));var lbl=document.getElementById("labelSpielraum"),valTopfRest=document.getElementById("valTopfRest");var echteReserve=berechneEchteReserve();if(restTopf<=0&&echteReserve>0){if(lbl){lbl.textContent="Restreserve gesamt";}if(valTopfRest){valTopfRest.textContent=echteReserve;}}else{if(lbl){lbl.textContent="Spielraum "+topfPre[aktiverTopf]+topfNamen[aktiverTopf];}if(valTopfRest){valTopfRest.textContent=restTopf;}}var notstromGesamt=0;for(var nti=aktiverTopf;nti<4;nti++){notstromGesamt+=notstromEff[nti];}var gesamtVerfuegbar=echteReserve+notstromGesamt;var valSp=document.getElementById("valSpielraum");if(valSp){if(gesamtVerfuegbar<state.cur){valSp.textContent="Noch verf\u00fcgbar: "+gesamtVerfuegbar+" Pkt. (davon "+notstromGesamt+" Pkt. Notstrom; Rohwert "+state.cur+" \u2192 Overflow in fr\u00fcheren Bl\u00f6cken)";}else{valSp.textContent="Noch verf\u00fcgbar: "+gesamtVerfuegbar+" Pkt. (davon "+notstromGesamt+" Pkt. Notstrom)";}}var topfNotstrom=document.getElementById("topfNotstrom");if(topfNotstrom){if(restTopf>0){topfNotstrom.textContent="Notstrom: "+notstromTopf+" Pkt.";}else{topfNotstrom.textContent="Notstrom: noch "+notstromRest+" Pkt.";}}var gesamt=getGesamtMinuten(),liegeAnteil=gesamt>0?getLiegendMinuten()/gesamt:0,liegeWarnAktiv=gesamt>=30;var anzeigeWert=(restTopf<=0&&echteReserve>0)?echteReserve:restTopf;var anzeigeNutzbar=(restTopf<=0&&echteReserve>0)?echteReserve:nutzbarTopf;var topfLeer=(restTopf<=0);renderStatus(anzeigeWert,notstromTopf,anzeigeNutzbar,liegeAnteil,liegeWarnAktiv,topfLeer);renderPemHeader();renderUsed();checkRollingPene();updateToepfe();updateLiegebalken();updateTagesFuellstand();aktualisiereUnterwegsButton();}
 function updateTagesFuellstand(){var fill=document.getElementById("tagesFuellstandFill");if(!fill||state.max<=0){return;}var g=berechneGesamtVerfuegbar();var pct=Math.max(0,Math.min(1,g.verf/g.nenner));var farbe=pct<=0.10?"#ff3b30":pct<=0.30?"#ff9500":pct<=0.60?"#ffcc00":"#34c759";var text=pct<=0.10?"Stop!":pct<=0.30?"Aufpassen":pct<=0.60?"ist noch ok":"l\u00e4uft";fill.style.height=Math.round(pct*100)+"%";fill.style.background=farbe;var lbl=document.getElementById("tagesFuellstandLabel");if(lbl){lbl.textContent=text;lbl.style.background=farbe;lbl.style.color=(farbe==="#ffcc00")?"#000":"#fff";}}
@@ -625,7 +753,7 @@ function holeLetzteSichtbarkeit(){if(_letzteSichtbarkeit){return _letzteSichtbar
 function pruefeZwangSchwelleMitVorwarnung(){if(state.max<=0||state.unterwegsAktiv||state.pauseBeginnTs||!lastActionTime){return false;}var jetzt=Date.now();var aktivMin=Math.floor((jetzt-lastActionTime)/60000);var erz=berechneZwangSchwelle();if(aktivMin<erz){return false;}var vorz=berechneVorzwangSchwelle();var sichtbarSeit=holeLetzteSichtbarkeit();var aktivMinBeiSicht=Math.floor((sichtbarSeit-lastActionTime)/60000);if(aktivMinBeiSicht<vorz){lastActionTime=jetzt-vorz*60000;storeSet("pacing_timer_start",String(lastActionTime));showToast("Timer lief weiter (\u00fcber "+aktivMin+" Min. ohne Pause) \u2014 bitte bald pausieren, sonst sperrt sich die App.",true);renderMainWarning();return false;}return true;}
 function applyLoad(i){if(state.max<=0){showToast("Bitte erst den Tag starten!");return;}sicherstelleAufgestanden();beendeUnterwegsFallsAktiv();checkTopfWechsel();pruefeIdleAbzug();var _mussSperrenA=pruefeZwangSchwelleMitVorwarnung();markiereSichtbarkeit();if(_mussSperrenA){zeigeSperrBar();return;}if(state.pauseBeginnTs){endePause(true);}mutateState(function(s){s.block+=loads[i].v;s.used.push({n:loads[i].n,v:loads[i].v,ts:Date.now(),t:nowTime(),pos:"aufrecht"});if(!s.aufrechtSeitTs){s.aufrechtSeitTs=Date.now();}});checkPemPenalty();trackDayMinPct();updateDisplay();showToast("Erfasst: "+loads[i].n);startPauseTimer();markiereAktivitaet();document.getElementById("mainWarnBar")._dismissed=false;}
 function doPauseBeginn(){if(state.max<=0){return;}sicherstelleAufgestanden();checkTopfWechsel();pruefeIdleAbzug();var jetzt=Date.now();var pausePos=state.unterwegsAktiv?"aufrecht":"liegend";mutateState(function(s){s.block=0;s.pene=false;s.pauseBeginnTs=jetzt;s.aufrechtSeitTs=null;s.used.push({n:"Pausenbeginn",v:0,ts:jetzt,t:nowTimeSec(),pos:pausePos});});var mwb=document.getElementById("mainWarnBar");if(mwb){mwb.style.display="none";mwb._dismissed=false;}document.getElementById("pacingHeader").style.display="none";_lastWarnType=null;_lastWarnTs=0;var lpb=document.getElementById("langePauseBar");if(lpb){lpb.style.display="none";}_langePauseHingewiesen=false;stopPauseTimer();aktualisierePauseButtons();versteckeSperrBar();var mwbPos=document.getElementById("mainWarnBar");if(mwbPos&&!_topfPauseErforderlich&&!_zuvielAktiv&&!_zwangPauseErforderlich&&!state.unterwegsAktiv){mwbPos.style.display="block";mwbPos.style.background="#34c759";mwbPos.style.color="#fff";mwbPos.style.animation="none";mwbPos.style.cursor="pointer";mwbPos.innerHTML="&#128564; Pause l\u00e4uft \u2014 sehr gut!<br><span style=\"font-size:11px;font-weight:400;opacity:0.8;\">Tippen zum Schlie\u00dfen</span>";mwbPos.onclick=function(){this._dismissed=true;this.style.display="none";};mwbPos._dismissed=false;mwbPos._currentType=null;_lastWarnType=null;_lastWarnTs=Date.now()+15000;}showToast("Pausenbeginn erfasst");markiereAktivitaet();updateDisplay();}
-function endePause(auto){if(state.max<=0){return;}var jetzt=Date.now(),min=state.pauseBeginnTs?Math.round((jetzt-state.pauseBeginnTs)/60000):0;var liegend=false;for(var pi=state.used.length-1;pi>=0;pi--){if(state.used[pi].n==="Pausenbeginn"){liegend=(state.used[pi].pos==="liegend");break;}}var regen=0,neuerRest=state.liegeRestMin||0;if(liegend&&min>0){var rm=auto?Math.min(min,PAUSE_MINDEST_MIN):Math.min(min,REGEN_MAX_MIN);var combinedMin=(state.liegeRestMin||0)+rm;var regenBlocks=Math.floor(combinedMin/10);regen=regenBlocks*REGEN_PRO_10_MIN;regen=Math.min(regen,regenNochVerfuegbar());neuerRest=combinedMin-regenBlocks*10;}if(min>=ZUVIEL_PAUSE_MIN-3){_zuvielAktiv=false;_zuvielPauseEndeTs=jetzt;}if(min>=HF_SCHWELLE_PAUSE_MIN-3){_hfSchwelleAktiv=false;_hfSchwellePauseEndeTs=jetzt;}if(min>=ZUVIEL_PAUSE_MIN){regen+=2;}if(min>=PAUSE_MINDEST_MIN-3){_topfPauseErforderlich=false;_zwangPauseErforderlich=false;}mutateState(function(s){s.used.push({n:"Pause beendet ("+min+" Min.)",v:0,ts:jetzt,t:nowTimeSec(),pos:"aufrecht",regen:regen});s.pauseBeginnTs=null;s.aufrechtSeitTs=jetzt;if(liegend){s.liegeRestMin=neuerRest;s.letzteLiegeZeit=jetzt;}});checkPemPenalty();aktualisierePauseButtons();var lpb=document.getElementById("langePauseBar");if(lpb){lpb.style.display="none";}_langePauseHingewiesen=false;_lastPauseEndeTs=Date.now();markiereAktivitaet();if(!auto){trackDayMinPct();updateDisplay();lastActionTime=null;startPauseTimer();showToast("Pause: "+min+" Min.");}}
+function endePause(auto,endTs){if(state.max<=0){return;}var jetzt=endTs||Date.now(),min=state.pauseBeginnTs?Math.round((jetzt-state.pauseBeginnTs)/60000):0;var liegend=false;for(var pi=state.used.length-1;pi>=0;pi--){if(state.used[pi].n==="Pausenbeginn"){liegend=(state.used[pi].pos==="liegend");break;}}var regen=0,neuerRest=state.liegeRestMin||0;if(liegend&&min>0){var rm=auto?Math.min(min,PAUSE_MINDEST_MIN):Math.min(min,REGEN_MAX_MIN);var combinedMin=(state.liegeRestMin||0)+rm;var regenBlocks=Math.floor(combinedMin/10);regen=regenBlocks*REGEN_PRO_10_MIN;regen=Math.min(regen,regenNochVerfuegbar());neuerRest=combinedMin-regenBlocks*10;}if(min>=ZUVIEL_PAUSE_MIN-3){_zuvielAktiv=false;_zuvielPauseEndeTs=jetzt;}if(min>=HF_SCHWELLE_PAUSE_MIN-3){_hfSchwelleAktiv=false;_hfSchwellePauseEndeTs=jetzt;}if(min>=ZUVIEL_PAUSE_MIN){regen+=2;}if(min>=PAUSE_MINDEST_MIN-3){_topfPauseErforderlich=false;_zwangPauseErforderlich=false;}mutateState(function(s){s.used.push({n:"Pause beendet ("+min+" Min.)",v:0,ts:jetzt,t:new Date(jetzt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"}),pos:"aufrecht",regen:regen,auto:!!auto});s.pauseBeginnTs=null;s.aufrechtSeitTs=jetzt;if(liegend){s.liegeRestMin=neuerRest;s.letzteLiegeZeit=jetzt;}});if(endTs){var deP=dunkelEintraegeFuerFenster(endTs,Date.now());if(deP.length>0){mutateState(function(s2){for(var dk=0;dk<deP.length;dk++){s2.block+=deP[dk].v;s2.used.push(deP[dk]);}});}}checkPemPenalty();aktualisierePauseButtons();var lpb=document.getElementById("langePauseBar");if(lpb){lpb.style.display="none";}_langePauseHingewiesen=false;_lastPauseEndeTs=Date.now();markiereAktivitaet();if(!auto){trackDayMinPct();updateDisplay();lastActionTime=null;startPauseTimer();showToast("Pause: "+min+" Min.");}}
 var ARCHIV_TAGE_MAX=60;
 function archiveDay(){if(state.max<=0){return;}var pct=(state.cur/state.max)*100,minPct=state.dayMinPct!==undefined?state.dayMinPct:pct;mutateState(function(s){if(!s.history){s.history=[];}s.history.push({crash:minPct<25,minPct:minPct});if(s.history.length>7){s.history.shift();}if(!s.archiv){s.archiv=[];}s.archiv.push({date:s.date,max:s.max,minPct:minPct,used:s.used,symptome:s.symptome});if(s.archiv.length>ARCHIV_TAGE_MAX){s.archiv.shift();}s.dayMinPct=undefined;});}
 function exportiereDaten(){
@@ -742,7 +870,7 @@ function saveEdit(i){var n=document.getElementById("en").value.trim(),v=parseInt
 function deleteCatalog(i){loads.splice(i,1);saveLoads();renderCatalog();}
 function resetKatalog(){loads=[];storeSet(STORAGE_LOADS,JSON.stringify(loads));renderCatalog();showToast("Katalog zur\u00fcckgesetzt");}
 function buildCombined(){var combined=[],i;for(i=0;i<state.used.length;i++){combined.push({ts:state.used[i].ts||0,type:"aktivitaet",data:state.used[i]});}var symp=state.symptome||[];for(i=0;i<symp.length;i++){combined.push({ts:symp[i].ts||0,type:"symptom",data:symp[i]});}combined.sort(function(a,b){return b.ts-a.ts;});return combined;}
-function makeEntryRow(entry){var row=document.createElement("div");row.className="item";if(entry.type==="aktivitaet"){var u=entry.data,pos=u.pos||(u.v<0?"liegend":"aufrecht"),oi=state.used.indexOf(u);var left=document.createElement("span");left.style.cssText="display:flex;align-items:center;flex-wrap:wrap;gap:2px;flex:1;";var tspan=document.createElement("span");tspan.style.cssText="font-size:11px;opacity:0.8;margin-right:6px;";tspan.textContent=u.t||"";left.appendChild(tspan);left.appendChild(document.createTextNode(u.n));if(u._symptomInfo){left.style.opacity="0.7";left.style.fontStyle="italic";row.appendChild(left);if(u._infoDiff){var rsp=document.createElement("span");rsp.style.cssText="font-weight:700;color:"+(u._infoDiff<0?"#ff3b30":"#34c759")+";";rsp.textContent=(u._infoDiff<0?"":"+")+u._infoDiff;row.appendChild(rsp);}return row;}var pw=document.createElement("span");pw.className="pos-wrap";var tU=document.createElement("span");tU.className="pos-tag pos-aufrecht"+(pos==="aufrecht"?" aktiv":"");tU.textContent="aufrecht";tU.addEventListener("click",machTogglePositionHandler(oi));var tD=document.createElement("span");tD.className="pos-tag pos-liegend"+(pos==="liegend"?" aktiv":"");tD.textContent=pos==="liegend"?"liegend":"liegend?";tD.addEventListener("click",machTogglePositionHandler(oi));pw.appendChild(tU);pw.appendChild(tD);left.appendChild(pw);row.appendChild(left);if(u.v!==0){var right=document.createElement("span");right.textContent=(u.v<0?"+":"-")+Math.abs(u.v);row.appendChild(right);}else if(u.regen&&u.regen>0){var regenSpan=document.createElement("span");regenSpan.style.cssText="font-weight:700;color:#34c759;";regenSpan.textContent="+"+u.regen;row.appendChild(regenSpan);}}else{var s=entry.data,left2=document.createElement("span");if(s.weg){left2.style.opacity="0.6";}var ts2=document.createElement("span");ts2.style.cssText="font-size:11px;opacity:0.8;margin-right:6px;";ts2.textContent=s.t||"";left2.appendChild(ts2);left2.appendChild(document.createTextNode(getSYMPTOM_NAMEN()[s.s]));if(s.weg){var ws=document.createElement("span");ws.style.cssText="color:#34c759;font-weight:700;margin-left:4px;";ws.textContent="weg";left2.appendChild(ws);}else if(s.sw){left2.appendChild(document.createTextNode(" ("+s.sw+")"));}row.appendChild(left2);}return row;}
+function makeEntryRow(entry){var row=document.createElement("div");row.className="item";if(entry.type==="aktivitaet"){var u=entry.data,pos=u.pos||(u.v<0?"liegend":"aufrecht"),oi=state.used.indexOf(u);var left=document.createElement("span");left.style.cssText="display:flex;align-items:center;flex-wrap:wrap;gap:2px;flex:1;";var tspan=document.createElement("span");tspan.style.cssText="font-size:11px;opacity:0.8;margin-right:6px;";tspan.textContent=u.t||"";if(korrigierbar(u)){tspan.style.cssText="font-size:11px;font-weight:700;margin-right:6px;padding:6px 6px 6px 0;text-decoration:underline dotted;cursor:pointer;";tspan.addEventListener("click",machZeitHandler(oi));}left.appendChild(tspan);left.appendChild(document.createTextNode(u.n));if(u._symptomInfo){left.style.opacity="0.7";left.style.fontStyle="italic";row.appendChild(left);if(u._infoDiff){var rsp=document.createElement("span");rsp.style.cssText="font-weight:700;color:"+(u._infoDiff<0?"#ff3b30":"#34c759")+";";rsp.textContent=(u._infoDiff<0?"":"+")+u._infoDiff;row.appendChild(rsp);}return row;}var pw=document.createElement("span");pw.className="pos-wrap";var tU=document.createElement("span");tU.className="pos-tag pos-aufrecht"+(pos==="aufrecht"?" aktiv":"");tU.textContent="aufrecht";tU.addEventListener("click",machTogglePositionHandler(oi));var tD=document.createElement("span");tD.className="pos-tag pos-liegend"+(pos==="liegend"?" aktiv":"");tD.textContent=pos==="liegend"?"liegend":"liegend?";tD.addEventListener("click",machTogglePositionHandler(oi));pw.appendChild(tU);pw.appendChild(tD);left.appendChild(pw);row.appendChild(left);if(u.v!==0){var right=document.createElement("span");right.textContent=(u.v<0?"+":"-")+Math.abs(u.v);row.appendChild(right);}else if(u.regen&&u.regen>0){var regenSpan=document.createElement("span");regenSpan.style.cssText="font-weight:700;color:#34c759;";regenSpan.textContent="+"+u.regen;row.appendChild(regenSpan);}}else{var s=entry.data,left2=document.createElement("span");if(s.weg){left2.style.opacity="0.6";}var ts2=document.createElement("span");ts2.style.cssText="font-size:11px;opacity:0.8;margin-right:6px;";ts2.textContent=s.t||"";left2.appendChild(ts2);left2.appendChild(document.createTextNode(getSYMPTOM_NAMEN()[s.s]));if(s.weg){var ws=document.createElement("span");ws.style.cssText="color:#34c759;font-weight:700;margin-left:4px;";ws.textContent="weg";left2.appendChild(ws);}else if(s.sw){left2.appendChild(document.createTextNode(" ("+s.sw+")"));}row.appendChild(left2);}return row;}
 function renderUsedPreview(){var preview=document.getElementById("usedPreview"),isOpen=document.getElementById("usedBody").classList.contains("open");preview.innerHTML="";if(isOpen){return;}var combined=buildCombined(),count=Math.min(2,combined.length);for(var i=0;i<count;i++){preview.appendChild(makeEntryRow(combined[i]));}if(combined.length>2){var more=document.createElement("div");more.style.cssText="font-size:11px;color:#8e8e93;text-align:center;padding:4px 0;";more.textContent="+"+(combined.length-2)+" weitere";preview.appendChild(more);}}
 function renderUsed(){var div=document.getElementById("dayList");div.innerHTML="";var combined=buildCombined();for(var i=0;i<combined.length;i++){div.appendChild(makeEntryRow(combined[i]));}renderUsedPreview();renderAktiveSymptome();}
 function undoLast(){if(!state.symptome){state.symptome=[];}var lu=state.used.length?state.used[state.used.length-1]:null,ls=state.symptome.length?state.symptome[state.symptome.length-1]:null;if(ls&&ls.ts&&(!lu||ls.ts>lu.ts)){mutateState(function(s){s.symptome.pop();});bereinigeBodensatz();if(_zuvielAktiv&&!pruefeZuvielBedingung()){_zuvielAktiv=false;}updateDisplay();showToast("Symptom r\u00fcckg\u00e4ngig");}else if(lu){var last=state.used[state.used.length-1];if(last.n.indexOf("Strafe:")===0){mutateState(function(s){s.used.pop();s.pene=false;s.block=Math.round(s.max*BLOCK_PAUSE)-1;});}else if(last.n.indexOf("Pause beendet")===0){var vorTs=null;for(var pi=state.used.length-2;pi>=0;pi--){if(state.used[pi].n==="Pausenbeginn"){vorTs=state.used[pi].ts;break;}}mutateState(function(s){s.used.pop();s.pauseBeginnTs=vorTs;});if(vorTs){aktualisierePauseButtons();}}else if(last._symptomAbzug||last._symptomRegen||last.n.indexOf("Symptom-Abzug")===0||last.n.indexOf("Symptom-Korrektur")===0){showToast("Bitte Symptom selbst r\u00fckg\u00e4ngig machen");return;}else if(last.n==="Aufgestanden"){mutateState(function(s){s.used.pop();s.block=Math.max(0,s.block-last.v);s.morgensAufgestanden=false;});aktualisierePauseButtons();}else if(last.n.indexOf("Zuhause angekommen")===0){var wiederSeit=Date.now();for(var zi=state.used.length-2;zi>=0;zi--){if(state.used[zi].n==="Unterwegs / nicht erfasst"){wiederSeit=state.used[zi].ts;break;}}mutateState(function(s){s.used.pop();s.unterwegsAktiv=true;s.unterwegsSeitTs=wiederSeit;});aktualisiereUnterwegsButton();}else{mutateState(function(s){s.used.pop();s.block=Math.max(0,s.block-last.v);});}if(_zuvielAktiv&&!pruefeZuvielBedingung()){_zuvielAktiv=false;var mwbU=document.getElementById("mainWarnBar");if(mwbU&&mwbU._currentType==="ZUVIEL"){mwbU.style.display="none";mwbU._dismissed=false;mwbU._currentType=null;_lastWarnType=null;}}if(last._hfSchwelle){_hfSchwelleAktiv=false;var mwbH=document.getElementById("mainWarnBar");if(mwbH&&mwbH._currentType==="HF_SCHWELLE"){mwbH.style.display="none";mwbH._dismissed=false;mwbH._currentType=null;_lastWarnType=null;}}updateDisplay();}}
@@ -948,6 +1076,16 @@ function showHistory(){var h=state.history||[],migriert=false;for(var mi=0;mi<h.
   <div style="display:flex;gap:8px;">
     <button type="button" id="symptomKonfirmJa" style="flex:1;padding:12px;background:#34c759;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;">Ja, beibehalten</button>
     <button type="button" id="symptomKonfirmNein" style="flex:1;padding:12px;background:#ff9500;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;">Nein, &auml;ndern</button>
+  </div>
+</div>
+<div id="zeitOverlay" style="position:fixed;inset:0;z-index:5100;background:rgba(0,0,0,0.5);display:none;"></div>
+<div id="zeitDialog" style="position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:5101;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);padding:20px 16px;min-width:280px;max-width:340px;text-align:center;display:none;">
+  <div id="zeitTitel" style="font-size:15px;font-weight:700;color:#333;margin-bottom:6px;"></div>
+  <div id="zeitSub" style="font-size:12px;color:#888;margin-bottom:8px;"></div>
+  <input id="zeitInput" type="time" style="text-align:center;font-size:24px;font-weight:700;margin:0 0 16px;">
+  <div style="display:flex;gap:10px;">
+    <button type="button" id="zeitAbbrechen" style="flex:1;padding:12px;background:#e5e5ea;color:#333;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">Abbrechen</button>
+    <button type="button" id="zeitOk" style="flex:1;padding:12px;background:#34c759;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">Speichern</button>
   </div>
 </div>
 </body>
