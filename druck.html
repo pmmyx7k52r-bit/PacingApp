@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.8.3.5</title>
+<title>PacingApp 6.8.3.6</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -1018,7 +1018,7 @@ function updateLiegebalken(){
             empfText="Bis "+naechsteTopfZeit+" liegen \u2192 neuer Block";empfColor="#ff9500";
           }
         }else{
-          empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 "+naechsteFarbe;empfColor=farbeHexAktion(farbeIndex);
+          if(nochRegenMin>=nochLiegeMin&&nochRegenMin>0){empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 "+naechsteFarbe;empfColor=farbeHexAktion(farbeIndex);}else if(nochRegenMin<=0&&regenFehlt>0){empfText="Energie ok (nach Pausenende "+naechsteFarbe+" oder besser) \u2014 Liegeanteil: noch ~"+nochGesamt+" Min.";empfColor="#ff9500";}else{empfText="Noch ~"+nochGesamt+" Min. liegen \u2192 Liegeanteil 25%";empfColor="#ff9500";}
         }
       }else{
         if(pflichtPause){
@@ -1040,7 +1040,7 @@ function updateLiegebalken(){
         }else if(regenMinFehlt>=liegeMinFehlt&&regenMinFehlt>0){
           empfText="Energie-Ausgleich: "+gruenMin+" Min. liegen \u2192 "+naechsteFarbe;empfColor=farbeHexAktion(farbeIndex);
         }else{
-          empfText="Empfehlung: "+gruenMin+" Min. liegen \u2192 "+naechsteFarbe;empfColor=farbeHexAktion(farbeIndex);
+          empfText="Liegeanteil: "+gruenMin+" Min. liegen \u2192 25%";empfColor="#ff9500";
         }
       }
     }
