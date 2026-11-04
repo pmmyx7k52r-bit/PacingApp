@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PacingApp 6.8.3.9</title>
+<title>PacingApp 6.8.3.10</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Pacing">
@@ -540,7 +540,7 @@ function pruefeIdleAbzug(){
   // einer Pause ebenfalls wie Erholung - kein Dunkelabzug. _symptomInfo-Eintraege tragen
   // pos="liegend" nur als Platzhalter und zaehlen dafuer nicht.
   var letzterPosI=null;
-  for(var lpI=state.used.length-1;lpI>=0;lpI--){var upI=state.used[lpI];if(upI._symptomInfo){continue;}letzterPosI=upI.pos;break;}
+  for(var lpI=state.used.length-1;lpI>=0;lpI--){var upI=state.used[lpI];if(upI._symptomInfo){continue;}if(upI.n&&upI.n.indexOf("Pause beendet")===0){letzterPosI="aufrecht";break;}letzterPosI=upI.pos;break;}
   if(letzterPosI==="liegend"){return;}
   var idleMin=Math.floor((Date.now()-_letzteAktion)/60000);
   var idleBloeckeSoll=Math.floor(idleMin/IDLE_DRAIN_MIN);
